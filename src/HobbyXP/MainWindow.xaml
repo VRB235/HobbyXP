@@ -32,11 +32,15 @@
                             </Grid.ColumnDefinitions>
 
                             <Grid Width="52" Height="52" Margin="0,0,12,0">
-                                <Border CornerRadius="26" ClipToBounds="True"
-                                        BorderBrush="{StaticResource AccentPurpleBrush}" BorderThickness="2"
-                                        Background="#2A3347">
-                                    <Image Source="{Binding AvatarImage}" Stretch="UniformToFill" />
-                                </Border>
+                                <Ellipse Fill="#2A3347"
+                                         Stroke="{StaticResource AccentPurpleBrush}"
+                                         StrokeThickness="2" />
+                                <Ellipse Margin="3"
+                                         Visibility="{Binding HasCustomAvatar, Converter={StaticResource BoolToVisibilityConverter}}">
+                                    <Ellipse.Fill>
+                                        <ImageBrush ImageSource="{Binding AvatarImage}" Stretch="UniformToFill" />
+                                    </Ellipse.Fill>
+                                </Ellipse>
                                 <TextBlock Text="⚔" FontSize="22" HorizontalAlignment="Center" VerticalAlignment="Center"
                                            Visibility="{Binding HasCustomAvatar, Converter={StaticResource InverseBoolToVisibilityConverter}}" />
                             </Grid>
