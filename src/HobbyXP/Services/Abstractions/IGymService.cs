@@ -1,0 +1,32 @@
+using HobbyXP.Models.Enums;
+using HobbyXP.Models.Physical;
+using HobbyXP.Services.Results;
+
+namespace HobbyXP.Services.Abstractions;
+
+public interface IGymService
+{
+    Task<IReadOnlyList<Exercise>> GetExercisesAsync(CancellationToken cancellationToken = default);
+
+    Task<Exercise> CreateOrGetExerciseAsync(
+        string name,
+        ExerciseType exerciseType,
+        CancellationToken cancellationToken = default);
+
+    Task<OperationResult<GymWorkout>> SaveWorkoutAsync(
+        IReadOnlyList<GymWorkoutEntryDraft> entries,
+        string? notes = null,
+        CancellationToken cancellationToken = default);
+}
+
+/// <summary>
+/// Borrador de fila de gimnasio antes de persistir y validar récords.
+/// </summary>
+public sealed record GymWorkoutEntryDraft(
+    int ExerciseId,
+    ExerciseType ExerciseType,
+    int Sets,
+    int? Repetitions,
+    decimal? WeightKg,
+    TimeSpan? Duration,
+    int SortOrder);

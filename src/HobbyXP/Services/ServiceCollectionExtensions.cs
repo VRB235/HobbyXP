@@ -1,0 +1,30 @@
+using HobbyXP.Services.Abstractions;
+using HobbyXP.Services.Messaging;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace HobbyXP.Services;
+
+public static class ServiceCollectionExtensions
+{
+    public static IServiceCollection AddHobbyXpServices(this IServiceCollection services)
+    {
+        services.AddScoped<IXpService, XpService>();
+        services.AddScoped<IAchievementEngineService, AchievementEngineService>();
+        services.AddScoped<IPlayerProfileService, PlayerProfileService>();
+        services.AddScoped<IDashboardService, DashboardService>();
+        services.AddScoped<IRunningService, RunningService>();
+        services.AddScoped<IGymService, GymService>();
+        services.AddScoped<IPuzzleService, PuzzleService>();
+        services.AddScoped<IMediaService, MediaService>();
+        services.AddScoped<IVideoGameService, VideoGameService>();
+        services.AddScoped<IBookService, BookService>();
+        services.AddScoped<ICourseService, CourseService>();
+        services.AddScoped<IMedalService, MedalService>();
+        services.AddScoped<IRewardService, RewardService>();
+
+        services.AddSingleton<IFileDialogService, FileDialogService>();
+        services.AddSingleton<ILevelUpMessenger, LevelUpMessenger>();
+
+        return services;
+    }
+}

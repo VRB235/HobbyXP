@@ -1,0 +1,120 @@
+<UserControl x:Class="HobbyXP.Views.EntertainmentView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <DockPanel Margin="24,20">
+        <TextBlock DockPanel.Dock="Top" Text="Hobbies de Entretenimiento" Style="{StaticResource PageTitleText}" Margin="0,0,0,16" />
+
+        <TabControl SelectedIndex="{Binding SelectedTabIndex}">
+            <TabItem Header="Rompecabezas">
+                <ScrollViewer DataContext="{Binding Puzzles}">
+                    <StackPanel Margin="8">
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                            <TextBox Width="180" Text="{Binding Name}" Margin="0,0,8,0" Tag="Nombre" />
+                            <TextBox Width="80" Text="{Binding PieceCount}" Margin="0,0,8,0" Tag="Piezas" />
+                            <ComboBox Width="100" ItemsSource="{Binding Categories}" SelectedItem="{Binding Category}" Margin="0,0,8,0" />
+                            <TextBox Width="220" Text="{Binding PhotoPath}" Margin="0,0,8,0" Tag="Ruta foto" />
+                            <Button Content="Registrar" Command="{Binding RegisterCommand}" Style="{StaticResource AccentButton}" />
+                        </StackPanel>
+                        <ItemsControl ItemsSource="{Binding Puzzles}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <WrapPanel />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Width="180" Margin="4" Padding="10" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="10" Background="{StaticResource BgCardBrush}">
+                                        <StackPanel>
+                                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                                            <TextBlock Text="{Binding PieceCount, StringFormat={}{0} piezas}" />
+                                            <TextBlock Text="{Binding Category}" />
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <TabItem Header="Series y Películas">
+                <StackPanel DataContext="{Binding Media}" Margin="8">
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                        <TextBox Width="260" Text="{Binding Title}" Margin="0,0,8,0" />
+                        <ComboBox Width="120" ItemsSource="{Binding MediaTypes}" SelectedItem="{Binding MediaType}" Margin="0,0,8,0" />
+                        <Button Content="Registrar" Command="{Binding RegisterCommand}" Padding="10,4" />
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                        <TextBlock Text="{Binding YearlyMovies, StringFormat=Películas ({0})}" Margin="0,0,16,0" FontWeight="SemiBold" />
+                        <TextBlock Text="{Binding YearlySeries, StringFormat=Series ({0})}" Margin="0,0,16,0" FontWeight="SemiBold" />
+                        <TextBlock Text="{Binding YearlyTotal, StringFormat=Total ({0})}" FontWeight="SemiBold" />
+                    </StackPanel>
+                    <ListView ItemsSource="{Binding History}" Height="300">
+                        <ListView.View>
+                            <GridView>
+                                <GridViewColumn Header="Título" DisplayMemberBinding="{Binding Title}" Width="260" />
+                                <GridViewColumn Header="Tipo" DisplayMemberBinding="{Binding MediaType}" Width="100" />
+                                <GridViewColumn Header="Fecha" DisplayMemberBinding="{Binding CompletedAt, StringFormat={}{0:dd/MM/yyyy}}" Width="120" />
+                            </GridView>
+                        </ListView.View>
+                    </ListView>
+                </StackPanel>
+            </TabItem>
+
+            <TabItem Header="Videojuegos">
+                <ScrollViewer DataContext="{Binding VideoGames}">
+                    <StackPanel Margin="8">
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                            <TextBox Width="200" Text="{Binding Title}" Margin="0,0,8,0" />
+                            <ComboBox Width="140" ItemsSource="{Binding Platforms}" SelectedItem="{Binding Platform}" Margin="0,0,8,0" />
+                            <Slider Width="120" Minimum="0" Maximum="100" Value="{Binding InitialCompletion}" VerticalAlignment="Center" Margin="0,0,8,0" />
+                            <Button Content="Registrar" Command="{Binding RegisterCommand}" Style="{StaticResource AccentButton}" />
+                        </StackPanel>
+
+                        <TextBlock Text="En progreso" FontWeight="SemiBold" Margin="0,0,0,8" />
+                        <ItemsControl ItemsSource="{Binding InProgressGames}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="10" Padding="10" Margin="0,0,0,8" Background="{StaticResource BgCardBrush}">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="2*" />
+                                                <ColumnDefinition Width="3*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Grid.Column="0">
+                                                <TextBlock Text="{Binding Title}" FontWeight="SemiBold" />
+                                                <TextBlock Text="{Binding Platform}" />
+                                            </StackPanel>
+                                            <ProgressBar Grid.Column="1" Height="18" Minimum="0" Maximum="100"
+                                                         Value="{Binding CompletionPercentage, Converter={StaticResource ProgressValueClampConverter}}"
+                                                         VerticalAlignment="Center" Margin="8,0" />
+                                            <Button Grid.Column="2" Content="+ Actualizar" Style="{StaticResource PrimaryButton}" Padding="8,4"
+                                                    Command="{Binding DataContext.IncrementCompletionCommand, RelativeSource={RelativeSource AncestorType=ScrollViewer}}"
+                                                    CommandParameter="{Binding}" />
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+
+                        <TextBlock Text="Juegos platinados" FontWeight="SemiBold" Margin="0,16,0,8" />
+                        <ItemsControl ItemsSource="{Binding PlatinumGames}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border BorderBrush="{StaticResource AccentGoldBrush}" BorderThickness="2" CornerRadius="10" Padding="12" Margin="0,0,0,8" Background="#2A2418">
+                                        <StackPanel>
+                                            <TextBlock Text="{Binding Title}" FontWeight="Bold" />
+                                            <TextBlock Text="{Binding Platform}" />
+                                            <TextBlock Text="{Binding PlatinumUnlockedAt, StringFormat=Platino: {0:dd/MM/yyyy}}" />
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+        </TabControl>
+    </DockPanel>
+</UserControl>

@@ -1,0 +1,29 @@
+<UserControl x:Class="HobbyXP.Views.Controls.XpProgressBar"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:conv="clr-namespace:HobbyXP.Converters"
+             Height="16">
+    <UserControl.Resources>
+        <conv:ProgressBarWidthConverter x:Key="ProgressBarWidthConverter" />
+        <conv:ProgressValueClampConverter x:Key="ProgressValueClampConverter" />
+    </UserControl.Resources>
+
+    <Border Background="#2A3347" CornerRadius="8" ClipToBounds="True">
+        <Grid x:Name="Track">
+            <Border HorizontalAlignment="Left" Background="{StaticResource XpProgressFillBrush}" CornerRadius="8">
+                <Border.Width>
+                    <MultiBinding Converter="{StaticResource ProgressBarWidthConverter}">
+                        <Binding Path="Value" RelativeSource="{RelativeSource AncestorType=UserControl}"
+                                 Converter="{StaticResource ProgressValueClampConverter}" />
+                        <Binding Source="0" />
+                        <Binding Source="100" />
+                        <Binding ElementName="Track" Path="ActualWidth" />
+                    </MultiBinding>
+                </Border.Width>
+                <Border.Effect>
+                    <DropShadowEffect BlurRadius="12" ShadowDepth="0" Opacity="0.7" Color="#00E676" />
+                </Border.Effect>
+            </Border>
+        </Grid>
+    </Border>
+</UserControl>

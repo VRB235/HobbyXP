@@ -1,0 +1,98 @@
+﻿<Window x:Class="HobbyXP.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:nav="clr-namespace:HobbyXP.ViewModels.Navigation"
+        xmlns:controls="clr-namespace:HobbyXP.Views.Controls"
+        Title="HobbyXP — Habit Tracking RPG"
+        Height="900" Width="1360" MinHeight="680" MinWidth="1024"
+        Background="{StaticResource MainBackgroundBrush}"
+        Foreground="{StaticResource TextPrimaryBrush}">
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="280" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <!-- Sidebar -->
+        <Border Grid.Column="0" Background="{StaticResource BgSidebarBrush}"
+                BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,1,0">
+            <DockPanel Margin="16,20">
+                <StackPanel DockPanel.Dock="Top" Margin="0,0,0,20">
+                    <TextBlock Text="HOBBY XP" FontFamily="{StaticResource Font.Display}" FontSize="22" FontWeight="Bold"
+                               Foreground="{StaticResource AccentGreenBrush}" />
+                    <TextBlock Text="Habit Tracking RPG" Style="{StaticResource MutedText}" Margin="0,2,0,0" />
+                </StackPanel>
+
+                <Border DockPanel.Dock="Top" Style="{StaticResource DarkCard}" Margin="0,0,0,20" Padding="14">
+                    <StackPanel>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+
+                            <Grid Width="52" Height="52" Margin="0,0,12,0">
+                                <Border CornerRadius="26" ClipToBounds="True"
+                                        BorderBrush="{StaticResource AccentPurpleBrush}" BorderThickness="2"
+                                        Background="#2A3347">
+                                    <Image Source="{Binding AvatarImage}" Stretch="UniformToFill" />
+                                </Border>
+                                <TextBlock Text="⚔" FontSize="22" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                           Visibility="{Binding HasCustomAvatar, Converter={StaticResource InverseBoolToVisibilityConverter}}" />
+                            </Grid>
+
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBox Text="{Binding DisplayName, UpdateSourceTrigger=PropertyChanged}"
+                                         Background="Transparent" BorderThickness="0" Padding="0"
+                                         FontWeight="Bold" FontSize="16" Foreground="{StaticResource TextPrimaryBrush}" />
+                                <TextBlock Text="{Binding SidebarLevelText}" Style="{StaticResource MutedText}" FontSize="12" Margin="0,2,0,0" />
+                                <TextBlock Text="{Binding SidebarXpSummary}" Style="{StaticResource MutedText}" FontSize="11" />
+                            </StackPanel>
+                        </Grid>
+
+                        <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                            <Button Content="📷 Avatar" Command="{Binding PickAvatarCommand}" Style="{StaticResource PrimaryButton}"
+                                    Padding="8,4" FontSize="12" Margin="0,0,8,0" />
+                            <Button Content="💾 Nombre" Command="{Binding SaveDisplayNameCommand}" Style="{StaticResource PrimaryButton}"
+                                    Padding="8,4" FontSize="12" />
+                        </StackPanel>
+
+                        <controls:XpProgressBar Value="{Binding PlayerProgressPercentage}" Margin="0,12,0,0" />
+                    </StackPanel>
+                </Border>
+
+                <ItemsControl ItemsSource="{Binding NavigationItems}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate DataType="{x:Type nav:NavigationItem}">
+                            <Button Style="{StaticResource NavButton}"
+                                    Command="{Binding DataContext.NavigateCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                    CommandParameter="{Binding Section}"
+                                    DataContext="{Binding}">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="{Binding IconGlyph}" FontSize="16" Width="28" />
+                                    <TextBlock Text="{Binding Title}" VerticalAlignment="Center" FontSize="14" />
+                                </StackPanel>
+                            </Button>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </DockPanel>
+        </Border>
+
+        <!-- Área principal -->
+        <Grid Grid.Column="1">
+            <controls:GeometricBackground />
+            <DockPanel>
+                <Border DockPanel.Dock="Top" Background="#CC151B26" Padding="16,10"
+                        BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1">
+                    <TextBlock Text="{Binding LatestAchievementMessage, FallbackValue='Bienvenido a tu aventura de hobbies.'}"
+                               Foreground="{StaticResource AccentCyanBrush}" FontWeight="SemiBold" FontSize="13" />
+                </Border>
+
+                <ContentControl Content="{Binding CurrentViewModel}" Margin="0" />
+            </DockPanel>
+        </Grid>
+
+        <controls:LevelUpOverlay Grid.ColumnSpan="2" DataContext="{Binding}" Panel.ZIndex="1000" />
+    </Grid>
+</Window>

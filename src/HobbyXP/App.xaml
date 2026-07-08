@@ -1,0 +1,43 @@
+﻿<Application x:Class="HobbyXP.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:HobbyXP.ViewModels"
+             xmlns:vmDash="clr-namespace:HobbyXP.ViewModels.Dashboard"
+             xmlns:vmPhys="clr-namespace:HobbyXP.ViewModels.Physical"
+             xmlns:vmEnt="clr-namespace:HobbyXP.ViewModels.Entertainment"
+             xmlns:vmGrow="clr-namespace:HobbyXP.ViewModels.PersonalGrowth"
+             xmlns:vmAch="clr-namespace:HobbyXP.ViewModels.Achievements"
+             xmlns:views="clr-namespace:HobbyXP.Views"
+             xmlns:conv="clr-namespace:HobbyXP.Converters">
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="Themes/DarkRpgTheme.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+
+            <conv:MilestoneSourceToIconConverter x:Key="MilestoneIconConverter" />
+            <conv:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter" />
+            <conv:InverseBoolToVisibilityConverter x:Key="InverseBoolToVisibilityConverter" />
+            <conv:NullToVisibilityConverter x:Key="NullToVisibilityConverter" />
+            <conv:ProgressValueClampConverter x:Key="ProgressValueClampConverter" />
+            <conv:ProgressValueToMaxConverter x:Key="ProgressValueToMaxConverter" />
+            <conv:MinIntConverter x:Key="MinIntConverter" />
+
+            <DataTemplate DataType="{x:Type vmDash:DashboardViewModel}">
+                <views:DashboardView />
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type vmPhys:PhysicalActivitiesViewModel}">
+                <views:PhysicalActivitiesView />
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type vmEnt:EntertainmentViewModel}">
+                <views:EntertainmentView />
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type vmGrow:PersonalGrowthViewModel}">
+                <views:PersonalGrowthView />
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type vmAch:AchievementsViewModel}">
+                <views:AchievementsView />
+            </DataTemplate>
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>

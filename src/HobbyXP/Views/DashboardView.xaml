@@ -1,0 +1,98 @@
+<UserControl x:Class="HobbyXP.Views.DashboardView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:lvc="clr-namespace:LiveChartsCore.SkiaSharpView.WPF;assembly=LiveChartsCore.SkiaSharpView.WPF"
+             xmlns:conv="clr-namespace:HobbyXP.Converters"
+             xmlns:controls="clr-namespace:HobbyXP.Views.Controls">
+    <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="24,20">
+        <StackPanel MaxWidth="1200">
+
+            <!-- Hero: nivel + barra XP -->
+            <Border Style="{StaticResource HeroCard}" Margin="0,0,0,20">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <Grid Width="88" Height="88" Margin="0,0,24,0">
+                        <Border CornerRadius="44" ClipToBounds="True"
+                                BorderBrush="{StaticResource AccentGoldBrush}" BorderThickness="3"
+                                Background="#2A3347">
+                            <Image Source="{Binding AvatarImage}" Stretch="UniformToFill" />
+                        </Border>
+                        <TextBlock Text="🛡" FontSize="40" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                   Visibility="{Binding HasCustomAvatar, Converter={StaticResource InverseBoolToVisibilityConverter}}" />
+                    </Grid>
+
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                        <TextBlock Text="{Binding LevelHeroTitle}" Style="{StaticResource DisplayHeroText}" FontSize="28" TextWrapping="Wrap" />
+                        <TextBlock Text="{Binding XpHeroSummary}" Margin="0,4,0,12"
+                                   Foreground="{StaticResource AccentCyanBrush}" FontSize="14" FontWeight="SemiBold" />
+                        <controls:XpProgressBar Value="{Binding ProgressPercentage}" Height="18" />
+                        <TextBlock Text="{Binding LevelProgressText}" Style="{StaticResource MutedText}" Margin="0,8,0,0" />
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- Gráficos -->
+            <Grid Margin="0,0,0,20">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <Border Grid.Column="0" Style="{StaticResource DarkCard}" Margin="0,0,10,0">
+                    <StackPanel>
+                        <TextBlock Text="Rendimiento semanal" Style="{StaticResource SectionTitleText}" Margin="0,0,0,4" />
+                        <TextBlock Text="XP ganada en los últimos 7 días" Style="{StaticResource MutedText}" Margin="0,0,0,12" />
+                        <lvc:CartesianChart Series="{Binding WeeklyXpSeries}" Height="240" />
+                    </StackPanel>
+                </Border>
+
+                <Border Grid.Column="1" Style="{StaticResource DarkCard}" Margin="10,0,0,0">
+                    <StackPanel>
+                        <TextBlock Text="Distribución de hobbies" Style="{StaticResource SectionTitleText}" Margin="0,0,0,4" />
+                        <TextBlock Text="Registros del mes actual por categoría" Style="{StaticResource MutedText}" Margin="0,0,0,12" />
+                        <lvc:PieChart Series="{Binding HobbyDistributionSeries}" Height="240" />
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+            <!-- Hitos -->
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                <TextBlock Text="Últimos hitos" Style="{StaticResource SectionTitleText}" VerticalAlignment="Center" />
+                <Button Content="↻ Actualizar" Command="{Binding RefreshCommand}" Style="{StaticResource PrimaryButton}"
+                        Margin="16,0,0,0" Padding="10,6" FontSize="12" />
+            </StackPanel>
+
+            <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" Margin="0,0,0,8">
+                <ItemsControl ItemsSource="{Binding RecentMilestones}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <StackPanel Orientation="Horizontal" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border Style="{StaticResource MilestoneCard}">
+                                <StackPanel>
+                                    <TextBlock Text="{Binding SourceType, Converter={StaticResource MilestoneIconConverter}}"
+                                               FontSize="32" Margin="0,0,0,8" />
+                                    <TextBlock Text="{Binding Title}" Style="{StaticResource CardTitleText}" MaxHeight="48" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock Margin="0,8,0,0" Foreground="{StaticResource AccentGreenBrush}" FontWeight="Bold">
+                                        <Run Text="+" /><Run Text="{Binding PointsEarned, Mode=OneWay}" /><Run Text=" XP" />
+                                    </TextBlock>
+                                    <TextBlock Text="{Binding CompletedAt, StringFormat={}{0:dd/MM/yyyy HH:mm}}"
+                                               Style="{StaticResource MutedText}" Margin="0,6,0,0" FontSize="12" />
+                                </StackPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+
+            <TextBlock Text="{Binding ErrorMessage}" Foreground="{StaticResource DangerBrush}" Margin="0,8,0,0" />
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

@@ -1,0 +1,229 @@
+using HobbyXP.Data;
+using HobbyXP.Models.Enums;
+using HobbyXP.Models.Physical;
+using HobbyXP.Services.Abstractions;
+using HobbyXP.Services.Results;
+using Microsoft.EntityFrameworkCore;
+
+namespace HobbyXP.Services;
+
+public sealed class GymService : IGymService
+{
+    private readonly IDbContextFactory<HobbyXpDbContext> _dbContextFactory;
+    private readonly IXpService _xpService;
+    private readonly IAchievementEngineService _achievementEngine;
+
+    public GymService(
+        IDbContextFactory<HobbyXpDbContext> dbContextFactory,
+        IXpService xpService,
+        IAchievementEngineService achievementEngine)
+    {
+        _dbContextFactory = dbContextFactory;
+        _xpService = xpService;
+        _achievementEngine = achievementEngine;
+    }
+
+    public async Task<IReadOnlyList<Exercise>> GetExercisesAsync(CancellationToken cancellationToken = default)
+    {
+        await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        return await db.Exercises
+            .AsNoTracking()
+            .OrderBy(e => e.Name)
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<Exercise> CreateOrGetExerciseAsync(
+        string name,
+        ExerciseType exerciseType,
+        CancellationToken cancellationToken = default)
+    {
+        var normalized = name.Trim();
+        if (string.IsNullOrWhiteSpace(normalized))
+            throw new ArgumentException("El nombre del ejercicio es obligatorio.", nameof(name));
+
+        await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var existing = await db.Exercises
+            .FirstOrDefaultAsync(e => e.Name == normalized, cancellationToken);
+
+        if (existing is not null)
+            return existing;
+
+        var exercise = new Exercise
+        {
+            Name = normalized,
+            ExerciseType = exerciseType
+        };
+
+        db.Exercises.Add(exercise);
+        await db.SaveChangesAsync(cancellationToken);
+        return exercise;
+    }
+
+    public async Task<OperationResult<GymWorkout>> SaveWorkoutAsync(
+        IReadOnlyList<GymWorkoutEntryDraft> entries,
+        string? notes = null,
+        CancellationToken cancellationToken = default)
+    {
+        if (entries.Count == 0)
+            throw new ArgumentException("Debe registrar al menos un ejercicio.", nameof(entries));
+
+        await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+
+        var workout = new GymWorkout
+        {
+            WorkoutDate = DateTime.UtcNow,
+            Notes = notes
+        };
+
+        var progressiveOverloadDetected = false;
+
+        foreach (var draft in entries.OrderBy(e => e.SortOrder))
+        {
+            ValidateDraft(draft);
+
+            var exercise = await db.Exercises.FindAsync([draft.ExerciseId], cancellationToken)
+                ?? throw new InvalidOperationException($"No existe el ejercicio con Id {draft.ExerciseId}.");
+
+            var isRecord = await IsPersonalRecordAsync(db, draft, cancellationToken);
+            if (isRecord)
+                progressiveOverloadDetected = true;
+
+            workout.Entries.Add(new GymWorkoutEntry
+            {
+                ExerciseId = draft.ExerciseId,
+                ExerciseType = draft.ExerciseType,
+                Sets = draft.Sets,
+                Repetitions = draft.Repetitions,
+                WeightKg = draft.WeightKg,
+                Duration = draft.Duration,
+                SortOrder = draft.SortOrder,
+                IsPersonalRecord = isRecord
+            });
+        }
+
+        workout.TriggeredProgressiveOverload = progressiveOverloadDetected;
+        db.GymWorkouts.Add(workout);
+        await db.SaveChangesAsync(cancellationToken);
+
+        var events = new List<AchievementEvent>();
+        var sessionXp = await _xpService.AwardXpAsync(
+            AchievementActionType.GymWorkoutSaved,
+            units: 1,
+            "Sesión de gimnasio guardada",
+            MilestoneSourceType.Gym,
+            nameof(GymWorkout),
+            workout.Id,
+            "Sesión de gimnasio",
+            cancellationToken);
+
+        workout.XpEarned = sessionXp.AmountAwarded;
+        await db.SaveChangesAsync(cancellationToken);
+
+        if (sessionXp.Milestone is not null)
+        {
+            events.Add(new AchievementEvent(
+                sessionXp.Milestone.Title,
+                sessionXp.Milestone.Description ?? sessionXp.Milestone.Title,
+                sessionXp.AmountAwarded,
+                MilestoneSourceType.Gym));
+        }
+
+        if (progressiveOverloadDetected)
+        {
+            var overloadXp = await _xpService.AwardFlatBonusAsync(
+                AchievementActionType.ProgressiveOverload,
+                await _xpService.CalculatePointsAsync(AchievementActionType.ProgressiveOverload, 1, cancellationToken),
+                "Sobrecarga progresiva detectada",
+                MilestoneSourceType.Gym,
+                nameof(GymWorkout),
+                workout.Id,
+                "¡Sobrecarga progresiva!",
+                cancellationToken);
+
+            workout.XpEarned += overloadXp.AmountAwarded;
+            await db.SaveChangesAsync(cancellationToken);
+
+            events.Add(new AchievementEvent(
+                "¡Sobrecarga progresiva!",
+                "Superaste tu récord histórico en al menos un ejercicio.",
+                overloadXp.AmountAwarded,
+                MilestoneSourceType.Gym,
+                RequiresCelebration: true));
+
+            var medalEvent = await _achievementEngine.TryAwardMedalAsync(
+                MedalCode.ProgressiveOverload,
+                MilestoneSourceType.Gym,
+                nameof(GymWorkout),
+                workout.Id,
+                cancellationToken);
+
+            if (medalEvent is not null)
+                events.Add(medalEvent);
+        }
+
+        return OperationResult<GymWorkout>.WithEvents(workout, events.ToArray());
+    }
+
+    private static void ValidateDraft(GymWorkoutEntryDraft draft)
+    {
+        if (draft.Sets <= 0)
+            throw new ArgumentOutOfRangeException(nameof(draft.Sets), "Las series deben ser mayores que cero.");
+
+        switch (draft.ExerciseType)
+        {
+            case ExerciseType.TraditionalWeight:
+                if (!draft.Repetitions.HasValue || draft.Repetitions <= 0)
+                    throw new ArgumentException("Las repeticiones son obligatorias para peso tradicional.");
+                if (!draft.WeightKg.HasValue || draft.WeightKg <= 0)
+                    throw new ArgumentException("El peso es obligatorio para ejercicios de peso tradicional.");
+                break;
+
+            case ExerciseType.BodyWeight:
+                if (!draft.Repetitions.HasValue || draft.Repetitions <= 0)
+                    throw new ArgumentException("Las repeticiones son obligatorias para peso corporal.");
+                break;
+
+            case ExerciseType.TimeBased:
+                if (!draft.Duration.HasValue || draft.Duration <= TimeSpan.Zero)
+                    throw new ArgumentException("La duración es obligatoria para ejercicios por tiempo.");
+                break;
+        }
+    }
+
+    private static async Task<bool> IsPersonalRecordAsync(
+        HobbyXpDbContext db,
+        GymWorkoutEntryDraft draft,
+        CancellationToken cancellationToken)
+    {
+        var history = await db.GymWorkoutEntries
+            .AsNoTracking()
+            .Where(e => e.ExerciseId == draft.ExerciseId)
+            .ToListAsync(cancellationToken);
+
+        if (history.Count == 0)
+            return true;
+
+        return draft.ExerciseType switch
+        {
+            ExerciseType.TraditionalWeight => draft.WeightKg > history
+                .Where(e => e.WeightKg.HasValue)
+                .Select(e => e.WeightKg)
+                .DefaultIfEmpty(0m)
+                .Max(),
+
+            ExerciseType.BodyWeight => draft.Repetitions > history
+                .Where(e => e.Repetitions.HasValue)
+                .Select(e => e.Repetitions)
+                .DefaultIfEmpty(0)
+                .Max(),
+
+            ExerciseType.TimeBased => draft.Duration < history
+                .Where(e => e.Duration.HasValue)
+                .Select(e => e.Duration!.Value)
+                .DefaultIfEmpty(TimeSpan.MaxValue)
+                .Min(),
+
+            _ => false
+        };
+    }
+}
