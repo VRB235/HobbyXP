@@ -20,6 +20,8 @@ x86/
 bld/
 [Bb]in/
 [Oo]bj/
+bin/
+obj/
 [Ll]og/
 [Ll]ogs/
 
@@ -43,6 +45,7 @@ ScaffoldingReadMe.txt
 ~$*
 *~
 CodeCoverage/
+.vs/
 
 # Local SQLite database (dev copies)
 *.db
