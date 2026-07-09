@@ -7,6 +7,8 @@
     <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="24,20">
         <StackPanel MaxWidth="1200">
 
+            <TextBlock Text="Dashboard" Style="{StaticResource PageTitleText}" Margin="0,0,0,20" />
+
             <!-- Hero: nivel + barra XP -->
             <Border Style="{StaticResource HeroCard}" Margin="0,0,0,20">
                 <Grid>
@@ -74,8 +76,7 @@
                                 <Border Background="#1E2433" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
                                         CornerRadius="8" Padding="10,8" Margin="0,0,0,8">
                                     <StackPanel>
-                                        <TextBlock Text="{Binding Category}" FontWeight="Bold"
-                                                   Foreground="{StaticResource TextPrimaryBrush}" />
+                                        <TextBlock Text="{Binding Category}" Style="{StaticResource SubsectionTitleText}" />
                                         <TextBlock Margin="0,4,0,0" TextWrapping="Wrap">
                                             <Run Text="Mínimo: " />
                                             <Run Text="{Binding MinimumRequirement, Mode=OneWay}" FontWeight="SemiBold"

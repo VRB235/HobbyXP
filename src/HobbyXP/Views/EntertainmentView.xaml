@@ -211,9 +211,9 @@
                     </Grid>
 
                     <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,12">
-                        <TextBlock Text="{Binding YearlyMovies, StringFormat=Películas ({0})}" Margin="0,0,16,0" FontWeight="SemiBold" />
-                        <TextBlock Text="{Binding YearlySeries, StringFormat=Series ({0})}" Margin="0,0,16,0" FontWeight="SemiBold" />
-                        <TextBlock Text="{Binding YearlyTotal, StringFormat=Total ({0})}" FontWeight="SemiBold" />
+                        <TextBlock Text="{Binding YearlyMovies, StringFormat=Películas ({0})}" Style="{StaticResource SubsectionTitleText}" Margin="0,0,16,0" />
+                        <TextBlock Text="{Binding YearlySeries, StringFormat=Series ({0})}" Style="{StaticResource SubsectionTitleText}" Margin="0,0,16,0" />
+                        <TextBlock Text="{Binding YearlyTotal, StringFormat=Total ({0})}" Style="{StaticResource SubsectionTitleText}" />
                     </StackPanel>
 
                     <GroupBox Grid.Row="2" Header="Historial" Padding="12" VerticalAlignment="Stretch">
@@ -325,7 +325,7 @@
                                             Style="{StaticResource PrimaryButton}" VerticalAlignment="Center" />
                                 </Grid>
 
-                                <TextBlock Text="En progreso" FontWeight="SemiBold" Margin="0,0,0,8" />
+                                <TextBlock Text="En progreso" Style="{StaticResource SubsectionTitleText}" Margin="0,0,0,8" />
                                 <ItemsControl ItemsSource="{Binding InProgressRows}" Margin="0,0,0,16">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>
@@ -414,7 +414,7 @@
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
 
-                                <TextBlock Text="Juegos platinados" FontWeight="SemiBold" Margin="0,0,0,8" />
+                                <TextBlock Text="Juegos platinados" Style="{StaticResource SubsectionTitleText}" Margin="0,0,0,8" />
                                 <ItemsControl ItemsSource="{Binding PlatinumGames}">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>

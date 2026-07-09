@@ -41,9 +41,8 @@
 
                                         <TextBlock Grid.Row="0"
                                                    Text="{Binding Name}"
-                                                   FontWeight="Bold"
-                                                   TextAlignment="Center"
-                                                   TextWrapping="Wrap" />
+                                                   Style="{StaticResource CardTitleText}"
+                                                   TextAlignment="Center" />
 
                                         <Grid Grid.Row="1" Margin="0,8,0,8">
                                             <Image Source="{Binding IconPath, Converter={StaticResource PathToImageSourceConverter}}"
@@ -130,7 +129,7 @@
             <TabItem Header="Tienda">
                 <ScrollViewer DataContext="{Binding Rewards}">
                     <StackPanel Margin="8">
-                        <TextBlock Text="{Binding BalanceText}" FontWeight="SemiBold" Margin="0,0,0,12" />
+                        <TextBlock Text="{Binding BalanceText}" Style="{StaticResource SubsectionTitleText}" Margin="0,0,0,12" />
 
                         <GroupBox Header="Crear premio" Padding="12" Margin="0,0,0,12">
                             <Grid>

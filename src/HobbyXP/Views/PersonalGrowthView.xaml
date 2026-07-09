@@ -44,12 +44,12 @@
                     </Grid>
 
                     <StackPanel Grid.Row="1" Margin="0,0,0,12">
-                        <TextBlock Text="En lectura" FontWeight="SemiBold" Margin="0,0,0,8" />
+                        <TextBlock Text="En lectura" Style="{StaticResource SubsectionTitleText}" Margin="0,0,0,8" />
                         <ItemsControl ItemsSource="{Binding ReadingRows}" />
                     </StackPanel>
 
                     <StackPanel Grid.Row="2" Margin="0,0,0,8">
-                        <TextBlock Text="Terminados" FontWeight="SemiBold" Margin="0,0,0,8" />
+                        <TextBlock Text="Terminados" Style="{StaticResource SubsectionTitleText}" Margin="0,0,0,8" />
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto" />
@@ -121,12 +121,12 @@
                     </Grid>
 
                     <StackPanel Grid.Row="1" Margin="0,0,0,12">
-                        <TextBlock Text="En progreso" FontWeight="SemiBold" Margin="0,0,0,8" />
+                        <TextBlock Text="En progreso" Style="{StaticResource SubsectionTitleText}" Margin="0,0,0,8" />
                         <ItemsControl ItemsSource="{Binding InProgressRows}" />
                     </StackPanel>
 
                     <StackPanel Grid.Row="2" Margin="0,0,0,8">
-                        <TextBlock Text="Terminados" FontWeight="SemiBold" Margin="0,0,0,8" />
+                        <TextBlock Text="Terminados" Style="{StaticResource SubsectionTitleText}" Margin="0,0,0,8" />
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto" />
