@@ -164,6 +164,36 @@ public sealed class GymService : IGymService
         return OperationResult<GymWorkout>.WithEvents(workout, events.ToArray());
     }
 
+    public async Task<IReadOnlyList<GymWorkout>> GetWorkoutHistoryAsync(CancellationToken cancellationToken = default)
+    {
+        await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        return await db.GymWorkouts
+            .AsNoTracking()
+            .Include(w => w.Entries)
+                .ThenInclude(e => e.Exercise)
+            .OrderByDescending(w => w.WorkoutDate)
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<bool> DeleteWorkoutAsync(int workoutId, CancellationToken cancellationToken = default)
+    {
+        await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var workout = await db.GymWorkouts.FindAsync([workoutId], cancellationToken);
+        if (workout is null)
+            return false;
+
+        await _xpService.RevokeXpForSourceAsync(
+            MilestoneSourceType.Gym,
+            nameof(GymWorkout),
+            workoutId,
+            $"Eliminado del historial: entrenamiento del {workout.WorkoutDate:dd/MM/yyyy}",
+            cancellationToken);
+
+        db.GymWorkouts.Remove(workout);
+        await db.SaveChangesAsync(cancellationToken);
+        return true;
+    }
+
     private static void ValidateDraft(GymWorkoutEntryDraft draft)
     {
         if (draft.Sets <= 0)

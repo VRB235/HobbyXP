@@ -15,7 +15,7 @@ public class Puzzle : EntityBase
     public PuzzleCategory Category { get; set; }
 
     /// <summary>
-    /// Ruta local opcional a la foto del rompecabezas armado.
+    /// Rutas locales opcionales a fotos del rompecabezas armado (JSON con rutas relativas).
     /// </summary>
     public string? PhotoPath { get; set; }
 

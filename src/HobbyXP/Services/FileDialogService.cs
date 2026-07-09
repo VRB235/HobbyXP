@@ -16,4 +16,18 @@ public sealed class FileDialogService : IFileDialogService
 
         return dialog.ShowDialog() == true ? dialog.FileName : null;
     }
+
+    public IReadOnlyList<string> PickImageFiles()
+    {
+        var dialog = new OpenFileDialog
+        {
+            Title = "Seleccionar fotos del rompecabezas",
+            Filter = "Imágenes|*.png;*.jpg;*.jpeg;*.webp;*.bmp|Todos los archivos|*.*",
+            Multiselect = true
+        };
+
+        return dialog.ShowDialog() == true
+            ? dialog.FileNames
+            : [];
+    }
 }

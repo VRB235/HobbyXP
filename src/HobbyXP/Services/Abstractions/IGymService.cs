@@ -17,6 +17,10 @@ public interface IGymService
         IReadOnlyList<GymWorkoutEntryDraft> entries,
         string? notes = null,
         CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<GymWorkout>> GetWorkoutHistoryAsync(CancellationToken cancellationToken = default);
+
+    Task<bool> DeleteWorkoutAsync(int workoutId, CancellationToken cancellationToken = default);
 }
 
 /// <summary>

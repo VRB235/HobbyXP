@@ -38,6 +38,13 @@ public interface IXpService
         string description,
         CancellationToken cancellationToken = default);
 
+    Task<int> RevokeXpForSourceAsync(
+        MilestoneSourceType milestoneSource,
+        string sourceEntityType,
+        int sourceEntityId,
+        string description,
+        CancellationToken cancellationToken = default);
+
     Task<IReadOnlyList<DailyXpPoint>> GetDailyXpForLastDaysAsync(
         int days,
         CancellationToken cancellationToken = default);

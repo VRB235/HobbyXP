@@ -27,6 +27,7 @@ public sealed class DashboardViewModel : LoadableViewModelBase
     private string _playerDisplayName = "Aventurero";
     private ImageSource? _avatarImage;
     private bool _hasCustomAvatar;
+    private string _suggestionsSummary = "Sigue registrando actividades para subir de nivel.";
 
     public DashboardViewModel(
         IDashboardService dashboardService,
@@ -35,10 +36,12 @@ public sealed class DashboardViewModel : LoadableViewModelBase
         _dashboardService = dashboardService;
         _playerProfileService = playerProfileService;
         RecentMilestones = new ObservableCollection<Milestone>();
+        SuggestedActivities = new ObservableCollection<LevelUpSuggestion>();
         RefreshCommand = new AsyncRelayCommand(() => LoadAsync());
     }
 
     public ObservableCollection<Milestone> RecentMilestones { get; }
+    public ObservableCollection<LevelUpSuggestion> SuggestedActivities { get; }
 
     public int CurrentLevel
     {
@@ -110,6 +113,12 @@ public sealed class DashboardViewModel : LoadableViewModelBase
 
     public AsyncRelayCommand RefreshCommand { get; }
 
+    public string SuggestionsSummary
+    {
+        get => _suggestionsSummary;
+        private set => SetProperty(ref _suggestionsSummary, value);
+    }
+
     protected override async Task LoadCoreAsync()
     {
         var profile = await _playerProfileService.GetProfileAsync();
@@ -123,6 +132,7 @@ public sealed class DashboardViewModel : LoadableViewModelBase
         ApplyLevelProgress(summary.LevelProgress);
         BuildWeeklyChart(summary.WeeklyXp);
         BuildDistributionChart(summary.MonthlyHobbyDistribution);
+        BuildSuggestions(summary);
 
         RecentMilestones.Clear();
         foreach (var milestone in summary.RecentMilestones)
@@ -131,6 +141,18 @@ public sealed class DashboardViewModel : LoadableViewModelBase
         OnPropertyChanged(nameof(LevelProgressText));
         OnPropertyChanged(nameof(XpHeroSummary));
         OnPropertyChanged(nameof(LevelHeroTitle));
+    }
+
+    private void BuildSuggestions(DashboardSummary summary)
+    {
+        var xpRemaining = Math.Max(0, summary.LevelProgress.XpRequiredForNextLevel - summary.LevelProgress.XpIntoCurrentLevel);
+        SuggestionsSummary = xpRemaining == 0
+            ? "Listo para subir de nivel. Registre una actividad más para activar la celebración."
+            : $"Le faltan {xpRemaining:N0} XP para el próximo nivel. Mínimos sugeridos según las reglas actuales:";
+
+        SuggestedActivities.Clear();
+        foreach (var suggestion in summary.LevelUpSuggestions)
+            SuggestedActivities.Add(suggestion);
     }
 
     private void ApplyLevelProgress(LevelProgressInfo progress)

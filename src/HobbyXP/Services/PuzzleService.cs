@@ -1,4 +1,5 @@
 using HobbyXP.Data;
+using HobbyXP.Helpers;
 using HobbyXP.Models.Entertainment;
 using HobbyXP.Models.Enums;
 using HobbyXP.Services.Abstractions;
@@ -31,7 +32,8 @@ public sealed class PuzzleService : IPuzzleService
         string name,
         int pieceCount,
         PuzzleCategory category,
-        string? photoPath = null,
+        IReadOnlyList<string>? photoPaths = null,
+        DateTime? completedAt = null,
         CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(name))
@@ -47,12 +49,18 @@ public sealed class PuzzleService : IPuzzleService
             Name = name.Trim(),
             PieceCount = pieceCount,
             Category = category,
-            PhotoPath = photoPath,
-            CompletedAt = DateTime.UtcNow
+            CompletedAt = completedAt ?? DateTime.UtcNow
         };
 
         db.Puzzles.Add(puzzle);
         await db.SaveChangesAsync(cancellationToken);
+
+        if (photoPaths is { Count: > 0 })
+        {
+            var savedPhotos = PuzzlePhotoStorage.SavePhotos(puzzle.Id, photoPaths);
+            puzzle.PhotoPath = PuzzlePhotoStorage.Serialize(savedPhotos);
+            await db.SaveChangesAsync(cancellationToken);
+        }
 
         var xpOutcome = await _xpService.AwardXpAsync(
             AchievementActionType.PuzzleCompleted,
@@ -78,5 +86,25 @@ public sealed class PuzzleService : IPuzzleService
         }
 
         return OperationResult<Puzzle>.WithEvents(puzzle, events.ToArray());
+    }
+
+    public async Task<bool> DeleteAsync(int puzzleId, CancellationToken cancellationToken = default)
+    {
+        await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var puzzle = await db.Puzzles.FindAsync([puzzleId], cancellationToken);
+        if (puzzle is null)
+            return false;
+
+        await _xpService.RevokeXpForSourceAsync(
+            MilestoneSourceType.Puzzle,
+            nameof(Puzzle),
+            puzzleId,
+            $"Eliminado del historial: rompecabezas {puzzle.Name}",
+            cancellationToken);
+
+        PuzzlePhotoStorage.DeleteStoredPhotos(puzzleId, puzzle.PhotoPath);
+        db.Puzzles.Remove(puzzle);
+        await db.SaveChangesAsync(cancellationToken);
+        return true;
     }
 }

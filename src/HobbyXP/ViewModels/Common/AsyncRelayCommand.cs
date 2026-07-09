@@ -28,6 +28,9 @@ public sealed class AsyncRelayCommand : ICommand
     public bool CanExecute(object? parameter) =>
         !_isExecuting && (_canExecute?.Invoke(parameter) ?? true);
 
+    public void RaiseCanExecuteChanged() =>
+        CommandManager.InvalidateRequerySuggested();
+
     public async void Execute(object? parameter)
     {
         if (!CanExecute(parameter))

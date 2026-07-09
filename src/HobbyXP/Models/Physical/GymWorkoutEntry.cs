@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations.Schema;
 using HobbyXP.Models.Common;
 using HobbyXP.Models.Enums;
 
@@ -41,4 +42,17 @@ public class GymWorkoutEntry : EntityBase
     public GymWorkout GymWorkout { get; set; } = null!;
 
     public Exercise Exercise { get; set; } = null!;
+
+    [NotMapped]
+    public string DetailSummary => ExerciseType switch
+    {
+        ExerciseType.TraditionalWeight => $"{Sets}×{Repetitions} @ {WeightKg:0.##} kg",
+        ExerciseType.BodyWeight => $"{Sets}×{Repetitions}",
+        ExerciseType.TimeBased when Duration.HasValue => $"{Sets}× {Duration.Value:mm\\:ss}",
+        ExerciseType.TimeBased => $"{Sets} series",
+        _ => $"{Sets} series"
+    };
+
+    [NotMapped]
+    public string RecordLabel => IsPersonalRecord ? "★ Sí" : "—";
 }

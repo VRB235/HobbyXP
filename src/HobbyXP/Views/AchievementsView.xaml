@@ -15,14 +15,14 @@
                         </ItemsControl.ItemsPanel>
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
-                                <Border Margin="6" Padding="14" CornerRadius="12" BorderThickness="1" BorderBrush="{StaticResource BorderBrush}"
+                                <Border Margin="6" Padding="14" Height="220" CornerRadius="12" BorderThickness="1" BorderBrush="{StaticResource BorderBrush}"
                                         Background="{StaticResource BgCardBrush}"
                                         ToolTip="{Binding UnlockHint}">
                                     <Border.Style>
                                         <Style TargetType="Border">
                                             <Style.Triggers>
                                                 <DataTrigger Binding="{Binding IsEarned}" Value="False">
-                                                    <Setter Property="Opacity" Value="0.4" />
+                                                    <Setter Property="Opacity" Value="0.45" />
                                                 </DataTrigger>
                                                 <DataTrigger Binding="{Binding IsEarned}" Value="True">
                                                     <Setter Property="BorderBrush" Value="{StaticResource AccentGoldBrush}" />
@@ -31,10 +31,66 @@
                                             </Style.Triggers>
                                         </Style>
                                     </Border.Style>
-                                    <StackPanel>
-                                        <TextBlock Text="{Binding Name}" FontWeight="Bold" />
-                                        <TextBlock Text="{Binding Description}" TextWrapping="Wrap" Margin="0,4,0,0" />
-                                    </StackPanel>
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="*" />
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                        </Grid.RowDefinitions>
+
+                                        <TextBlock Grid.Row="0"
+                                                   Text="{Binding Name}"
+                                                   FontWeight="Bold"
+                                                   TextAlignment="Center"
+                                                   TextWrapping="Wrap" />
+
+                                        <Grid Grid.Row="1" Margin="0,8,0,8">
+                                            <Image Source="{Binding IconPath, Converter={StaticResource PathToImageSourceConverter}}"
+                                                   Stretch="Uniform"
+                                                   MaxHeight="88"
+                                                   HorizontalAlignment="Center"
+                                                   VerticalAlignment="Center"
+                                                   RenderOptions.BitmapScalingMode="HighQuality"
+                                                   Visibility="{Binding IconPath, Converter={StaticResource NullToVisibilityConverter}}" />
+
+                                            <TextBlock Text="{Binding Code, Converter={StaticResource MedalCodeToEmojiConverter}}"
+                                                       FontSize="52"
+                                                       HorizontalAlignment="Center"
+                                                       VerticalAlignment="Center"
+                                                       Visibility="{Binding IconPath, Converter={StaticResource InverseNullToVisibilityConverter}}" />
+
+                                            <TextBlock Text="🔒"
+                                                       FontSize="18"
+                                                       HorizontalAlignment="Right"
+                                                       VerticalAlignment="Top"
+                                                       Margin="0,-2,2,0"
+                                                       Opacity="0.85"
+                                                       Visibility="{Binding IsEarned, Converter={StaticResource InverseBoolToVisibilityConverter}}" />
+                                        </Grid>
+
+                                        <TextBlock Grid.Row="2"
+                                                   Text="{Binding Description}"
+                                                   TextWrapping="Wrap"
+                                                   TextAlignment="Center"
+                                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                                   FontSize="12"
+                                                   Margin="0,0,0,6" />
+
+                                        <TextBlock Grid.Row="3"
+                                                   Text="{Binding EarnedAt, Converter={StaticResource UtcToLocalDateTimeConverter}, StringFormat=Desbloqueada: {0:dd/MM/yyyy}}"
+                                                   TextAlignment="Center"
+                                                   Foreground="{StaticResource AccentGoldBrush}"
+                                                   FontSize="11"
+                                                   Visibility="{Binding IsEarned, Converter={StaticResource BoolToVisibilityConverter}}" />
+
+                                        <TextBlock Grid.Row="3"
+                                                   Text="Pendiente"
+                                                   TextAlignment="Center"
+                                                   Foreground="{StaticResource TextMutedBrush}"
+                                                   FontSize="11"
+                                                   Visibility="{Binding IsEarned, Converter={StaticResource InverseBoolToVisibilityConverter}}" />
+                                    </Grid>
                                 </Border>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
@@ -54,13 +110,13 @@
                     <StackPanel Grid.Column="1">
                         <StackPanel DataContext="{Binding SelectedRule}">
                             <TextBlock Text="Nombre" />
-                            <TextBox Text="{Binding DisplayName, UpdateSourceTrigger=PropertyLostFocus}" Margin="0,0,0,8" />
+                            <TextBox Text="{Binding DisplayName, UpdateSourceTrigger=LostFocus}" Margin="0,0,0,8" />
                             <TextBlock Text="Unidad" />
-                            <TextBox Text="{Binding UnitLabel, UpdateSourceTrigger=PropertyLostFocus}" Margin="0,0,0,8" />
+                            <TextBox Text="{Binding UnitLabel, UpdateSourceTrigger=LostFocus}" Margin="0,0,0,8" />
                             <TextBlock Text="Puntos por unidad" />
-                            <TextBox Text="{Binding PointsPerUnit, UpdateSourceTrigger=PropertyLostFocus}" Margin="0,0,0,8" />
+                            <TextBox Text="{Binding PointsPerUnit, UpdateSourceTrigger=LostFocus}" Margin="0,0,0,8" />
                             <TextBlock Text="Bono fijo" />
-                            <TextBox Text="{Binding FlatBonusPoints, UpdateSourceTrigger=PropertyLostFocus}" Margin="0,0,0,8" />
+                            <TextBox Text="{Binding FlatBonusPoints, UpdateSourceTrigger=LostFocus}" Margin="0,0,0,8" />
                             <CheckBox Content="Activa" IsChecked="{Binding IsActive}" Margin="0,0,0,12" />
                         </StackPanel>
                         <Button Content="Guardar regla"
@@ -77,12 +133,32 @@
                         <TextBlock Text="{Binding BalanceText}" FontWeight="SemiBold" Margin="0,0,0,12" />
 
                         <GroupBox Header="Crear premio" Padding="12" Margin="0,0,0,12">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBox Width="180" Text="{Binding Name}" Margin="0,0,8,0" />
-                                <TextBox Width="100" Text="{Binding CostInPoints}" Margin="0,0,8,0" />
-                                <TextBox Width="220" Text="{Binding Description}" Margin="0,0,8,0" />
-                                <Button Content="Crear" Command="{Binding CreateRewardCommand}" Style="{StaticResource PrimaryButton}" />
-                            </StackPanel>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="200" />
+                                    <ColumnDefinition Width="100" />
+                                    <ColumnDefinition Width="*" MinWidth="180" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+
+                                <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                                    <TextBlock Text="Nombre" Style="{StaticResource MutedText}" />
+                                    <TextBox Text="{Binding Name}" HorizontalAlignment="Stretch" />
+                                </StackPanel>
+
+                                <StackPanel Grid.Column="1" Margin="0,0,8,0">
+                                    <TextBlock Text="Costo (XP)" Style="{StaticResource MutedText}" />
+                                    <TextBox Text="{Binding CostInPoints}" HorizontalAlignment="Stretch" />
+                                </StackPanel>
+
+                                <StackPanel Grid.Column="2" Margin="0,0,8,0">
+                                    <TextBlock Text="Descripción (opcional)" Style="{StaticResource MutedText}" />
+                                    <TextBox Text="{Binding Description}" HorizontalAlignment="Stretch" />
+                                </StackPanel>
+
+                                <Button Grid.Column="3" Content="Crear" Command="{Binding CreateRewardCommand}"
+                                        Style="{StaticResource PrimaryButton}" VerticalAlignment="Bottom" />
+                            </Grid>
                         </GroupBox>
 
                         <ListBox ItemsSource="{Binding Rewards}" SelectedItem="{Binding SelectedReward}" Height="220" Margin="0,0,0,8">
@@ -91,7 +167,7 @@
                                     <StackPanel Orientation="Horizontal">
                                         <TextBlock Text="{Binding Name}" Width="200" FontWeight="SemiBold" />
                                         <TextBlock Text="{Binding CostInPoints, StringFormat={}{0} XP}" Width="80" />
-                                        <TextBlock Text="{Binding Status}" />
+                                        <TextBlock Text="{Binding StatusLabel}" />
                                     </StackPanel>
                                 </DataTemplate>
                             </ListBox.ItemTemplate>

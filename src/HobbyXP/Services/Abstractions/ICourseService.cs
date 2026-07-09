@@ -5,11 +5,19 @@ namespace HobbyXP.Services.Abstractions;
 
 public interface ICourseService
 {
-    Task<IReadOnlyList<Course>> GetAllAsync(CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<Course>> GetInProgressAsync(CancellationToken cancellationToken = default);
 
-    Task<OperationResult<Course>> RegisterCompletedAsync(
+    Task<IReadOnlyList<Course>> GetCompletedAsync(CancellationToken cancellationToken = default);
+
+    Task<Course> RegisterAsync(
         string name,
         string platform,
-        DateTime? completedAt = null,
+        int totalSessions,
+        CancellationToken cancellationToken = default);
+
+    Task<OperationResult<Course>> LogSessionsAsync(
+        int courseId,
+        DateTime sessionDate,
+        int sessionsDone,
         CancellationToken cancellationToken = default);
 }

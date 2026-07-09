@@ -16,5 +16,6 @@ public enum AchievementActionType
     BookPageRead = 8,
     BookCompleted = 9,
     CourseCompleted = 10,
-    RewardRedeemed = 11
+    RewardRedeemed = 11,
+    CourseSessionCompleted = 12
 }

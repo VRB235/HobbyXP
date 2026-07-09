@@ -125,7 +125,7 @@ internal sealed class PuzzleConfiguration : IEntityTypeConfiguration<Puzzle>
             .IsRequired();
 
         builder.Property(p => p.PhotoPath)
-            .HasMaxLength(1000)
+            .HasMaxLength(2000)
             .IsRequired(false);
     }
 }
@@ -189,6 +189,35 @@ internal sealed class CourseConfiguration : IEntityTypeConfiguration<Course>
         builder.Property(c => c.Platform)
             .HasMaxLength(100)
             .IsRequired();
+
+        builder.Property(c => c.Status)
+            .HasConversion<string>()
+            .HasMaxLength(16)
+            .IsRequired();
+
+        builder.ToTable(t => t.HasCheckConstraint(
+            "CK_Courses_SessionsCompleted",
+            "[SessionsCompleted] >= 0 AND [SessionsCompleted] <= [TotalSessions]"));
+
+        builder.HasIndex(c => c.Status);
+
+        builder.HasMany(c => c.SessionLogs)
+            .WithOne(l => l.Course)
+            .HasForeignKey(l => l.CourseId)
+            .OnDelete(DeleteBehavior.Cascade);
+    }
+}
+
+internal sealed class CourseSessionLogConfiguration : IEntityTypeConfiguration<CourseSessionLog>
+{
+    public void Configure(EntityTypeBuilder<CourseSessionLog> builder)
+    {
+        builder.ToTable("CourseSessionLogs");
+
+        builder.Property(l => l.SessionsDone)
+            .IsRequired();
+
+        builder.HasIndex(l => new { l.CourseId, l.SessionDate });
     }
 }
 

@@ -119,6 +119,62 @@ public sealed class XpService : IXpService
         return true;
     }
 
+    public async Task<int> RevokeXpForSourceAsync(
+        MilestoneSourceType milestoneSource,
+        string sourceEntityType,
+        int sourceEntityId,
+        string description,
+        CancellationToken cancellationToken = default)
+    {
+        await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var profile = await GetProfileAsync(db, cancellationToken);
+
+        var transactions = await db.XpTransactions
+            .Where(t => t.SourceEntityType == sourceEntityType &&
+                        t.SourceEntityId == sourceEntityId &&
+                        t.Amount > 0)
+            .ToListAsync(cancellationToken);
+
+        var totalToRevoke = transactions.Sum(t => t.Amount);
+
+        if (totalToRevoke > 0)
+        {
+            profile.TotalXp = Math.Max(0, profile.TotalXp - totalToRevoke);
+            profile.UpdatedAt = DateTime.UtcNow;
+            XpLevelCalculator.RecalculateLevel(profile);
+
+            db.XpTransactions.Add(new XpTransaction
+            {
+                PlayerProfileId = profile.Id,
+                Amount = -totalToRevoke,
+                ActionType = AchievementActionType.RewardRedeemed,
+                Description = description,
+                SourceEntityType = sourceEntityType,
+                SourceEntityId = sourceEntityId,
+                EarnedAt = DateTime.UtcNow
+            });
+
+            db.XpTransactions.RemoveRange(transactions);
+        }
+
+        var milestones = await db.Milestones
+            .Where(m => m.SourceType == milestoneSource && m.SourceEntityId == sourceEntityId)
+            .ToListAsync(cancellationToken);
+
+        if (milestones.Count > 0)
+            db.Milestones.RemoveRange(milestones);
+
+        var medals = await db.EarnedMedals
+            .Where(m => m.SourceEntityType == sourceEntityType && m.SourceEntityId == sourceEntityId)
+            .ToListAsync(cancellationToken);
+
+        if (medals.Count > 0)
+            db.EarnedMedals.RemoveRange(medals);
+
+        await db.SaveChangesAsync(cancellationToken);
+        return totalToRevoke;
+    }
+
     public async Task<IReadOnlyList<DailyXpPoint>> GetDailyXpForLastDaysAsync(
         int days,
         CancellationToken cancellationToken = default)

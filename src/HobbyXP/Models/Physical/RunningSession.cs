@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations.Schema;
 using HobbyXP.Models.Common;
 
 namespace HobbyXP.Models.Physical;
@@ -31,4 +32,7 @@ public class RunningSession : EntityBase
     public int XpEarned { get; set; }
 
     public OfficialRace? Carrera { get; set; }
+
+    [NotMapped]
+    public string CarreraOficialNombre => Carrera?.Name ?? "(Sin carrera)";
 }

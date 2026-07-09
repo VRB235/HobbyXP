@@ -1,6 +1,8 @@
 using System.Collections.ObjectModel;
+using HobbyXP.Helpers;
 using HobbyXP.Models.PersonalGrowth;
 using HobbyXP.Services.Abstractions;
+using HobbyXP.Services.Messaging;
 using HobbyXP.ViewModels.Common;
 using HobbyXP.ViewModels.Messaging;
 
@@ -9,23 +11,41 @@ namespace HobbyXP.ViewModels.PersonalGrowth;
 public sealed class CoursesViewModel : AchievementAwareViewModel
 {
     private readonly ICourseService _courseService;
+    private readonly IProfileRefreshMessenger _profileRefreshMessenger;
     private string _name = string.Empty;
     private string _platform = "Udemy";
+    private string _totalSessions = "10";
+    private DateTime? _completedFromDate;
+    private DateTime? _completedToDate;
+    private List<Course> _allInProgress = [];
+    private List<Course> _allCompleted = [];
 
-    public CoursesViewModel(ICourseService courseService, IAchievementMessenger achievementMessenger)
+    public CoursesViewModel(
+        ICourseService courseService,
+        IProfileRefreshMessenger profileRefreshMessenger,
+        IAchievementMessenger achievementMessenger)
         : base(achievementMessenger)
     {
         _courseService = courseService;
-        Courses = new ObservableCollection<Course>();
-        RegisterCommand = new AsyncRelayCommand(RegisterAsync, () => !string.IsNullOrWhiteSpace(Name));
+        _profileRefreshMessenger = profileRefreshMessenger;
+        InProgressRows = new ObservableCollection<CourseProgressRowViewModel>();
+        CompletedCourses = new ObservableCollection<Course>();
+        RegisterCommand = new AsyncRelayCommand(RegisterAsync, CanRegister);
+        ClearCompletedDateFilterCommand = new RelayCommand(ClearCompletedDateFilter);
     }
 
-    public ObservableCollection<Course> Courses { get; }
+    public ObservableCollection<CourseProgressRowViewModel> InProgressRows { get; }
+
+    public ObservableCollection<Course> CompletedCourses { get; }
 
     public string Name
     {
         get => _name;
-        set => SetProperty(ref _name, value);
+        set
+        {
+            if (SetProperty(ref _name, value))
+                RegisterCommand.RaiseCanExecuteChanged();
+        }
     }
 
     public string Platform
@@ -34,26 +54,109 @@ public sealed class CoursesViewModel : AchievementAwareViewModel
         set => SetProperty(ref _platform, value);
     }
 
+    public string TotalSessions
+    {
+        get => _totalSessions;
+        set
+        {
+            if (SetProperty(ref _totalSessions, value))
+                RegisterCommand.RaiseCanExecuteChanged();
+        }
+    }
+
+    public DateTime? CompletedFromDate
+    {
+        get => _completedFromDate;
+        set
+        {
+            if (SetProperty(ref _completedFromDate, value))
+                ApplyFilter();
+        }
+    }
+
+    public DateTime? CompletedToDate
+    {
+        get => _completedToDate;
+        set
+        {
+            if (SetProperty(ref _completedToDate, value))
+                ApplyFilter();
+        }
+    }
+
     public AsyncRelayCommand RegisterCommand { get; }
 
-    protected override async Task LoadCoreAsync()
+    public RelayCommand ClearCompletedDateFilterCommand { get; }
+
+    protected override Task LoadCoreAsync() => ReloadAsync();
+
+    private async Task ReloadAsync()
     {
-        var courses = await _courseService.GetAllAsync();
-        Courses.Clear();
-        foreach (var course in courses)
-            Courses.Add(course);
+        _allInProgress = (await _courseService.GetInProgressAsync()).ToList();
+        _allCompleted = (await _courseService.GetCompletedAsync()).ToList();
+        ApplyFilter();
     }
+
+    private void ApplyFilter()
+    {
+        InProgressRows.Clear();
+        foreach (var course in _allInProgress)
+            InProgressRows.Add(new CourseProgressRowViewModel(course, LogSessionsAsync));
+
+        CompletedCourses.Clear();
+        foreach (var course in _allCompleted.Where(MatchesCompletedDateFilter))
+            CompletedCourses.Add(course);
+    }
+
+    private bool MatchesCompletedDateFilter(Course course) =>
+        course.CompletedAt.HasValue
+            ? DateRangeFilter.Matches(course.CompletedAt.Value, CompletedFromDate, CompletedToDate)
+            : !CompletedFromDate.HasValue && !CompletedToDate.HasValue;
+
+    private void ClearCompletedDateFilter()
+    {
+        _completedFromDate = null;
+        _completedToDate = null;
+        OnPropertyChanged(nameof(CompletedFromDate));
+        OnPropertyChanged(nameof(CompletedToDate));
+        ApplyFilter();
+    }
+
+    private bool CanRegister() =>
+        !string.IsNullOrWhiteSpace(Name) &&
+        int.TryParse(TotalSessions, out var sessions) && sessions > 0;
 
     private async Task RegisterAsync()
     {
+        if (!CanRegister())
+            return;
+
+        var totalSessions = int.Parse(TotalSessions);
         await RunBusyAsync(async () =>
         {
-            var result = await _courseService.RegisterCompletedAsync(Name, Platform);
-            PublishAchievements(result.Events);
-            Courses.Insert(0, result.Value);
+            var course = await _courseService.RegisterAsync(Name, Platform, totalSessions);
+            _allInProgress.Insert(0, course);
+            ApplyFilter();
 
             Name = string.Empty;
-            StatusMessage = $"Curso registrado · +{result.Value.XpEarned} XP";
-        }, "Registrando curso...");
+            TotalSessions = "10";
+            StatusMessage = $"Curso '{course.Name}' agregado ({course.TotalSessions} sesiones).";
+        }, "Agregando curso...");
+    }
+
+    private async Task LogSessionsAsync(Course course, DateTime sessionDate, int sessionsDone)
+    {
+        await RunBusyAsync(async () =>
+        {
+            var result = await _courseService.LogSessionsAsync(course.Id, sessionDate, sessionsDone);
+            PublishAchievements(result.Events);
+            await ReloadAsync();
+            _profileRefreshMessenger.RequestRefresh();
+
+            var xpGained = result.Events.Sum(e => e.PointsEarned);
+            StatusMessage = xpGained > 0
+                ? $"{result.Value.Name}: {result.Value.SessionsCompleted}/{result.Value.TotalSessions} sesiones · +{xpGained} XP"
+                : $"{result.Value.Name}: {result.Value.SessionsCompleted}/{result.Value.TotalSessions} sesiones";
+        }, "Registrando sesiones...");
     }
 }

@@ -23,7 +23,9 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IRewardService, RewardService>();
 
         services.AddSingleton<IFileDialogService, FileDialogService>();
+        services.AddSingleton<IMessageDialogService, MessageDialogService>();
         services.AddSingleton<ILevelUpMessenger, LevelUpMessenger>();
+        services.AddSingleton<IProfileRefreshMessenger, ProfileRefreshMessenger>();
 
         return services;
     }

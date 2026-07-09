@@ -6,4 +6,5 @@ public sealed record DashboardSummary(
     LevelProgressInfo LevelProgress,
     IReadOnlyList<DailyXpPoint> WeeklyXp,
     IReadOnlyList<HobbyDistributionSlice> MonthlyHobbyDistribution,
-    IReadOnlyList<Milestone> RecentMilestones);
+    IReadOnlyList<Milestone> RecentMilestones,
+    IReadOnlyList<LevelUpSuggestion> LevelUpSuggestions);

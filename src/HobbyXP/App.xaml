@@ -8,6 +8,7 @@
              xmlns:vmGrow="clr-namespace:HobbyXP.ViewModels.PersonalGrowth"
              xmlns:vmAch="clr-namespace:HobbyXP.ViewModels.Achievements"
              xmlns:views="clr-namespace:HobbyXP.Views"
+             xmlns:viewControls="clr-namespace:HobbyXP.Views.Controls"
              xmlns:conv="clr-namespace:HobbyXP.Converters">
     <Application.Resources>
         <ResourceDictionary>
@@ -16,12 +17,19 @@
             </ResourceDictionary.MergedDictionaries>
 
             <conv:MilestoneSourceToIconConverter x:Key="MilestoneIconConverter" />
+            <conv:MedalCodeToEmojiConverter x:Key="MedalCodeToEmojiConverter" />
+            <conv:PathToImageSourceConverter x:Key="PathToImageSourceConverter" />
+            <conv:UtcToLocalDateTimeConverter x:Key="UtcToLocalDateTimeConverter" />
             <conv:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter" />
             <conv:InverseBoolToVisibilityConverter x:Key="InverseBoolToVisibilityConverter" />
             <conv:NullToVisibilityConverter x:Key="NullToVisibilityConverter" />
+            <conv:InverseNullToVisibilityConverter x:Key="InverseNullToVisibilityConverter" />
             <conv:ProgressValueClampConverter x:Key="ProgressValueClampConverter" />
             <conv:ProgressValueToMaxConverter x:Key="ProgressValueToMaxConverter" />
             <conv:MinIntConverter x:Key="MinIntConverter" />
+            <conv:FlexibleNumberConverter x:Key="FlexibleNumber" />
+            <conv:PuzzleCategoryDisplayConverter x:Key="PuzzleCategoryDisplayConverter" />
+            <conv:PhotoPathsToImagesConverter x:Key="PhotoPathsToImagesConverter" />
 
             <DataTemplate DataType="{x:Type vmDash:DashboardViewModel}">
                 <views:DashboardView />
@@ -34,6 +42,12 @@
             </DataTemplate>
             <DataTemplate DataType="{x:Type vmGrow:PersonalGrowthViewModel}">
                 <views:PersonalGrowthView />
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type vmGrow:BookReadingRowViewModel}">
+                <viewControls:BookReadingRowView />
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type vmGrow:CourseProgressRowViewModel}">
+                <viewControls:CourseProgressRowView />
             </DataTemplate>
             <DataTemplate DataType="{x:Type vmAch:AchievementsViewModel}">
                 <views:AchievementsView />

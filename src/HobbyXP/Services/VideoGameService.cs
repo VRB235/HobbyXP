@@ -47,6 +47,7 @@ public sealed class VideoGameService : IVideoGameService
         string title,
         VideoGamePlatform platform,
         int initialCompletionPercentage = 0,
+        DateTime? startedAt = null,
         CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(title))
@@ -62,8 +63,8 @@ public sealed class VideoGameService : IVideoGameService
             Platform = platform,
             CompletionPercentage = percentage,
             Status = percentage >= 100 ? VideoGameStatus.Platinum : VideoGameStatus.InProgress,
-            StartedAt = DateTime.UtcNow,
-            PlatinumUnlockedAt = percentage >= 100 ? DateTime.UtcNow : null
+            StartedAt = startedAt ?? DateTime.UtcNow,
+            PlatinumUnlockedAt = percentage >= 100 ? (startedAt ?? DateTime.UtcNow) : null
         };
 
         db.VideoGames.Add(game);
@@ -212,5 +213,24 @@ public sealed class VideoGameService : IVideoGameService
         await db.SaveChangesAsync(cancellationToken);
 
         return OperationResult<VideoGame>.WithEvents(game, events.ToArray());
+    }
+
+    public async Task<bool> DeleteAsync(int videoGameId, CancellationToken cancellationToken = default)
+    {
+        await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var game = await db.VideoGames.FindAsync([videoGameId], cancellationToken);
+        if (game is null)
+            return false;
+
+        await _xpService.RevokeXpForSourceAsync(
+            MilestoneSourceType.VideoGame,
+            nameof(VideoGame),
+            videoGameId,
+            $"Eliminado del historial: videojuego {game.Title}",
+            cancellationToken);
+
+        db.VideoGames.Remove(game);
+        await db.SaveChangesAsync(cancellationToken);
+        return true;
     }
 }

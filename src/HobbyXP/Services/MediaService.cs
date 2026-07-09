@@ -48,6 +48,7 @@ public sealed class MediaService : IMediaService
     public async Task<OperationResult<MediaEntry>> RegisterCompletedAsync(
         string title,
         MediaType mediaType,
+        DateTime? completedAt = null,
         CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(title))
@@ -59,7 +60,7 @@ public sealed class MediaService : IMediaService
         {
             Title = title.Trim(),
             MediaType = mediaType,
-            CompletedAt = DateTime.UtcNow
+            CompletedAt = completedAt ?? DateTime.UtcNow
         };
 
         db.MediaEntries.Add(entry);
@@ -89,6 +90,25 @@ public sealed class MediaService : IMediaService
         }
 
         return OperationResult<MediaEntry>.WithEvents(entry, events.ToArray());
+    }
+
+    public async Task<bool> DeleteAsync(int entryId, CancellationToken cancellationToken = default)
+    {
+        await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var entry = await db.MediaEntries.FindAsync([entryId], cancellationToken);
+        if (entry is null)
+            return false;
+
+        await _xpService.RevokeXpForSourceAsync(
+            MilestoneSourceType.Media,
+            nameof(MediaEntry),
+            entryId,
+            $"Eliminado del historial: {GetMediaLabel(entry.MediaType)} {entry.Title}",
+            cancellationToken);
+
+        db.MediaEntries.Remove(entry);
+        await db.SaveChangesAsync(cancellationToken);
+        return true;
     }
 
     private static string GetMediaLabel(MediaType mediaType) => mediaType switch

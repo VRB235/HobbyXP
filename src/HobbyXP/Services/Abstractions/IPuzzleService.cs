@@ -11,6 +11,9 @@ public interface IPuzzleService
         string name,
         int pieceCount,
         Models.Enums.PuzzleCategory category,
-        string? photoPath = null,
+        IReadOnlyList<string>? photoPaths = null,
+        DateTime? completedAt = null,
         CancellationToken cancellationToken = default);
+
+    Task<bool> DeleteAsync(int puzzleId, CancellationToken cancellationToken = default);
 }

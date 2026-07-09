@@ -1,0 +1,27 @@
+<UserControl x:Class="HobbyXP.Views.Controls.NumericStepper"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             MinHeight="32">
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="22" />
+        </Grid.ColumnDefinitions>
+
+        <TextBox Grid.Column="0"
+                 Text="{Binding Value, RelativeSource={RelativeSource AncestorType=UserControl}, UpdateSourceTrigger=PropertyChanged}"
+                 VerticalContentAlignment="Center"
+                 Padding="6,4" />
+
+        <StackPanel Grid.Column="1" Margin="4,0,0,0">
+            <Button Content="▲"
+                    Style="{StaticResource StepperButton}"
+                    Click="OnIncrement"
+                    ToolTip="Aumentar" />
+            <Button Content="▼"
+                    Style="{StaticResource StepperButton}"
+                    Click="OnDecrement"
+                    ToolTip="Disminuir" />
+        </StackPanel>
+    </Grid>
+</UserControl>

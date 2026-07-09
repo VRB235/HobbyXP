@@ -1,6 +1,8 @@
 using System.Collections.ObjectModel;
+using HobbyXP.Helpers;
 using HobbyXP.Models.Physical;
 using HobbyXP.Services.Abstractions;
+using HobbyXP.Services.Messaging;
 using HobbyXP.Services.Results;
 using HobbyXP.ViewModels.Common;
 using HobbyXP.ViewModels.Messaging;
@@ -10,23 +12,47 @@ namespace HobbyXP.ViewModels.Physical;
 public sealed class RunningViewModel : AchievementAwareViewModel
 {
     private readonly IRunningService _runningService;
+    private readonly IMessageDialogService _messageDialogService;
+    private readonly IProfileRefreshMessenger _profileRefreshMessenger;
     private string _distanceKm = string.Empty;
     private string _durationMinutes = string.Empty;
     private string _durationSeconds = string.Empty;
     private RaceOption? _selectedRaceOption;
     private OfficialRace? _selectedRace;
     private RacePreparationStats? _selectedRaceStats;
+    private string _newRaceName = string.Empty;
+    private string _newRaceDistanceKm = string.Empty;
+    private DateTime? _newRaceEventDate;
+    private string _newRaceLocation = string.Empty;
+    private DateTime? _sessionsFromDate;
+    private DateTime? _sessionsToDate;
+    private List<RunningSession> _allSessions = [];
+    private List<OfficialRace> _allOfficialRaces = [];
+    private string _raceSearchText = string.Empty;
+    private DateTime? _racesFromDate;
+    private DateTime? _racesToDate;
 
-    public RunningViewModel(IRunningService runningService, IAchievementMessenger achievementMessenger)
+    public RunningViewModel(
+        IRunningService runningService,
+        IMessageDialogService messageDialogService,
+        IProfileRefreshMessenger profileRefreshMessenger,
+        IAchievementMessenger achievementMessenger)
         : base(achievementMessenger)
     {
         _runningService = runningService;
+        _messageDialogService = messageDialogService;
+        _profileRefreshMessenger = profileRefreshMessenger;
         Sessions = new ObservableCollection<RunningSession>();
         OfficialRaces = new ObservableCollection<OfficialRace>();
         RaceOptions = new ObservableCollection<RaceOption> { RaceOption.None };
 
         SaveSessionCommand = new AsyncRelayCommand(SaveSessionAsync, CanSaveSession);
+        RegisterOfficialRaceCommand = new AsyncRelayCommand(RegisterOfficialRaceAsync, CanRegisterOfficialRace);
         CompleteRaceCommand = new AsyncRelayCommand(CompleteRaceAsync, () => SelectedRace is { IsCompleted: false });
+        ClearSessionsDateFilterCommand = new RelayCommand(ClearSessionsDateFilter);
+        ClearOfficialRacesFilterCommand = new RelayCommand(ClearOfficialRacesFilter);
+        DeleteSessionCommand = new AsyncRelayCommand(p => DeleteSessionAsync(p));
+        DeleteOfficialRaceCommand = new AsyncRelayCommand(p => DeleteOfficialRaceAsync(p), _ => SelectedRace is not null);
     }
 
     public ObservableCollection<RunningSession> Sessions { get; }
@@ -67,6 +93,7 @@ public sealed class RunningViewModel : AchievementAwareViewModel
             if (!SetProperty(ref _selectedRace, value))
                 return;
 
+            DeleteOfficialRaceCommand.RaiseCanExecuteChanged();
             _ = LoadRaceStatsAsync();
         }
     }
@@ -77,29 +104,230 @@ public sealed class RunningViewModel : AchievementAwareViewModel
         private set => SetProperty(ref _selectedRaceStats, value);
     }
 
+    public string NewRaceName
+    {
+        get => _newRaceName;
+        set => SetProperty(ref _newRaceName, value);
+    }
+
+    public string NewRaceDistanceKm
+    {
+        get => _newRaceDistanceKm;
+        set => SetProperty(ref _newRaceDistanceKm, value);
+    }
+
+    public DateTime? NewRaceEventDate
+    {
+        get => _newRaceEventDate;
+        set => SetProperty(ref _newRaceEventDate, value);
+    }
+
+    public string NewRaceLocation
+    {
+        get => _newRaceLocation;
+        set => SetProperty(ref _newRaceLocation, value);
+    }
+
+    public DateTime? SessionsFromDate
+    {
+        get => _sessionsFromDate;
+        set
+        {
+            if (SetProperty(ref _sessionsFromDate, value))
+                ApplySessionsFilter();
+        }
+    }
+
+    public DateTime? SessionsToDate
+    {
+        get => _sessionsToDate;
+        set
+        {
+            if (SetProperty(ref _sessionsToDate, value))
+                ApplySessionsFilter();
+        }
+    }
+
+    public string RaceSearchText
+    {
+        get => _raceSearchText;
+        set
+        {
+            if (SetProperty(ref _raceSearchText, value))
+                ApplyOfficialRacesFilter();
+        }
+    }
+
+    public DateTime? RacesFromDate
+    {
+        get => _racesFromDate;
+        set
+        {
+            if (SetProperty(ref _racesFromDate, value))
+                ApplyOfficialRacesFilter();
+        }
+    }
+
+    public DateTime? RacesToDate
+    {
+        get => _racesToDate;
+        set
+        {
+            if (SetProperty(ref _racesToDate, value))
+                ApplyOfficialRacesFilter();
+        }
+    }
+
     public AsyncRelayCommand SaveSessionCommand { get; }
+
+    public AsyncRelayCommand RegisterOfficialRaceCommand { get; }
 
     public AsyncRelayCommand CompleteRaceCommand { get; }
 
+    public RelayCommand ClearSessionsDateFilterCommand { get; }
+
+    public RelayCommand ClearOfficialRacesFilterCommand { get; }
+
+    public AsyncRelayCommand DeleteSessionCommand { get; }
+
+    public AsyncRelayCommand DeleteOfficialRaceCommand { get; }
+
     protected override async Task LoadCoreAsync()
     {
-        var sessions = await _runningService.GetSessionsAsync();
+        _allSessions = (await _runningService.GetSessionsAsync()).ToList();
+        ApplySessionsFilter();
+
         var races = await _runningService.GetOfficialRacesAsync();
+        SyncRaceCollections(races);
+        SelectedRaceOption ??= RaceOption.None;
+    }
 
+    private void ApplySessionsFilter()
+    {
         Sessions.Clear();
-        foreach (var session in sessions)
+        foreach (var session in _allSessions.Where(s => DateRangeFilter.Matches(s.RecordedAt, SessionsFromDate, SessionsToDate)))
             Sessions.Add(session);
+    }
 
-        OfficialRaces.Clear();
-        foreach (var race in races)
-            OfficialRaces.Add(race);
+    private void ClearSessionsDateFilter()
+    {
+        _sessionsFromDate = null;
+        _sessionsToDate = null;
+        OnPropertyChanged(nameof(SessionsFromDate));
+        OnPropertyChanged(nameof(SessionsToDate));
+        ApplySessionsFilter();
+    }
 
+    private void ClearOfficialRacesFilter()
+    {
+        _raceSearchText = string.Empty;
+        _racesFromDate = null;
+        _racesToDate = null;
+        OnPropertyChanged(nameof(RaceSearchText));
+        OnPropertyChanged(nameof(RacesFromDate));
+        OnPropertyChanged(nameof(RacesToDate));
+        ApplyOfficialRacesFilter();
+    }
+
+    private void SyncRaceCollections(IEnumerable<OfficialRace> races)
+    {
+        _allOfficialRaces = races.ToList();
+        ApplyOfficialRacesFilter();
+        SyncRaceOptions();
+    }
+
+    private void SyncRaceOptions()
+    {
         RaceOptions.Clear();
         RaceOptions.Add(RaceOption.None);
-        foreach (var race in races)
+        foreach (var race in _allOfficialRaces)
             RaceOptions.Add(new RaceOption { Id = race.Id, Name = race.Name });
+    }
 
-        SelectedRaceOption ??= RaceOption.None;
+    private void ApplyOfficialRacesFilter()
+    {
+        var selectedId = SelectedRace?.Id;
+
+        OfficialRaces.Clear();
+        foreach (var race in _allOfficialRaces.Where(MatchesOfficialRaceFilter))
+            OfficialRaces.Add(race);
+
+        var nextSelection = selectedId.HasValue
+            ? OfficialRaces.FirstOrDefault(r => r.Id == selectedId.Value)
+            : OfficialRaces.FirstOrDefault();
+
+        if (!ReferenceEquals(SelectedRace, nextSelection))
+            SelectedRace = nextSelection;
+        else if (nextSelection is null)
+            SelectedRaceStats = null;
+    }
+
+    private bool MatchesOfficialRaceFilter(OfficialRace race)
+    {
+        if (!string.IsNullOrWhiteSpace(RaceSearchText))
+        {
+            var term = RaceSearchText.Trim();
+            var matchesName = race.Name.Contains(term, StringComparison.OrdinalIgnoreCase);
+            var matchesLocation = race.Location?.Contains(term, StringComparison.OrdinalIgnoreCase) ?? false;
+            if (!matchesName && !matchesLocation)
+                return false;
+        }
+
+        if (RacesFromDate is null && RacesToDate is null)
+            return true;
+
+        if (race.EventDate is null)
+            return false;
+
+        return DateRangeFilter.Matches(race.EventDate.Value, RacesFromDate, RacesToDate);
+    }
+
+    private void UpdateOfficialRace(OfficialRace race)
+    {
+        var index = _allOfficialRaces.FindIndex(r => r.Id == race.Id);
+        if (index >= 0)
+            _allOfficialRaces[index] = race;
+
+        ApplyOfficialRacesFilter();
+    }
+
+    private bool CanRegisterOfficialRace() =>
+        !string.IsNullOrWhiteSpace(NewRaceName) &&
+        decimal.TryParse(NewRaceDistanceKm, out var km) && km > 0;
+
+    private async Task RegisterOfficialRaceAsync()
+    {
+        if (!CanRegisterOfficialRace())
+            return;
+
+        var distanceKm = decimal.Parse(NewRaceDistanceKm);
+
+        await RunBusyAsync(async () =>
+        {
+            var race = new OfficialRace
+            {
+                Name = NewRaceName.Trim(),
+                DistanceKm = distanceKm,
+                EventDate = NewRaceEventDate.HasValue
+                    ? DateTime.SpecifyKind(NewRaceEventDate.Value.Date, DateTimeKind.Utc)
+                    : null,
+                Location = string.IsNullOrWhiteSpace(NewRaceLocation) ? null : NewRaceLocation.Trim(),
+                CreatedAt = DateTime.UtcNow
+            };
+
+            var saved = await _runningService.SaveOfficialRaceAsync(race);
+            _allOfficialRaces.Insert(0, saved);
+            ApplyOfficialRacesFilter();
+            SyncRaceOptions();
+            SelectedRace = OfficialRaces.FirstOrDefault(r => r.Id == saved.Id) ?? saved;
+
+            NewRaceName = string.Empty;
+            NewRaceDistanceKm = string.Empty;
+            NewRaceEventDate = null;
+            NewRaceLocation = string.Empty;
+
+            StatusMessage = $"Carrera oficial registrada: {saved.Name} ({saved.DistanceKm:0.##} km)";
+        }, "Registrando carrera...");
     }
 
     private bool CanSaveSession() =>
@@ -121,7 +349,8 @@ public sealed class RunningViewModel : AchievementAwareViewModel
         {
             var result = await _runningService.SaveSessionAsync(distance, duration, raceId);
             PublishAchievements(result.Events);
-            Sessions.Insert(0, result.Value);
+            _allSessions.Insert(0, result.Value);
+            ApplySessionsFilter();
 
             DistanceKm = string.Empty;
             DurationMinutes = string.Empty;
@@ -140,11 +369,8 @@ public sealed class RunningViewModel : AchievementAwareViewModel
             var result = await _runningService.CompleteOfficialRaceAsync(SelectedRace.Id);
             PublishAchievements(result.Events);
 
-            var index = OfficialRaces.IndexOf(SelectedRace);
-            if (index >= 0)
-                OfficialRaces[index] = result.Value;
-
-            SelectedRace = result.Value;
+            UpdateOfficialRace(result.Value);
+            SelectedRace = OfficialRaces.FirstOrDefault(r => r.Id == result.Value.Id);
             StatusMessage = $"¡Carrera completada! +{result.Value.BonusXpAwarded} XP";
         }, "Completando carrera...");
     }
@@ -158,5 +384,53 @@ public sealed class RunningViewModel : AchievementAwareViewModel
         }
 
         SelectedRaceStats = await _runningService.GetRacePreparationStatsAsync(SelectedRace.Id);
+    }
+
+    private async Task DeleteSessionAsync(object? parameter)
+    {
+        if (parameter is not RunningSession session)
+            return;
+
+        if (!_messageDialogService.Confirm(
+                $"¿Eliminar la sesión del {session.RecordedAt:dd/MM/yyyy} ({session.DistanceKm:0.##} km)?\nSe revertirá el XP asociado.",
+                "Eliminar del historial"))
+            return;
+
+        await RunBusyAsync(async () =>
+        {
+            if (!await _runningService.DeleteSessionAsync(session.Id))
+                return;
+
+            _allSessions.RemoveAll(s => s.Id == session.Id);
+            ApplySessionsFilter();
+            _profileRefreshMessenger.RequestRefresh();
+            StatusMessage = "Sesión eliminada del historial.";
+        }, "Eliminando sesión...");
+    }
+
+    private async Task DeleteOfficialRaceAsync(object? parameter)
+    {
+        var race = parameter as OfficialRace ?? SelectedRace;
+        if (race is null)
+            return;
+
+        if (!_messageDialogService.Confirm(
+                $"¿Eliminar la carrera «{race.Name}» del historial?\nLas sesiones vinculadas quedarán sin carrera asociada.",
+                "Eliminar del historial"))
+            return;
+
+        await RunBusyAsync(async () =>
+        {
+            if (!await _runningService.DeleteOfficialRaceAsync(race.Id))
+                return;
+
+            _allOfficialRaces.RemoveAll(r => r.Id == race.Id);
+            ApplyOfficialRacesFilter();
+            SyncRaceOptions();
+            SelectedRace = OfficialRaces.FirstOrDefault();
+            SelectedRaceOption = RaceOptions.FirstOrDefault();
+            _profileRefreshMessenger.RequestRefresh();
+            StatusMessage = $"Carrera «{race.Name}» eliminada del historial.";
+        }, "Eliminando carrera...");
     }
 }

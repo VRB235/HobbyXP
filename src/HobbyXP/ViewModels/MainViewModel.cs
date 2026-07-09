@@ -18,6 +18,7 @@ public sealed class MainViewModel : ViewModelBase
     private readonly ILevelUpMessenger _levelUpMessenger;
     private readonly IPlayerProfileService _playerProfileService;
     private readonly IFileDialogService _fileDialogService;
+    private readonly IProfileRefreshMessenger _profileRefreshMessenger;
     private object? _currentViewModel;
     private NavigationSection _currentSection = NavigationSection.Dashboard;
     private string? _latestAchievementMessage;
@@ -36,13 +37,15 @@ public sealed class MainViewModel : ViewModelBase
         IAchievementMessenger achievementMessenger,
         ILevelUpMessenger levelUpMessenger,
         IPlayerProfileService playerProfileService,
-        IFileDialogService fileDialogService)
+        IFileDialogService fileDialogService,
+        IProfileRefreshMessenger profileRefreshMessenger)
     {
         _navigationService = navigationService;
         _achievementMessenger = achievementMessenger;
         _levelUpMessenger = levelUpMessenger;
         _playerProfileService = playerProfileService;
         _fileDialogService = fileDialogService;
+        _profileRefreshMessenger = profileRefreshMessenger;
 
         NavigationItems = new ObservableCollection<NavigationItem>(new[]
         {
@@ -61,6 +64,7 @@ public sealed class MainViewModel : ViewModelBase
         _navigationService.CurrentViewModelChanged += (_, _) => SyncNavigationState();
         _achievementMessenger.AchievementPublished += OnAchievementPublished;
         _levelUpMessenger.LevelUpPublished += OnLevelUpPublished;
+        _profileRefreshMessenger.ProfileRefreshRequested += OnProfileRefreshRequested;
 
         SyncNavigationState();
     }
@@ -256,6 +260,9 @@ public sealed class MainViewModel : ViewModelBase
         LatestAchievementMessage = $"🎉 ¡Subiste al nivel {info.NewLevel}!";
         await RefreshProfileAsync();
     }
+
+    private async void OnProfileRefreshRequested(object? sender, EventArgs e) =>
+        await RefreshProfileAsync();
 
     private void DismissLevelUp() => IsLevelUpVisible = false;
 

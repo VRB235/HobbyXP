@@ -29,4 +29,8 @@ public interface IRunningService
     Task<RacePreparationStats> GetRacePreparationStatsAsync(
         int raceId,
         CancellationToken cancellationToken = default);
+
+    Task<bool> DeleteSessionAsync(int sessionId, CancellationToken cancellationToken = default);
+
+    Task<bool> DeleteOfficialRaceAsync(int raceId, CancellationToken cancellationToken = default);
 }

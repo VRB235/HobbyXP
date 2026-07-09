@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations.Schema;
 using HobbyXP.Models.Common;
 
 namespace HobbyXP.Models.Physical;
@@ -24,4 +25,13 @@ public class OfficialRace : EntityBase
     public int BonusXpAwarded { get; set; }
 
     public ICollection<RunningSession> TrainingSessions { get; set; } = [];
+
+    [NotMapped]
+    public string EventDateLabel => EventDate?.ToString("dd/MM/yyyy") ?? "—";
+
+    [NotMapped]
+    public string StatusLabel => IsCompleted ? "Completada" : "Pendiente";
+
+    [NotMapped]
+    public string LocationLabel => string.IsNullOrWhiteSpace(Location) ? "—" : Location;
 }

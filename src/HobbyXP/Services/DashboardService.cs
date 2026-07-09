@@ -11,15 +11,18 @@ public sealed class DashboardService : IDashboardService
     private readonly IDbContextFactory<HobbyXpDbContext> _dbContextFactory;
     private readonly IXpService _xpService;
     private readonly IPlayerProfileService _playerProfileService;
+    private readonly IAchievementEngineService _achievementEngineService;
 
     public DashboardService(
         IDbContextFactory<HobbyXpDbContext> dbContextFactory,
         IXpService xpService,
-        IPlayerProfileService playerProfileService)
+        IPlayerProfileService playerProfileService,
+        IAchievementEngineService achievementEngineService)
     {
         _dbContextFactory = dbContextFactory;
         _xpService = xpService;
         _playerProfileService = playerProfileService;
+        _achievementEngineService = achievementEngineService;
     }
 
     public async Task<DashboardSummary> GetSummaryAsync(CancellationToken cancellationToken = default)
@@ -28,8 +31,11 @@ public sealed class DashboardService : IDashboardService
         var weeklyXp = await _xpService.GetDailyXpForLastDaysAsync(7, cancellationToken);
         var monthlyDistribution = await GetMonthlyHobbyDistributionAsync(cancellationToken);
         var milestones = await GetRecentMilestonesAsync(cancellationToken);
+        var rules = await _achievementEngineService.GetAllRulesAsync(cancellationToken);
+        var xpRemaining = Math.Max(0, levelProgress.XpRequiredForNextLevel - levelProgress.XpIntoCurrentLevel);
+        var suggestions = LevelUpSuggestionBuilder.Build(xpRemaining, monthlyDistribution, rules);
 
-        return new DashboardSummary(levelProgress, weeklyXp, monthlyDistribution, milestones);
+        return new DashboardSummary(levelProgress, weeklyXp, monthlyDistribution, milestones, suggestions);
     }
 
     private async Task<IReadOnlyList<HobbyDistributionSlice>> GetMonthlyHobbyDistributionAsync(

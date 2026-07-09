@@ -100,6 +100,13 @@ public sealed class RunningService : IRunningService
         session.UpdatedAt = DateTime.UtcNow;
         await db.SaveChangesAsync(cancellationToken);
 
+        if (carreraId.HasValue)
+        {
+            session.Carrera = await db.OfficialRaces
+                .AsNoTracking()
+                .FirstAsync(r => r.Id == carreraId.Value, cancellationToken);
+        }
+
         var events = new List<AchievementEvent>();
         if (xpOutcome.Milestone is not null)
         {
@@ -226,5 +233,43 @@ public sealed class RunningService : IRunningService
             sessions.Count,
             sessions.Sum(s => s.DistanceKm),
             sessions.Count == 0 ? null : sessions.Min(s => s.PaceMinPerKm));
+    }
+
+    public async Task<bool> DeleteSessionAsync(int sessionId, CancellationToken cancellationToken = default)
+    {
+        await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var session = await db.RunningSessions.FindAsync([sessionId], cancellationToken);
+        if (session is null)
+            return false;
+
+        await _xpService.RevokeXpForSourceAsync(
+            MilestoneSourceType.Running,
+            nameof(RunningSession),
+            sessionId,
+            $"Eliminado del historial: sesión de running ({session.DistanceKm:0.##} km)",
+            cancellationToken);
+
+        db.RunningSessions.Remove(session);
+        await db.SaveChangesAsync(cancellationToken);
+        return true;
+    }
+
+    public async Task<bool> DeleteOfficialRaceAsync(int raceId, CancellationToken cancellationToken = default)
+    {
+        await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var race = await db.OfficialRaces.FindAsync([raceId], cancellationToken);
+        if (race is null)
+            return false;
+
+        await _xpService.RevokeXpForSourceAsync(
+            MilestoneSourceType.OfficialRace,
+            nameof(OfficialRace),
+            raceId,
+            $"Eliminado del historial: carrera oficial {race.Name}",
+            cancellationToken);
+
+        db.OfficialRaces.Remove(race);
+        await db.SaveChangesAsync(cancellationToken);
+        return true;
     }
 }

@@ -17,4 +17,11 @@ public class Reward : EntityBase
     public RewardStatus Status { get; set; } = RewardStatus.Available;
 
     public DateTime? RedeemedAt { get; set; }
+
+    public string StatusLabel => Status switch
+    {
+        RewardStatus.Available => "Disponible",
+        RewardStatus.Redeemed => "Canjeado",
+        _ => Status.ToString()
+    };
 }

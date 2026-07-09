@@ -14,6 +14,7 @@ public interface IVideoGameService
         string title,
         VideoGamePlatform platform,
         int initialCompletionPercentage = 0,
+        DateTime? startedAt = null,
         CancellationToken cancellationToken = default);
 
     Task<OperationResult<VideoGame>> UpdateCompletionAsync(
@@ -25,4 +26,6 @@ public interface IVideoGameService
         int videoGameId,
         int increment = 1,
         CancellationToken cancellationToken = default);
+
+    Task<bool> DeleteAsync(int videoGameId, CancellationToken cancellationToken = default);
 }

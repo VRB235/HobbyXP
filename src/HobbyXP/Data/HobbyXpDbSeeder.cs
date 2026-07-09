@@ -155,9 +155,20 @@ internal static class HobbyXpDbSeeder
             {
                 Id = 11,
                 ActionType = AchievementActionType.CourseCompleted,
-                DisplayName = "Curso completado",
+                DisplayName = "Curso terminado",
                 UnitLabel = "curso",
-                PointsPerUnit = 100m,
+                PointsPerUnit = 0m,
+                FlatBonusPoints = 100,
+                IsActive = true,
+                CreatedAt = SeedTimestamp
+            },
+            new AchievementRule
+            {
+                Id = 12,
+                ActionType = AchievementActionType.CourseSessionCompleted,
+                DisplayName = "Sesión de curso",
+                UnitLabel = "sesión",
+                PointsPerUnit = 10m,
                 IsActive = true,
                 CreatedAt = SeedTimestamp
             });

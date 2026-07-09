@@ -31,6 +31,7 @@ public class HobbyXpDbContext : DbContext
 
     public DbSet<Book> Books => Set<Book>();
     public DbSet<Course> Courses => Set<Course>();
+    public DbSet<CourseSessionLog> CourseSessionLogs => Set<CourseSessionLog>();
 
     public DbSet<MedalDefinition> MedalDefinitions => Set<MedalDefinition>();
     public DbSet<EarnedMedal> EarnedMedals => Set<EarnedMedal>();

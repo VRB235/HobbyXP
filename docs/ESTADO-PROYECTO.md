@@ -90,7 +90,7 @@ En Windows: `C:\Users\<usuario>\AppData\Local\HobbyXP\hobbyxp.db`
 - **`Themes/DarkRpgTheme.xaml`**: paleta, gradientes, tarjetas, botones, tabs, inputs.
 - **Views** por sección enlazadas vía `DataTemplate` en `App.xaml`.
 - **`MainWindow`**: sidebar con perfil, navegación, área principal con fondo geométrico.
-- **`DashboardView`**: hero de nivel/XP, gráficos LiveCharts (XP semanal + distribución por hobby), hitos recientes.
+- **`DashboardView`**: hero de nivel/XP, gráficos LiveCharts (XP semanal + distribución por hobby), sugerencias de actividades para subir de nivel, hitos recientes.
 - Paquete **LiveChartsCore.SkiaSharpView.WPF** `2.0.0-rc5.4`.
 
 ### Fase 5 — Personalización y refinamientos UI ✅
@@ -209,8 +209,8 @@ Progreso % = XP dentro del nivel actual / BaseXpPerLevel * 100
 
 | Sección | View | Tabs / contenido |
 |---------|------|------------------|
-| Dashboard | `DashboardView` | Hero XP, gráficos, hitos |
-| Físico | `PhysicalActivitiesView` | Running, Gimnasio |
+| Dashboard | `DashboardView` | Hero XP, gráficos, sugerencias para subir de nivel, hitos |
+| Físico | `PhysicalActivitiesView` | Running (sesiones + **alta de carreras oficiales** + completar carrera), Gimnasio |
 | Entretenimiento | `EntertainmentView` | Rompecabezas, Media, Videojuegos |
 | Crecimiento | `PersonalGrowthView` | Libros, Cursos |
 | Logros | `AchievementsView` | Vitrina, Reglas, Tienda premios |
@@ -381,27 +381,27 @@ dotnet build
 ## 15. Checklist de prueba manual sugerido
 
 ### Arranque
-- [ ] App abre sin excepciones.
-- [ ] BD se crea en `%LocalAppData%\HobbyXP\`.
-- [ ] Dashboard carga con perfil inicial (Aventurero, Nivel 1).
+- [x] App abre sin excepciones.
+- [x] BD se crea en `%LocalAppData%\HobbyXP\`.
+- [x] Dashboard carga con perfil inicial (Aventurero, Nivel 1).
 
 ### Perfil
-- [ ] Cambiar avatar (PNG/JPG).
-- [ ] Cambiar nombre y verificar persistencia tras reiniciar app.
+- [x] Cambiar avatar (PNG/JPG).
+- [x] Cambiar nombre y verificar persistencia tras reiniciar app.
 
 ### XP y nivel
-- [ ] Registrar actividad que otorgue XP.
-- [ ] Ver mensaje en barra superior.
-- [ ] Forzar subida de nivel y ver overlay.
-- [ ] Verificar barra XP sidebar y dashboard.
+- [x] Registrar actividad que otorgue XP.
+- [x] Ver mensaje en barra superior.
+- [x] Forzar subida de nivel y ver overlay.
+- [x] Verificar barra XP sidebar y dashboard.
 
 ### Por módulo
-- [ ] Running: sesión + carrera oficial completada.
-- [ ] Gym: workout con PR (medalla sobrecarga progresiva).
-- [ ] Puzzle, media, videojuego (% y platino).
-- [ ] Libro: páginas y completado.
-- [ ] Curso completado.
-- [ ] Logros: vitrina, editar regla, canjear premio (deducción XP).
+- [x] Running: sesión + carrera oficial completada.
+- [x] Gym: workout con PR (medalla sobrecarga progresiva).
+- [x] Puzzle, media, videojuego (% y platino).
+- [x] Libro: páginas y completado.
+- [x] Curso completado.
+- [x] Logros: vitrina, editar regla, canjear premio (deducción XP).
 
 ---
 

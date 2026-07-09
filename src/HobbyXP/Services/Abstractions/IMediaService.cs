@@ -15,5 +15,8 @@ public interface IMediaService
     Task<OperationResult<MediaEntry>> RegisterCompletedAsync(
         string title,
         MediaType mediaType,
+        DateTime? completedAt = null,
         CancellationToken cancellationToken = default);
+
+    Task<bool> DeleteAsync(int entryId, CancellationToken cancellationToken = default);
 }

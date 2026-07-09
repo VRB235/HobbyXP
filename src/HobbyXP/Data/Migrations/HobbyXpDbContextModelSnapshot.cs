@@ -171,10 +171,21 @@ namespace HobbyXP.Data.Migrations
                             Id = 11,
                             ActionType = "CourseCompleted",
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            DisplayName = "Curso completado",
+                            DisplayName = "Curso terminado",
+                            FlatBonusPoints = 100,
                             IsActive = true,
-                            PointsPerUnit = 100m,
+                            PointsPerUnit = 0m,
                             UnitLabel = "curso"
+                        },
+                        new
+                        {
+                            Id = 12,
+                            ActionType = "CourseSessionCompleted",
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            DisplayName = "Sesión de curso",
+                            IsActive = true,
+                            PointsPerUnit = 10m,
+                            UnitLabel = "sesión"
                         });
                 });
 
@@ -507,7 +518,7 @@ namespace HobbyXP.Data.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<string>("PhotoPath")
-                        .HasMaxLength(1000)
+                        .HasMaxLength(2000)
                         .HasColumnType("TEXT");
 
                     b.Property<int>("PieceCount")
@@ -633,7 +644,7 @@ namespace HobbyXP.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
-                    b.Property<DateTime>("CompletedAt")
+                    b.Property<DateTime?>("CompletedAt")
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime>("CreatedAt")
@@ -649,6 +660,17 @@ namespace HobbyXP.Data.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("TEXT");
 
+                    b.Property<int>("SessionsCompleted")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("TotalSessions")
+                        .HasColumnType("INTEGER");
+
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("TEXT");
 
@@ -657,7 +679,40 @@ namespace HobbyXP.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Courses", (string)null);
+                    b.HasIndex("Status");
+
+                    b.ToTable("Courses", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_Courses_SessionsCompleted", "[SessionsCompleted] >= 0 AND [SessionsCompleted] <= [TotalSessions]");
+                        });
+                });
+
+            modelBuilder.Entity("HobbyXP.Models.PersonalGrowth.CourseSessionLog", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("CourseId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("SessionDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("SessionsDone")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CourseId", "SessionDate");
+
+                    b.ToTable("CourseSessionLogs", (string)null);
                 });
 
             modelBuilder.Entity("HobbyXP.Models.Physical.Exercise", b =>
@@ -888,6 +943,17 @@ namespace HobbyXP.Data.Migrations
                     b.Navigation("PlayerProfile");
                 });
 
+            modelBuilder.Entity("HobbyXP.Models.PersonalGrowth.CourseSessionLog", b =>
+                {
+                    b.HasOne("HobbyXP.Models.PersonalGrowth.Course", "Course")
+                        .WithMany("SessionLogs")
+                        .HasForeignKey("CourseId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Course");
+                });
+
             modelBuilder.Entity("HobbyXP.Models.Physical.GymWorkoutEntry", b =>
                 {
                     b.HasOne("HobbyXP.Models.Physical.Exercise", "Exercise")
@@ -925,6 +991,11 @@ namespace HobbyXP.Data.Migrations
             modelBuilder.Entity("HobbyXP.Models.Core.PlayerProfile", b =>
                 {
                     b.Navigation("Transactions");
+                });
+
+            modelBuilder.Entity("HobbyXP.Models.PersonalGrowth.Course", b =>
+                {
+                    b.Navigation("SessionLogs");
                 });
 
             modelBuilder.Entity("HobbyXP.Models.Physical.Exercise", b =>

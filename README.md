@@ -41,7 +41,7 @@ El `README.md` se mantiene como **vista ejecutiva y técnica resumida** del esta
   - Sistema de recompensas (`Reward`) canjeables por XP.
 - **Interfaz**:
   - Sidebar con perfil, navegación lateral y estado de XP/nivel.
-  - Dashboard con gráficos de XP (semanal y por hobby) y lista de hitos recientes.
+  - Dashboard con gráficos de XP (semanal y por hobby), sugerencias de actividades para subir de nivel y lista de hitos recientes.
   - Overlay de celebración al subir de nivel (`LevelUpOverlay`).
 
 Para un listado completo de entidades, servicios y controles reutilizables, ver secciones 5–8 de `docs/ESTADO-PROYECTO.md`.
