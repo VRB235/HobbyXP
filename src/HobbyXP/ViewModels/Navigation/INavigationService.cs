@@ -9,4 +9,6 @@ public interface INavigationService
     event EventHandler? CurrentViewModelChanged;
 
     Task NavigateAsync(NavigationSection section);
+
+    void InvalidateAllLoadedSections();
 }

@@ -12,4 +12,6 @@ public interface IPlayerProfileService
     Task<PlayerProfile> UpdateDisplayNameAsync(string displayName, CancellationToken cancellationToken = default);
 
     Task<PlayerProfile> UpdateAvatarPathAsync(string? avatarPath, CancellationToken cancellationToken = default);
+
+    Task<PlayerProfile> UpdateBaseXpPerLevelAsync(int baseXpPerLevel, CancellationToken cancellationToken = default);
 }

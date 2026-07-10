@@ -6,5 +6,6 @@ public enum NavigationSection
     PhysicalActivities,
     Entertainment,
     PersonalGrowth,
-    Achievements
+    Achievements,
+    Settings
 }

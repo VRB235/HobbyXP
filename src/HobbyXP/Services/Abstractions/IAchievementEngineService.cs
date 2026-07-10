@@ -24,4 +24,11 @@ public interface IAchievementEngineService
         string? sourceEntityType = null,
         int? sourceEntityId = null,
         CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<AchievementEvent>> TryAwardMilestonesForTrackAsync(
+        MedalMilestoneTrack track,
+        MilestoneSourceType sourceType,
+        string? sourceEntityType = null,
+        int? sourceEntityId = null,
+        CancellationToken cancellationToken = default);
 }

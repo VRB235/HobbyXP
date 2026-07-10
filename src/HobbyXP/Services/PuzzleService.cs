@@ -12,11 +12,16 @@ public sealed class PuzzleService : IPuzzleService
 {
     private readonly IDbContextFactory<HobbyXpDbContext> _dbContextFactory;
     private readonly IXpService _xpService;
+    private readonly IAchievementEngineService _achievementEngine;
 
-    public PuzzleService(IDbContextFactory<HobbyXpDbContext> dbContextFactory, IXpService xpService)
+    public PuzzleService(
+        IDbContextFactory<HobbyXpDbContext> dbContextFactory,
+        IXpService xpService,
+        IAchievementEngineService achievementEngine)
     {
         _dbContextFactory = dbContextFactory;
         _xpService = xpService;
+        _achievementEngine = achievementEngine;
     }
 
     public async Task<IReadOnlyList<Puzzle>> GetAllAsync(CancellationToken cancellationToken = default)
@@ -84,6 +89,15 @@ public sealed class PuzzleService : IPuzzleService
                 xpOutcome.AmountAwarded,
                 MilestoneSourceType.Puzzle));
         }
+
+        var medalEvents = await _achievementEngine.TryAwardMilestonesForTrackAsync(
+            MedalMilestoneTrack.PuzzlesCompleted,
+            MilestoneSourceType.Puzzle,
+            nameof(Puzzle),
+            puzzle.Id,
+            cancellationToken);
+
+        events.AddRange(medalEvents);
 
         return OperationResult<Puzzle>.WithEvents(puzzle, events.ToArray());
     }

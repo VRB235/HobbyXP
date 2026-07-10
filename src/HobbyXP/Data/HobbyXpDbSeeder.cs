@@ -8,40 +8,8 @@ internal static class HobbyXpDbSeeder
 {
     public static void Seed(ModelBuilder modelBuilder)
     {
-        SeedMedalDefinitions(modelBuilder);
+        MedalCatalog.Seed(modelBuilder);
         SeedAchievementRules(modelBuilder);
-    }
-
-    private static void SeedMedalDefinitions(ModelBuilder modelBuilder)
-    {
-        modelBuilder.Entity<MedalDefinition>().HasData(
-            new MedalDefinition
-            {
-                Id = 1,
-                Code = MedalCode.GoldRace,
-                Name = "Medalla de Oro",
-                Description = "Completaste una carrera oficial.",
-                UnlockHint = "Marca una carrera oficial como completada.",
-                CreatedAt = SeedTimestamp
-            },
-            new MedalDefinition
-            {
-                Id = 2,
-                Code = MedalCode.PlatinumGame,
-                Name = "Medalla de Platino",
-                Description = "Platinaste un videojuego al 100%.",
-                UnlockHint = "Lleva un videojuego al 100% de completitud.",
-                CreatedAt = SeedTimestamp
-            },
-            new MedalDefinition
-            {
-                Id = 3,
-                Code = MedalCode.ProgressiveOverload,
-                Name = "Sobrecarga Progresiva",
-                Description = "Superaste tu récord histórico en gimnasio.",
-                UnlockHint = "Mejora peso o tiempo respecto a tu máximo anterior.",
-                CreatedAt = SeedTimestamp
-            });
     }
 
     private static void SeedAchievementRules(ModelBuilder modelBuilder)

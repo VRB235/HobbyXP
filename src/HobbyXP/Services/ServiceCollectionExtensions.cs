@@ -11,6 +11,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IXpService, XpService>();
         services.AddScoped<IAchievementEngineService, AchievementEngineService>();
         services.AddScoped<IPlayerProfileService, PlayerProfileService>();
+        services.AddScoped<IDatabaseMaintenanceService, DatabaseMaintenanceService>();
         services.AddScoped<IDashboardService, DashboardService>();
         services.AddScoped<IRunningService, RunningService>();
         services.AddScoped<IGymService, GymService>();
@@ -26,6 +27,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IMessageDialogService, MessageDialogService>();
         services.AddSingleton<ILevelUpMessenger, LevelUpMessenger>();
         services.AddSingleton<IProfileRefreshMessenger, ProfileRefreshMessenger>();
+        services.AddSingleton<IApplicationDataResetMessenger, ApplicationDataResetMessenger>();
 
         return services;
     }

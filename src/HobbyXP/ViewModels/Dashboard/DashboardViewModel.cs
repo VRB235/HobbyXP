@@ -3,6 +3,7 @@ using System.Windows.Media;
 using HobbyXP.Helpers;
 using HobbyXP.Models.Core;
 using HobbyXP.Services.Abstractions;
+using HobbyXP.Services.Messaging;
 using HobbyXP.Services.Results;
 using HobbyXP.ViewModels.Common;
 using HobbyXP.ViewModels.Navigation;
@@ -28,16 +29,19 @@ public sealed class DashboardViewModel : LoadableViewModelBase
     private ImageSource? _avatarImage;
     private bool _hasCustomAvatar;
     private string _suggestionsSummary = "Sigue registrando actividades para subir de nivel.";
+    private bool _showLevelUpSuggestions;
 
     public DashboardViewModel(
         IDashboardService dashboardService,
-        IPlayerProfileService playerProfileService)
+        IPlayerProfileService playerProfileService,
+        IApplicationDataResetMessenger applicationDataResetMessenger)
     {
         _dashboardService = dashboardService;
         _playerProfileService = playerProfileService;
         RecentMilestones = new ObservableCollection<Milestone>();
         SuggestedActivities = new ObservableCollection<LevelUpSuggestion>();
         RefreshCommand = new AsyncRelayCommand(() => LoadAsync());
+        applicationDataResetMessenger.ApplicationDataReset += OnApplicationDataReset;
     }
 
     public ObservableCollection<Milestone> RecentMilestones { get; }
@@ -119,6 +123,12 @@ public sealed class DashboardViewModel : LoadableViewModelBase
         private set => SetProperty(ref _suggestionsSummary, value);
     }
 
+    public bool ShowLevelUpSuggestions
+    {
+        get => _showLevelUpSuggestions;
+        private set => SetProperty(ref _showLevelUpSuggestions, value);
+    }
+
     protected override async Task LoadCoreAsync()
     {
         var profile = await _playerProfileService.GetProfileAsync();
@@ -144,6 +154,14 @@ public sealed class DashboardViewModel : LoadableViewModelBase
 
     private void BuildSuggestions(DashboardSummary summary)
     {
+        if (summary.LevelProgress.TotalXp == 0)
+        {
+            SuggestionsSummary = "Registre su primera actividad para comenzar a acumular XP.";
+            SuggestedActivities.Clear();
+            ShowLevelUpSuggestions = false;
+            return;
+        }
+
         var xpRemaining = Math.Max(0, summary.LevelProgress.XpRequiredForNextLevel - summary.LevelProgress.XpIntoCurrentLevel);
         SuggestionsSummary = xpRemaining == 0
             ? "Listo para subir de nivel. Registre una actividad más para activar la celebración."
@@ -152,6 +170,14 @@ public sealed class DashboardViewModel : LoadableViewModelBase
         SuggestedActivities.Clear();
         foreach (var suggestion in summary.LevelUpSuggestions)
             SuggestedActivities.Add(suggestion);
+
+        ShowLevelUpSuggestions = SuggestedActivities.Count > 0 || xpRemaining == 0;
+    }
+
+    private async void OnApplicationDataReset(object? sender, EventArgs e)
+    {
+        InvalidateLoaded();
+        await LoadAsync();
     }
 
     private void ApplyLevelProgress(LevelProgressInfo progress)

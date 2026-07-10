@@ -1,0 +1,83 @@
+<UserControl x:Class="HobbyXP.Views.SettingsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="clr-namespace:HobbyXP.Views.Controls">
+    <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="24,20">
+        <StackPanel MaxWidth="760">
+            <TextBlock Text="Configuración" Style="{StaticResource PageTitleText}" Margin="0,0,0,20" />
+
+            <Border Style="{StaticResource DarkCard}" Margin="0,0,0,16" Padding="20">
+                <StackPanel>
+                    <TextBlock Text="Progresión RPG" Style="{StaticResource SectionTitleText}" Margin="0,0,0,4" />
+                    <TextBlock Text="Define cuánta XP se necesita para subir de nivel. Al cambiar este valor se recalcula el nivel actual según tu XP total."
+                               Style="{StaticResource MutedText}" TextWrapping="Wrap" Margin="0,0,0,12" />
+
+                    <TextBlock Text="{Binding ProfileSummary}" Foreground="{StaticResource AccentCyanBrush}" Margin="0,0,0,12" />
+
+                    <TextBlock Text="XP base por nivel" Style="{StaticResource CardTitleText}" Margin="0,0,0,6" />
+                    <controls:FormValidationBanner Message="{Binding ValidationMessage}" />
+                    <Grid Margin="0,0,0,12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBox Text="{Binding BaseXpPerLevelText, UpdateSourceTrigger=PropertyChanged}" />
+                        <Button Grid.Column="1"
+                                Content="Guardar"
+                                Margin="12,0,0,0"
+                                Command="{Binding SaveBaseXpPerLevelCommand}"
+                                Style="{StaticResource AccentButton}" />
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource DarkCard}" Margin="0,0,0,16" Padding="20">
+                <StackPanel>
+                    <TextBlock Text="Datos locales" Style="{StaticResource SectionTitleText}" Margin="0,0,0,4" />
+                    <TextBlock Text="HobbyXP guarda toda la información en su carpeta de datos de Windows."
+                               Style="{StaticResource MutedText}" TextWrapping="Wrap" Margin="0,0,0,12" />
+
+                    <TextBlock Text="Carpeta de datos" Style="{StaticResource CardTitleText}" Margin="0,0,0,4" />
+                    <TextBox Text="{Binding DataDirectory, Mode=OneWay}"
+                             IsReadOnly="True"
+                             Margin="0,0,0,12" />
+
+                    <TextBlock Text="Base de datos" Style="{StaticResource CardTitleText}" Margin="0,0,0,4" />
+                    <TextBox Text="{Binding DatabasePath, Mode=OneWay}"
+                             IsReadOnly="True"
+                             Margin="0,0,0,16" />
+
+                    <Button Content="Exportar copia de seguridad (.db)"
+                            Command="{Binding ExportDatabaseCommand}"
+                            Style="{StaticResource PrimaryButton}"
+                            HorizontalAlignment="Left" />
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource DarkCard}" Padding="20" BorderBrush="{StaticResource DangerBrush}">
+                <StackPanel>
+                    <TextBlock Text="Zona de peligro" Style="{StaticResource SectionTitleText}" Margin="0,0,0,4" />
+                    <TextBlock Text="Restablece la aplicación como si fuera la primera vez: borra actividades, XP, medallas ganadas y personalización del perfil. Exporte una copia antes si necesita conservar el historial."
+                               Style="{StaticResource MutedText}" TextWrapping="Wrap" Margin="0,0,0,16" />
+
+                    <Button Content="Restablecer todos los datos"
+                            Command="{Binding ResetApplicationDataCommand}"
+                            Style="{StaticResource DangerButton}"
+                            HorizontalAlignment="Left" />
+                </StackPanel>
+            </Border>
+
+            <TextBlock Text="{Binding StatusMessage}"
+                       Foreground="{StaticResource AccentGreenBrush}"
+                       TextWrapping="Wrap"
+                       Margin="0,16,0,0"
+                       Visibility="{Binding StatusMessage, Converter={StaticResource NullToVisibilityConverter}}" />
+
+            <TextBlock Text="{Binding ErrorMessage}"
+                       Foreground="{StaticResource DangerBrush}"
+                       TextWrapping="Wrap"
+                       Margin="0,8,0,0"
+                       Visibility="{Binding ErrorMessage, Converter={StaticResource NullToVisibilityConverter}}" />
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

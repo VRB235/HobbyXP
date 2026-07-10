@@ -150,16 +150,20 @@ public sealed class GymService : IGymService
                 MilestoneSourceType.Gym,
                 RequiresCelebration: true));
 
-            var medalEvent = await _achievementEngine.TryAwardMedalAsync(
-                MedalCode.ProgressiveOverload,
+            events.AddRange(await _achievementEngine.TryAwardMilestonesForTrackAsync(
+                MedalMilestoneTrack.ProgressiveOverloadPrs,
                 MilestoneSourceType.Gym,
                 nameof(GymWorkout),
                 workout.Id,
-                cancellationToken);
-
-            if (medalEvent is not null)
-                events.Add(medalEvent);
+                cancellationToken));
         }
+
+        events.AddRange(await _achievementEngine.TryAwardMilestonesForTrackAsync(
+            MedalMilestoneTrack.GymWorkouts,
+            MilestoneSourceType.Gym,
+            nameof(GymWorkout),
+            workout.Id,
+            cancellationToken));
 
         return OperationResult<GymWorkout>.WithEvents(workout, events.ToArray());
     }

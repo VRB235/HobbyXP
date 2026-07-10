@@ -35,6 +35,32 @@ public sealed class RulesEditorViewModel : LoadableViewModelBase
         }
     }
 
+    public bool HasSelectedRule => SelectedRule is not null;
+
+    public string SelectedRuleActionLabel =>
+        SelectedRule is null
+            ? string.Empty
+            : AchievementDisplayNames.ForActionType(SelectedRule.ActionType);
+
+    public string SelectedRuleFormulaHint
+    {
+        get
+        {
+            if (SelectedRule is null)
+                return string.Empty;
+
+            if (SelectedRule.FlatBonusPoints is int bonus && SelectedRule.PointsPerUnit > 0m)
+            {
+                return $"Fórmula: ({SelectedRule.PointsPerUnit} × unidades) + {bonus} {SelectedRule.UnitLabel}";
+            }
+
+            if (SelectedRule.FlatBonusPoints is int flatOnly)
+                return $"Fórmula: bono fijo de {flatOnly} XP por {SelectedRule.UnitLabel}";
+
+            return $"Fórmula: {SelectedRule.PointsPerUnit} XP por {SelectedRule.UnitLabel}";
+        }
+    }
+
     public string EditDisplayName
     {
         get => SelectedRule?.DisplayName ?? string.Empty;
@@ -59,6 +85,7 @@ public sealed class RulesEditorViewModel : LoadableViewModelBase
 
             SelectedRule.UnitLabel = value;
             OnPropertyChanged();
+            OnPropertyChanged(nameof(SelectedRuleFormulaHint));
             RefreshRuleValidation();
         }
     }
@@ -84,6 +111,7 @@ public sealed class RulesEditorViewModel : LoadableViewModelBase
 
             SelectedRule.PointsPerUnit = parsed;
             OnPropertyChanged();
+            OnPropertyChanged(nameof(SelectedRuleFormulaHint));
             RefreshRuleValidation();
         }
     }
@@ -103,6 +131,7 @@ public sealed class RulesEditorViewModel : LoadableViewModelBase
 
                 SelectedRule.FlatBonusPoints = null;
                 OnPropertyChanged();
+                OnPropertyChanged(nameof(SelectedRuleFormulaHint));
                 RefreshRuleValidation();
                 return;
             }
@@ -120,6 +149,7 @@ public sealed class RulesEditorViewModel : LoadableViewModelBase
 
             SelectedRule.FlatBonusPoints = parsed;
             OnPropertyChanged();
+            OnPropertyChanged(nameof(SelectedRuleFormulaHint));
             RefreshRuleValidation();
         }
     }
@@ -171,6 +201,9 @@ public sealed class RulesEditorViewModel : LoadableViewModelBase
 
     private void NotifyEditPropertiesChanged()
     {
+        OnPropertyChanged(nameof(HasSelectedRule));
+        OnPropertyChanged(nameof(SelectedRuleActionLabel));
+        OnPropertyChanged(nameof(SelectedRuleFormulaHint));
         OnPropertyChanged(nameof(EditDisplayName));
         OnPropertyChanged(nameof(EditUnitLabel));
         OnPropertyChanged(nameof(EditPointsPerUnit));

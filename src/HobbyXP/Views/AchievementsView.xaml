@@ -11,7 +11,7 @@
                     <ItemsControl ItemsSource="{Binding Medals}" Margin="8">
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate>
-                                <UniformGrid Columns="3" />
+                                <UniformGrid Columns="4" />
                             </ItemsPanelTemplate>
                         </ItemsControl.ItemsPanel>
                         <ItemsControl.ItemTemplate>
@@ -98,6 +98,69 @@
                 </ScrollViewer>
             </TabItem>
 
+            <TabItem Header="Editor de medallas">
+                <Grid DataContext="{Binding MedalsEditor}" Margin="8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="2*" />
+                        <ColumnDefinition Width="3*" />
+                    </Grid.ColumnDefinitions>
+
+                    <GroupBox Grid.Column="0" Header="Catálogo" Padding="8" Margin="0,0,8,0">
+                        <ListBox ItemsSource="{Binding Medals}" SelectedItem="{Binding SelectedMedal}" DisplayMemberPath="Name" />
+                    </GroupBox>
+
+                    <GroupBox Grid.Column="1" Header="Detalle editable" Padding="12">
+                        <StackPanel IsEnabled="{Binding HasSelectedMedal}">
+                            <TextBlock Text="{Binding SelectedMedalCategory, StringFormat=Evento: {0}}"
+                                       Foreground="{StaticResource AccentCyanBrush}"
+                                       Margin="0,0,0,12" />
+
+                            <TextBlock Text="Nombre" Style="{StaticResource MutedText}" />
+                            <TextBox Text="{Binding EditName, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8" />
+
+                            <TextBlock Text="Descripción" Style="{StaticResource MutedText}" />
+                            <TextBox Text="{Binding EditDescription, UpdateSourceTrigger=PropertyChanged}"
+                                     TextWrapping="Wrap" AcceptsReturn="True" MinHeight="56" Margin="0,0,0,8" />
+
+                            <TextBlock Text="Pista de desbloqueo (tooltip)" Style="{StaticResource MutedText}" />
+                            <TextBox Text="{Binding EditUnlockHint, UpdateSourceTrigger=PropertyChanged}"
+                                     TextWrapping="Wrap" AcceptsReturn="True" MinHeight="48" Margin="0,0,0,8" />
+
+                            <TextBlock Text="Icono personalizado (opcional)" Style="{StaticResource MutedText}" />
+                            <Grid Margin="0,0,0,8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBox Text="{Binding EditIconPath, Mode=OneWay}" IsReadOnly="True" />
+                                <Button Grid.Column="1" Content="Buscar…" Command="{Binding PickIconCommand}"
+                                        Style="{StaticResource PrimaryButton}" Margin="8,0,0,0" />
+                                <Button Grid.Column="2" Content="Quitar" Command="{Binding ClearIconCommand}"
+                                        Margin="8,0,0,0" />
+                            </Grid>
+
+                            <controls:FormValidationBanner Message="{Binding ValidationMessage}" Margin="0,0,0,8" />
+                            <Button Content="Guardar medalla"
+                                    Command="{Binding SaveMedalCommand}"
+                                    Style="{StaticResource AccentButton}"
+                                    HorizontalAlignment="Left" />
+
+                            <TextBlock Text="{Binding StatusMessage}"
+                                       Foreground="{StaticResource AccentGreenBrush}"
+                                       TextWrapping="Wrap"
+                                       Margin="0,12,0,0"
+                                       Visibility="{Binding StatusMessage, Converter={StaticResource NullToVisibilityConverter}}" />
+                            <TextBlock Text="{Binding ErrorMessage}"
+                                       Foreground="{StaticResource DangerBrush}"
+                                       TextWrapping="Wrap"
+                                       Margin="0,8,0,0"
+                                       Visibility="{Binding ErrorMessage, Converter={StaticResource NullToVisibilityConverter}}" />
+                        </StackPanel>
+                    </GroupBox>
+                </Grid>
+            </TabItem>
+
             <TabItem Header="Editor de reglas">
                 <Grid DataContext="{Binding Rules}" Margin="8">
                     <Grid.ColumnDefinitions>
@@ -105,24 +168,48 @@
                         <ColumnDefinition Width="3*" />
                     </Grid.ColumnDefinitions>
 
-                    <ListBox Grid.Column="0" ItemsSource="{Binding Rules}" SelectedItem="{Binding SelectedRule}" DisplayMemberPath="DisplayName" Margin="0,0,8,0" />
+                    <GroupBox Grid.Column="0" Header="Reglas de XP" Padding="8" Margin="0,0,8,0">
+                        <ListBox ItemsSource="{Binding Rules}" SelectedItem="{Binding SelectedRule}" DisplayMemberPath="DisplayName" />
+                    </GroupBox>
 
-                    <StackPanel Grid.Column="1">
-                        <TextBlock Text="Nombre" />
-                        <TextBox Text="{Binding EditDisplayName, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8" />
-                        <TextBlock Text="Unidad" />
-                        <TextBox Text="{Binding EditUnitLabel, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8" />
-                        <TextBlock Text="Puntos por unidad" />
-                        <TextBox Text="{Binding EditPointsPerUnit, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8" />
-                        <TextBlock Text="Bono fijo" />
-                        <TextBox Text="{Binding EditFlatBonusPoints, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8" />
-                        <CheckBox Content="Activa" IsChecked="{Binding EditIsActive}" Margin="0,0,0,8" />
-                        <controls:FormValidationBanner Message="{Binding ValidationMessage}" Margin="0,0,0,12" />
-                        <Button Content="Guardar regla"
-                                Command="{Binding SaveRuleCommand}"
-                                Style="{StaticResource AccentButton}"
-                                HorizontalAlignment="Left" />
-                    </StackPanel>
+                    <GroupBox Grid.Column="1" Header="Parámetros" Padding="12">
+                        <StackPanel IsEnabled="{Binding HasSelectedRule}">
+                            <TextBlock Text="{Binding SelectedRuleActionLabel, StringFormat=Acción del sistema: {0}}"
+                                       Foreground="{StaticResource AccentCyanBrush}"
+                                       Margin="0,0,0,4" />
+                            <TextBlock Text="{Binding SelectedRuleFormulaHint}"
+                                       Style="{StaticResource MutedText}"
+                                       TextWrapping="Wrap"
+                                       Margin="0,0,0,12" />
+
+                            <TextBlock Text="Nombre en UI" Style="{StaticResource MutedText}" />
+                            <TextBox Text="{Binding EditDisplayName, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8" />
+                            <TextBlock Text="Unidad" Style="{StaticResource MutedText}" />
+                            <TextBox Text="{Binding EditUnitLabel, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8" />
+                            <TextBlock Text="Puntos por unidad" Style="{StaticResource MutedText}" />
+                            <TextBox Text="{Binding EditPointsPerUnit, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8" />
+                            <TextBlock Text="Bono fijo (opcional)" Style="{StaticResource MutedText}" />
+                            <TextBox Text="{Binding EditFlatBonusPoints, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8" />
+                            <CheckBox Content="Regla activa" IsChecked="{Binding EditIsActive}" Margin="0,0,0,8" />
+
+                            <controls:FormValidationBanner Message="{Binding ValidationMessage}" Margin="0,0,0,8" />
+                            <Button Content="Guardar regla"
+                                    Command="{Binding SaveRuleCommand}"
+                                    Style="{StaticResource AccentButton}"
+                                    HorizontalAlignment="Left" />
+
+                            <TextBlock Text="{Binding StatusMessage}"
+                                       Foreground="{StaticResource AccentGreenBrush}"
+                                       TextWrapping="Wrap"
+                                       Margin="0,12,0,0"
+                                       Visibility="{Binding StatusMessage, Converter={StaticResource NullToVisibilityConverter}}" />
+                            <TextBlock Text="{Binding ErrorMessage}"
+                                       Foreground="{StaticResource DangerBrush}"
+                                       TextWrapping="Wrap"
+                                       Margin="0,8,0,0"
+                                       Visibility="{Binding ErrorMessage, Converter={StaticResource NullToVisibilityConverter}}" />
+                        </StackPanel>
+                    </GroupBox>
                 </Grid>
             </TabItem>
 

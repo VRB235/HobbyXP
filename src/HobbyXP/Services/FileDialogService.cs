@@ -30,4 +30,18 @@ public sealed class FileDialogService : IFileDialogService
             ? dialog.FileNames
             : [];
     }
+
+    public string? PickSaveFilePath(string suggestedFileName, string filter, string title)
+    {
+        var dialog = new SaveFileDialog
+        {
+            Title = title,
+            Filter = filter,
+            FileName = suggestedFileName,
+            AddExtension = true,
+            OverwritePrompt = true
+        };
+
+        return dialog.ShowDialog() == true ? dialog.FileName : null;
+    }
 }

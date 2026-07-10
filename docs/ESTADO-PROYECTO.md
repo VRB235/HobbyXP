@@ -79,7 +79,7 @@ En Windows: `C:\Users\<usuario>\AppData\Local\HobbyXP\hobbyxp.db`
 ### Fase 3 — ViewModels y navegación ✅
 
 - Infraestructura: `ViewModelBase`, `BusyViewModelBase`, `LoadableViewModelBase`, `RelayCommand`, `AsyncRelayCommand`.
-- **5 secciones** del sidebar: Dashboard, Actividades Físicas, Entretenimiento, Crecimiento Personal, Logros y Premios.
+- **6 secciones** del sidebar: Dashboard, Actividades Físicas, Entretenimiento, Crecimiento Personal, Logros y Premios, Configuración.
 - ViewModels anidados con **tabs** (p. ej. Running + Gym dentro de Físico).
 - **`AchievementAwareViewModel`** para propagar eventos de logro tras operaciones.
 - **`MainViewModel`**: orquestación, perfil en sidebar, navegación, overlay de level-up.
@@ -172,7 +172,8 @@ src/HobbyXP/
 | Servicio | Rol principal |
 |----------|---------------|
 | `IXpService` | Otorgar/deducir XP, progreso de nivel, XP diario para gráficos |
-| `IPlayerProfileService` | Perfil, progreso, nombre, avatar |
+| `IPlayerProfileService` | Perfil, progreso, nombre, avatar, XP base por nivel |
+| `IDatabaseMaintenanceService` | Exportar BD, restablecer datos de la aplicación |
 | `IDashboardService` | Resumen agregado para dashboard |
 | `IRunningService` | Sesiones y carreras oficiales |
 | `IGymService` | Workouts, ejercicios, PR |
@@ -214,6 +215,7 @@ Progreso % = XP dentro del nivel actual / BaseXpPerLevel * 100
 | Entretenimiento | `EntertainmentView` | Rompecabezas, Media, Videojuegos |
 | Crecimiento | `PersonalGrowthView` | Libros, Cursos |
 | Logros | `AchievementsView` | Vitrina, Reglas, Tienda premios |
+| Configuración | `SettingsView` | XP base por nivel, exportar BD, restablecer datos |
 
 ### Controles reutilizables
 
@@ -363,9 +365,9 @@ dotnet build
 
 ### Media prioridad — producto
 
-- [ ] **Casos de prueba funcionales** documentados (formato para analista: pasos, datos, BD esperada) por módulo.
-- [ ] Pantalla o flujo de **configuración** (`BaseXpPerLevel`, reset de perfil, exportar BD).
-- [ ] Más **medallas / reglas** editables desde UI (el editor de reglas existe en ViewModel; validar UX completa).
+- [x] **Casos de prueba funcionales** documentados (formato para analista: pasos, datos, BD esperada) por módulo → ver [`docs/CASOS-PRUEBA-FUNCIONALES.md`](CASOS-PRUEBA-FUNCIONALES.md).
+- [x] Pantalla o flujo de **configuración** (`BaseXpPerLevel`, reset de perfil, exportar BD).
+- [x] Más **medallas / reglas** editables desde UI (el editor de reglas existe en ViewModel; validar UX completa).
 - [ ] **Iconos reales** para medallas (`IconPath`) en lugar de solo emoji.
 
 ### Baja prioridad — ingeniería
@@ -401,7 +403,7 @@ dotnet build
 - [x] Puzzle, media, videojuego (% y platino).
 - [x] Libro: páginas y completado.
 - [x] Curso completado.
-- [x] Logros: vitrina, editar regla, canjear premio (deducción XP).
+- [x] Logros: vitrina, editar regla, editar medalla, canjear premio (deducción XP).
 
 ---
 

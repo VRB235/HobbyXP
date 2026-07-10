@@ -11,11 +11,16 @@ public sealed class MediaService : IMediaService
 {
     private readonly IDbContextFactory<HobbyXpDbContext> _dbContextFactory;
     private readonly IXpService _xpService;
+    private readonly IAchievementEngineService _achievementEngine;
 
-    public MediaService(IDbContextFactory<HobbyXpDbContext> dbContextFactory, IXpService xpService)
+    public MediaService(
+        IDbContextFactory<HobbyXpDbContext> dbContextFactory,
+        IXpService xpService,
+        IAchievementEngineService achievementEngine)
     {
         _dbContextFactory = dbContextFactory;
         _xpService = xpService;
+        _achievementEngine = achievementEngine;
     }
 
     public async Task<IReadOnlyList<MediaEntry>> GetHistoryAsync(CancellationToken cancellationToken = default)
@@ -88,6 +93,15 @@ public sealed class MediaService : IMediaService
                 xpOutcome.AmountAwarded,
                 MilestoneSourceType.Media));
         }
+
+        var medalEvents = await _achievementEngine.TryAwardMilestonesForTrackAsync(
+            MedalMilestoneTrack.MediaCompleted,
+            MilestoneSourceType.Media,
+            nameof(MediaEntry),
+            entry.Id,
+            cancellationToken);
+
+        events.AddRange(medalEvents);
 
         return OperationResult<MediaEntry>.WithEvents(entry, events.ToArray());
     }

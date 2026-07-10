@@ -19,6 +19,7 @@ public sealed class MainViewModel : ViewModelBase
     private readonly IPlayerProfileService _playerProfileService;
     private readonly IFileDialogService _fileDialogService;
     private readonly IProfileRefreshMessenger _profileRefreshMessenger;
+    private readonly IApplicationDataResetMessenger _applicationDataResetMessenger;
     private object? _currentViewModel;
     private NavigationSection _currentSection = NavigationSection.Dashboard;
     private string? _latestAchievementMessage;
@@ -39,7 +40,8 @@ public sealed class MainViewModel : ViewModelBase
         ILevelUpMessenger levelUpMessenger,
         IPlayerProfileService playerProfileService,
         IFileDialogService fileDialogService,
-        IProfileRefreshMessenger profileRefreshMessenger)
+        IProfileRefreshMessenger profileRefreshMessenger,
+        IApplicationDataResetMessenger applicationDataResetMessenger)
     {
         _navigationService = navigationService;
         _achievementMessenger = achievementMessenger;
@@ -47,6 +49,7 @@ public sealed class MainViewModel : ViewModelBase
         _playerProfileService = playerProfileService;
         _fileDialogService = fileDialogService;
         _profileRefreshMessenger = profileRefreshMessenger;
+        _applicationDataResetMessenger = applicationDataResetMessenger;
 
         NavigationItems = new ObservableCollection<NavigationItem>(new[]
         {
@@ -54,7 +57,8 @@ public sealed class MainViewModel : ViewModelBase
             new NavigationItem(NavigationSection.PhysicalActivities, "Actividades Físicas", "🏃"),
             new NavigationItem(NavigationSection.Entertainment, "Entretenimiento", "🎮"),
             new NavigationItem(NavigationSection.PersonalGrowth, "Crecimiento Personal", "📚"),
-            new NavigationItem(NavigationSection.Achievements, "Logros y Premios", "🏆")
+            new NavigationItem(NavigationSection.Achievements, "Logros y Premios", "🏆"),
+            new NavigationItem(NavigationSection.Settings, "Configuración", "⚙️")
         });
 
         NavigateCommand = new AsyncRelayCommand(NavigateAsync);
@@ -68,6 +72,7 @@ public sealed class MainViewModel : ViewModelBase
         _achievementMessenger.AchievementPublished += OnAchievementPublished;
         _levelUpMessenger.LevelUpPublished += OnLevelUpPublished;
         _profileRefreshMessenger.ProfileRefreshRequested += OnProfileRefreshRequested;
+        _applicationDataResetMessenger.ApplicationDataReset += OnApplicationDataReset;
 
         SyncNavigationState();
     }
@@ -284,6 +289,16 @@ public sealed class MainViewModel : ViewModelBase
 
     private async void OnProfileRefreshRequested(object? sender, EventArgs e) =>
         await RefreshProfileAsync();
+
+    private async void OnApplicationDataReset(object? sender, EventArgs e)
+    {
+        _navigationService.InvalidateAllLoadedSections();
+        await RefreshProfileAsync();
+        await _navigationService.NavigateAsync(NavigationSection.Dashboard);
+
+        if (_navigationService.CurrentViewModel is DashboardViewModel dashboard)
+            await dashboard.LoadAsync();
+    }
 
     private void DismissLevelUp() => IsLevelUpVisible = false;
 

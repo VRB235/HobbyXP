@@ -67,7 +67,8 @@ public abstract class BusyViewModelBase : ViewModelBase
         finally
         {
             IsLoading = false;
-            StatusMessage = null;
+            if (StatusMessage == busyMessage)
+                StatusMessage = null;
         }
     }
 }
@@ -105,4 +106,6 @@ public abstract class LoadableViewModelBase : BusyViewModelBase, INavigatableVie
     }
 
     protected abstract Task LoadCoreAsync();
+
+    public void InvalidateLoaded() => IsLoaded = false;
 }

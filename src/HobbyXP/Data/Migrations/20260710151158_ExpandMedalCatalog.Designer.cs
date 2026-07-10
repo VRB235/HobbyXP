@@ -3,6 +3,7 @@ using System;
 using HobbyXP.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace HobbyXP.Data.Migrations
 {
     [DbContext(typeof(HobbyXpDbContext))]
-    partial class HobbyXpDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260710151158_ExpandMedalCatalog")]
+    partial class ExpandMedalCatalog
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "8.0.11");
@@ -268,7 +271,7 @@ namespace HobbyXP.Data.Migrations
                             Id = 1,
                             Code = "GoldRace",
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Completaste tu primera carrera oficial.",
+                            Description = "Completaste una carrera oficial.",
                             Name = "Medalla de Oro",
                             UnlockHint = "Marca una carrera oficial como completada."
                         },
@@ -277,7 +280,7 @@ namespace HobbyXP.Data.Migrations
                             Id = 2,
                             Code = "PlatinumGame",
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Platinaste tu primer videojuego al 100%.",
+                            Description = "Platinaste un videojuego al 100%.",
                             Name = "Medalla de Platino",
                             UnlockHint = "Lleva un videojuego al 100% de completitud."
                         },
@@ -295,16 +298,16 @@ namespace HobbyXP.Data.Migrations
                             Id = 4,
                             Code = "BookCompleted",
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Terminaste tu primer libro de principio a fin.",
+                            Description = "Terminaste un libro de principio a fin.",
                             Name = "Lector Voraz",
-                            UnlockHint = "Marca un libro como completado."
+                            UnlockHint = "Marca un libro como completado al leer todas sus páginas."
                         },
                         new
                         {
                             Id = 5,
                             Code = "CourseCompleted",
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Completaste tu primer curso.",
+                            Description = "Completaste todas las sesiones de un curso.",
                             Name = "Graduado",
                             UnlockHint = "Finaliza un curso registrando todas sus sesiones."
                         },
@@ -313,7 +316,7 @@ namespace HobbyXP.Data.Migrations
                             Id = 6,
                             Code = "PuzzleMaster",
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Completaste tu primer rompecabezas.",
+                            Description = "Completaste un rompecabezas.",
                             Name = "Maestro del Puzzle",
                             UnlockHint = "Registra un rompecabezas como terminado."
                         },
@@ -322,414 +325,9 @@ namespace HobbyXP.Data.Migrations
                             Id = 7,
                             Code = "MediaMarathon",
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Terminaste tu primera serie o película.",
+                            Description = "Terminaste una serie o película.",
                             Name = "Maratón Cultural",
                             UnlockHint = "Registra una obra de entretenimiento como completada."
-                        },
-                        new
-                        {
-                            Id = 8,
-                            Code = "RacesCompleted3",
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Tres carreras oficiales en tu historial.",
-                            Name = "Podio en Entrenamiento",
-                            UnlockHint = "Completa 3 carreras oficiales."
-                        },
-                        new
-                        {
-                            Id = 9,
-                            Code = "RacesCompleted5",
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Cinco carreras oficiales conquistadas.",
-                            Name = "Corredor Constante",
-                            UnlockHint = "Completa 5 carreras oficiales."
-                        },
-                        new
-                        {
-                            Id = 10,
-                            Code = "RacesCompleted10",
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Diez carreras oficiales en tu palmarés.",
-                            Name = "Veterano del Asfalto",
-                            UnlockHint = "Completa 10 carreras oficiales."
-                        },
-                        new
-                        {
-                            Id = 11,
-                            Code = "RacesCompleted25",
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Veinticinco carreras oficiales. Eres imparable.",
-                            Name = "Leyenda del Chip",
-                            UnlockHint = "Completa 25 carreras oficiales."
-                        },
-                        new
-                        {
-                            Id = 12,
-                            Code = "RunningSessions10",
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Diez sesiones de running registradas.",
-                            Name = "Ritmo de Reloj",
-                            UnlockHint = "Registra 10 sesiones de running."
-                        },
-                        new
-                        {
-                            Id = 13,
-                            Code = "RunningSessions50",
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Cincuenta salidas al asfalto.",
-                            Name = "Motor Cardíaco",
-                            UnlockHint = "Registra 50 sesiones de running."
-                        },
-                        new
-                        {
-                            Id = 14,
-                            Code = "RunningSessions100",
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Cien sesiones. El GPS te conoce por nombre.",
-                            Name = "Máquina de Correr",
-                            UnlockHint = "Registra 100 sesiones de running."
-                        },
-                        new
-                        {
-                            Id = 15,
-                            Code = "RunningKm100",
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Acumulaste 100 km corriendo.",
-                            Name = "Centurión del Kilómetro",
-                            UnlockHint = "Corre un total de 100 km."
-                        },
-                        new
-                        {
-                            Id = 16,
-                            Code = "RunningKm500",
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "500 km en tus piernas.",
-                            Name = "Conquistador del Asfalto",
-                            UnlockHint = "Corre un total de 500 km."
-                        },
-                        new
-                        {
-                            Id = 17,
-                            Code = "RunningKm1000",
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "1.000 km. Distancia de leyenda.",
-                            Name = "Ultra Alma",
-                            UnlockHint = "Corre un total de 1.000 km."
-                        },
-                        new
-                        {
-                            Id = 18,
-                            Code = "ProgressiveOverload5",
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Cinco récords personales en el gym.",
-                            Name = "Forja de Hierro",
-                            UnlockHint = "Logra 5 sobrecargas progresivas."
-                        },
-                        new
-                        {
-                            Id = 19,
-                            Code = "ProgressiveOverload10",
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Diez PRs. Cada sesión te hace más fuerte.",
-                            Name = "Titán en Evolución",
-                            UnlockHint = "Logra 10 sobrecargas progresivas."
-                        },
-                        new
-                        {
-                            Id = 20,
-                            Code = "ProgressiveOverload25",
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Veinticinco récords rotos. El gym tiembla.",
-                            Name = "Coloso del Hierro",
-                            UnlockHint = "Logra 25 sobrecargas progresivas."
-                        },
-                        new
-                        {
-                            Id = 21,
-                            Code = "GymWorkouts10",
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Diez entrenamientos guardados.",
-                            Name = "Hierro Temprano",
-                            UnlockHint = "Registra 10 sesiones de gimnasio."
-                        },
-                        new
-                        {
-                            Id = 22,
-                            Code = "GymWorkouts50",
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Cincuenta sesiones de gimnasio.",
-                            Name = "Forja Personal",
-                            UnlockHint = "Registra 50 sesiones de gimnasio."
-                        },
-                        new
-                        {
-                            Id = 23,
-                            Code = "GymWorkouts100",
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Cien entrenamientos. Disciplina pura.",
-                            Name = "Titán del Gym",
-                            UnlockHint = "Registra 100 sesiones de gimnasio."
-                        },
-                        new
-                        {
-                            Id = 24,
-                            Code = "GymWorkouts250",
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Doscientos cincuenta sesiones. Eres una institución.",
-                            Name = "Monolito Humano",
-                            UnlockHint = "Registra 250 sesiones de gimnasio."
-                        },
-                        new
-                        {
-                            Id = 25,
-                            Code = "PlatinumGames3",
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Tres juegos al 100%.",
-                            Name = "Coleccionista Platino",
-                            UnlockHint = "Platina 3 videojuegos."
-                        },
-                        new
-                        {
-                            Id = 26,
-                            Code = "PlatinumGames5",
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Cinco platinos en la estantería virtual.",
-                            Name = "Salón Digital",
-                            UnlockHint = "Platina 5 videojuegos."
-                        },
-                        new
-                        {
-                            Id = 27,
-                            Code = "PlatinumGames10",
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Diez juegos al 100%. Completionista nato.",
-                            Name = "Meta Absoluta",
-                            UnlockHint = "Platina 10 videojuegos."
-                        },
-                        new
-                        {
-                            Id = 28,
-                            Code = "BooksCompleted5",
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Cinco libros terminados.",
-                            Name = "Club del Capítulo Cinco",
-                            UnlockHint = "Completa 5 libros."
-                        },
-                        new
-                        {
-                            Id = 29,
-                            Code = "BooksCompleted10",
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Diez libros en tu historial.",
-                            Name = "Bibliófilo de Garra",
-                            UnlockHint = "Completa 10 libros."
-                        },
-                        new
-                        {
-                            Id = 30,
-                            Code = "BooksCompleted25",
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Veinticinco libros conquistados.",
-                            Name = "Estantería Legendaria",
-                            UnlockHint = "Completa 25 libros."
-                        },
-                        new
-                        {
-                            Id = 31,
-                            Code = "BooksCompleted50",
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Cincuenta libros. Tu mente es un faro.",
-                            Name = "Faros del Conocimiento",
-                            UnlockHint = "Completa 50 libros."
-                        },
-                        new
-                        {
-                            Id = 32,
-                            Code = "BooksCompleted100",
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Cien libros. Biblioteca personal de élite.",
-                            Name = "Archivo del Sabio",
-                            UnlockHint = "Completa 100 libros."
-                        },
-                        new
-                        {
-                            Id = 33,
-                            Code = "BookPages1000",
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Leíste 1.000 páginas en total.",
-                            Name = "Mil Páginas de Gloria",
-                            UnlockHint = "Acumula 1.000 páginas leídas."
-                        },
-                        new
-                        {
-                            Id = 34,
-                            Code = "BookPages5000",
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "5.000 páginas devoradas.",
-                            Name = "Crónica Infinita",
-                            UnlockHint = "Acumula 5.000 páginas leídas."
-                        },
-                        new
-                        {
-                            Id = 35,
-                            Code = "BookPages10000",
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "10.000 páginas. Llevas una biblioteca encima.",
-                            Name = "Biblioteca Ambulante",
-                            UnlockHint = "Acumula 10.000 páginas leídas."
-                        },
-                        new
-                        {
-                            Id = 36,
-                            Code = "CoursesCompleted3",
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Tres cursos terminados.",
-                            Name = "Trilogía Académica",
-                            UnlockHint = "Completa 3 cursos."
-                        },
-                        new
-                        {
-                            Id = 37,
-                            Code = "CoursesCompleted5",
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Cinco cursos en tu currículo.",
-                            Name = "Aprobado con Honores",
-                            UnlockHint = "Completa 5 cursos."
-                        },
-                        new
-                        {
-                            Id = 38,
-                            Code = "CoursesCompleted10",
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Diez cursos. Aprendiz perpetuo.",
-                            Name = "Multidisciplinar",
-                            UnlockHint = "Completa 10 cursos."
-                        },
-                        new
-                        {
-                            Id = 39,
-                            Code = "CoursesCompleted25",
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Veinticinco cursos. Academia propia.",
-                            Name = "Erudito Empírico",
-                            UnlockHint = "Completa 25 cursos."
-                        },
-                        new
-                        {
-                            Id = 40,
-                            Code = "CourseSessions25",
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Veinticinco sesiones de curso registradas.",
-                            Name = "Asistencia Ejemplar",
-                            UnlockHint = "Registra 25 sesiones de curso."
-                        },
-                        new
-                        {
-                            Id = 41,
-                            Code = "CourseSessions50",
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Cincuenta sesiones de estudio.",
-                            Name = "Beca de Disciplina",
-                            UnlockHint = "Registra 50 sesiones de curso."
-                        },
-                        new
-                        {
-                            Id = 42,
-                            Code = "CourseSessions100",
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Cien sesiones. El conocimiento te persigue.",
-                            Name = "Doctor Honoris Causa",
-                            UnlockHint = "Registra 100 sesiones de curso."
-                        },
-                        new
-                        {
-                            Id = 43,
-                            Code = "PuzzlesCompleted5",
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Cinco rompecabezas resueltos.",
-                            Name = "Pieza a Pieza",
-                            UnlockHint = "Completa 5 rompecabezas."
-                        },
-                        new
-                        {
-                            Id = 44,
-                            Code = "PuzzlesCompleted10",
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Diez puzzles. Orden desde el caos.",
-                            Name = "Arquitecto del Caos",
-                            UnlockHint = "Completa 10 rompecabezas."
-                        },
-                        new
-                        {
-                            Id = 45,
-                            Code = "PuzzlesCompleted25",
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Veinticinco rompecabezas dominados.",
-                            Name = "Visión Escher",
-                            UnlockHint = "Completa 25 rompecabezas."
-                        },
-                        new
-                        {
-                            Id = 46,
-                            Code = "PuzzlesCompleted50",
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Cincuenta puzzles. Ninguna pieza te resiste.",
-                            Name = "Maestro del Encaje",
-                            UnlockHint = "Completa 50 rompecabezas."
-                        },
-                        new
-                        {
-                            Id = 47,
-                            Code = "PuzzlesCompleted100",
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Cien rompecabezas. Tu mesa es un templo.",
-                            Name = "Leyenda del Tablero",
-                            UnlockHint = "Completa 100 rompecabezas."
-                        },
-                        new
-                        {
-                            Id = 48,
-                            Code = "MediaCompleted5",
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Cinco obras terminadas.",
-                            Name = "Noche de Palomitas",
-                            UnlockHint = "Completa 5 series o películas."
-                        },
-                        new
-                        {
-                            Id = 49,
-                            Code = "MediaCompleted10",
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Diez maratones en el sofá.",
-                            Name = "Binge Profesional",
-                            UnlockHint = "Completa 10 series o películas."
-                        },
-                        new
-                        {
-                            Id = 50,
-                            Code = "MediaCompleted25",
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Veinticinco obras en tu historial.",
-                            Name = "Cinéfilo Serial",
-                            UnlockHint = "Completa 25 series o películas."
-                        },
-                        new
-                        {
-                            Id = 51,
-                            Code = "MediaCompleted50",
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Cincuenta obras. El control remoto es tuyo.",
-                            Name = "Sofá Olímpico",
-                            UnlockHint = "Completa 50 series o películas."
-                        },
-                        new
-                        {
-                            Id = 52,
-                            Code = "MediaCompleted100",
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Cien obras. Algoritmo personalizado.",
-                            Name = "Palmarés del Streaming",
-                            UnlockHint = "Completa 100 series o películas."
                         });
                 });
 

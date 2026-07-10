@@ -12,11 +12,16 @@ public sealed class CourseService : ICourseService
 {
     private readonly IDbContextFactory<HobbyXpDbContext> _dbContextFactory;
     private readonly IXpService _xpService;
+    private readonly IAchievementEngineService _achievementEngine;
 
-    public CourseService(IDbContextFactory<HobbyXpDbContext> dbContextFactory, IXpService xpService)
+    public CourseService(
+        IDbContextFactory<HobbyXpDbContext> dbContextFactory,
+        IXpService xpService,
+        IAchievementEngineService achievementEngine)
     {
         _dbContextFactory = dbContextFactory;
         _xpService = xpService;
+        _achievementEngine = achievementEngine;
     }
 
     public async Task<IReadOnlyList<Course>> GetInProgressAsync(CancellationToken cancellationToken = default)
@@ -149,6 +154,24 @@ public sealed class CourseService : ICourseService
         }
 
         await db.SaveChangesAsync(cancellationToken);
+
+        events.AddRange(await _achievementEngine.TryAwardMilestonesForTrackAsync(
+            MedalMilestoneTrack.CourseSessions,
+            MilestoneSourceType.Course,
+            nameof(Course),
+            course.Id,
+            cancellationToken));
+
+        if (course.Status == CourseStatus.Completed)
+        {
+            events.AddRange(await _achievementEngine.TryAwardMilestonesForTrackAsync(
+                MedalMilestoneTrack.CoursesCompleted,
+                MilestoneSourceType.Course,
+                nameof(Course),
+                course.Id,
+                cancellationToken));
+        }
+
         return OperationResult<Course>.WithEvents(course, events.ToArray());
     }
 }

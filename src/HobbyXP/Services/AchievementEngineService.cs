@@ -1,6 +1,7 @@
 using HobbyXP.Data;
 using HobbyXP.Models.Achievements;
 using HobbyXP.Models.Enums;
+using HobbyXP.Models.PersonalGrowth;
 using HobbyXP.Services.Abstractions;
 using HobbyXP.Services.Results;
 using Microsoft.EntityFrameworkCore;
@@ -69,36 +70,100 @@ public sealed class AchievementEngineService : IAchievementEngineService
         int? sourceEntityId = null,
         CancellationToken cancellationToken = default)
     {
+        var entry = MedalCatalog.Entries.FirstOrDefault(e => e.Code == code);
+        if (entry is null)
+            return null;
+
+        var events = await TryAwardMilestonesForTrackAsync(
+            entry.Track,
+            sourceType,
+            sourceEntityType,
+            sourceEntityId,
+            cancellationToken);
+
+        return events.FirstOrDefault(e => e.MedalUnlocked == code);
+    }
+
+    public async Task<IReadOnlyList<AchievementEvent>> TryAwardMilestonesForTrackAsync(
+        MedalMilestoneTrack track,
+        MilestoneSourceType sourceType,
+        string? sourceEntityType = null,
+        int? sourceEntityId = null,
+        CancellationToken cancellationToken = default)
+    {
         await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
 
-        var definition = await db.MedalDefinitions
-            .FirstOrDefaultAsync(m => m.Code == code, cancellationToken);
+        var currentCount = await ResolveTrackCountAsync(db, track, cancellationToken);
+        var trackCodes = MedalCatalog.ForTrack(track).Select(e => e.Code).ToList();
 
-        if (definition is null)
-            return null;
+        var definitions = await db.MedalDefinitions
+            .Where(m => trackCodes.Contains(m.Code))
+            .ToListAsync(cancellationToken);
 
-        var alreadyEarned = await db.EarnedMedals
-            .AnyAsync(m => m.MedalDefinitionId == definition.Id, cancellationToken);
+        var earnedDefinitionIds = await db.EarnedMedals
+            .Select(m => m.MedalDefinitionId)
+            .ToListAsync(cancellationToken);
 
-        if (alreadyEarned)
-            return null;
-
-        db.EarnedMedals.Add(new EarnedMedal
+        var events = new List<AchievementEvent>();
+        foreach (var spec in MedalCatalog.ForTrack(track).Where(s => s.Threshold <= currentCount).OrderBy(s => s.Threshold))
         {
-            MedalDefinitionId = definition.Id,
-            SourceEntityType = sourceEntityType,
-            SourceEntityId = sourceEntityId,
-            EarnedAt = DateTime.UtcNow
-        });
+            var definition = definitions.FirstOrDefault(d => d.Code == spec.Code);
+            if (definition is null || earnedDefinitionIds.Contains(definition.Id))
+                continue;
 
-        await db.SaveChangesAsync(cancellationToken);
+            db.EarnedMedals.Add(new EarnedMedal
+            {
+                MedalDefinitionId = definition.Id,
+                SourceEntityType = sourceEntityType,
+                SourceEntityId = sourceEntityId,
+                EarnedAt = DateTime.UtcNow
+            });
 
-        return new AchievementEvent(
-            definition.Name,
-            definition.Description,
-            PointsEarned: 0,
-            sourceType,
-            code,
-            RequiresCelebration: true);
+            earnedDefinitionIds.Add(definition.Id);
+            events.Add(new AchievementEvent(
+                definition.Name,
+                definition.Description,
+                PointsEarned: 0,
+                sourceType,
+                spec.Code,
+                RequiresCelebration: true));
+        }
+
+        if (events.Count > 0)
+            await db.SaveChangesAsync(cancellationToken);
+
+        return events;
     }
+
+    private static async Task<int> ResolveTrackCountAsync(
+        HobbyXpDbContext db,
+        MedalMilestoneTrack track,
+        CancellationToken cancellationToken) => track switch
+    {
+        MedalMilestoneTrack.BooksCompleted => await db.Books
+            .CountAsync(b => b.Status == BookStatus.Completed, cancellationToken),
+        MedalMilestoneTrack.BookPagesRead => await db.Books
+            .SumAsync(b => b.PagesRead, cancellationToken),
+        MedalMilestoneTrack.MediaCompleted => await db.MediaEntries
+            .CountAsync(cancellationToken),
+        MedalMilestoneTrack.PuzzlesCompleted => await db.Puzzles
+            .CountAsync(cancellationToken),
+        MedalMilestoneTrack.CoursesCompleted => await db.Courses
+            .CountAsync(c => c.Status == CourseStatus.Completed, cancellationToken),
+        MedalMilestoneTrack.CourseSessions => await db.Courses
+            .SumAsync(c => c.SessionsCompleted, cancellationToken),
+        MedalMilestoneTrack.OfficialRacesCompleted => await db.OfficialRaces
+            .CountAsync(r => r.IsCompleted, cancellationToken),
+        MedalMilestoneTrack.RunningSessions => await db.RunningSessions
+            .CountAsync(cancellationToken),
+        MedalMilestoneTrack.RunningKilometers => (int)await db.RunningSessions
+            .SumAsync(s => s.DistanceKm, cancellationToken),
+        MedalMilestoneTrack.GymWorkouts => await db.GymWorkouts
+            .CountAsync(cancellationToken),
+        MedalMilestoneTrack.ProgressiveOverloadPrs => await db.GymWorkouts
+            .CountAsync(w => w.TriggeredProgressiveOverload, cancellationToken),
+        MedalMilestoneTrack.VideoGamesPlatinum => await db.VideoGames
+            .CountAsync(g => g.CompletionPercentage >= 100, cancellationToken),
+        _ => 0
+    };
 }

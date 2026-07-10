@@ -59,4 +59,32 @@ public sealed class MedalService : IMedalService
             .OrderByDescending(m => m.EarnedAt)
             .ToListAsync(cancellationToken);
     }
+
+    public async Task<IReadOnlyList<Models.Achievements.MedalDefinition>> GetAllDefinitionsAsync(
+        CancellationToken cancellationToken = default)
+    {
+        await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        return await db.MedalDefinitions
+            .AsNoTracking()
+            .OrderBy(m => m.Id)
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<Models.Achievements.MedalDefinition> UpdateDefinitionAsync(
+        Models.Achievements.MedalDefinition definition,
+        CancellationToken cancellationToken = default)
+    {
+        await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var existing = await db.MedalDefinitions.FindAsync([definition.Id], cancellationToken)
+            ?? throw new InvalidOperationException($"No se encontró la medalla con Id {definition.Id}.");
+
+        existing.Name = definition.Name;
+        existing.Description = definition.Description;
+        existing.UnlockHint = definition.UnlockHint;
+        existing.IconPath = definition.IconPath;
+        existing.UpdatedAt = DateTime.UtcNow;
+
+        await db.SaveChangesAsync(cancellationToken);
+        return existing;
+    }
 }

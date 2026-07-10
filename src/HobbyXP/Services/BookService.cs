@@ -11,11 +11,16 @@ public sealed class BookService : IBookService
 {
     private readonly IDbContextFactory<HobbyXpDbContext> _dbContextFactory;
     private readonly IXpService _xpService;
+    private readonly IAchievementEngineService _achievementEngine;
 
-    public BookService(IDbContextFactory<HobbyXpDbContext> dbContextFactory, IXpService xpService)
+    public BookService(
+        IDbContextFactory<HobbyXpDbContext> dbContextFactory,
+        IXpService xpService,
+        IAchievementEngineService achievementEngine)
     {
         _dbContextFactory = dbContextFactory;
         _xpService = xpService;
+        _achievementEngine = achievementEngine;
     }
 
     public async Task<IReadOnlyList<Book>> GetReadingAsync(CancellationToken cancellationToken = default)
@@ -159,6 +164,27 @@ public sealed class BookService : IBookService
         }
 
         await db.SaveChangesAsync(cancellationToken);
+
+        if (pageDelta > 0 || clampedPages >= book.TotalPages)
+        {
+            events.AddRange(await _achievementEngine.TryAwardMilestonesForTrackAsync(
+                MedalMilestoneTrack.BookPagesRead,
+                MilestoneSourceType.Book,
+                nameof(Book),
+                book.Id,
+                cancellationToken));
+        }
+
+        if (clampedPages >= book.TotalPages)
+        {
+            events.AddRange(await _achievementEngine.TryAwardMilestonesForTrackAsync(
+                MedalMilestoneTrack.BooksCompleted,
+                MilestoneSourceType.Book,
+                nameof(Book),
+                book.Id,
+                cancellationToken));
+        }
+
         return OperationResult<Book>.WithEvents(book, events.ToArray());
     }
 }

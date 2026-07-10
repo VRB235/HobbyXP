@@ -66,7 +66,8 @@
             </Grid>
 
             <!-- Sugerencias para subir de nivel -->
-            <Border Style="{StaticResource DarkCard}" Margin="0,0,0,20">
+            <Border Style="{StaticResource DarkCard}" Margin="0,0,0,20"
+                    Visibility="{Binding ShowLevelUpSuggestions, Converter={StaticResource BoolToVisibilityConverter}}">
                 <StackPanel>
                     <TextBlock Text="Sugerencias para subir de nivel" Style="{StaticResource SectionTitleText}" Margin="0,0,0,4" />
                     <TextBlock Text="{Binding SuggestionsSummary}" Style="{StaticResource MutedText}" Margin="0,0,0,12" TextWrapping="Wrap" />

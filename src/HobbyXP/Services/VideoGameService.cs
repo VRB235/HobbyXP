@@ -198,15 +198,12 @@ public sealed class VideoGameService : IVideoGameService
                 MedalCode.PlatinumGame,
                 RequiresCelebration: true));
 
-            var medalEvent = await _achievementEngine.TryAwardMedalAsync(
-                MedalCode.PlatinumGame,
+            events.AddRange(await _achievementEngine.TryAwardMilestonesForTrackAsync(
+                MedalMilestoneTrack.VideoGamesPlatinum,
                 MilestoneSourceType.VideoGame,
                 nameof(VideoGame),
                 game.Id,
-                cancellationToken);
-
-            if (medalEvent is not null)
-                events.Add(medalEvent);
+                cancellationToken));
         }
 
         game.UpdatedAt = DateTime.UtcNow;

@@ -33,7 +33,9 @@ public sealed class DashboardService : IDashboardService
         var milestones = await GetRecentMilestonesAsync(cancellationToken);
         var rules = await _achievementEngineService.GetAllRulesAsync(cancellationToken);
         var xpRemaining = Math.Max(0, levelProgress.XpRequiredForNextLevel - levelProgress.XpIntoCurrentLevel);
-        var suggestions = LevelUpSuggestionBuilder.Build(xpRemaining, monthlyDistribution, rules);
+        var suggestions = levelProgress.TotalXp == 0
+            ? Array.Empty<LevelUpSuggestion>()
+            : LevelUpSuggestionBuilder.Build(xpRemaining, monthlyDistribution, rules);
 
         return new DashboardSummary(levelProgress, weeklyXp, monthlyDistribution, milestones, suggestions);
     }

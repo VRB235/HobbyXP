@@ -7,6 +7,7 @@
              xmlns:vmEnt="clr-namespace:HobbyXP.ViewModels.Entertainment"
              xmlns:vmGrow="clr-namespace:HobbyXP.ViewModels.PersonalGrowth"
              xmlns:vmAch="clr-namespace:HobbyXP.ViewModels.Achievements"
+             xmlns:vmSet="clr-namespace:HobbyXP.ViewModels.Settings"
              xmlns:views="clr-namespace:HobbyXP.Views"
              xmlns:viewControls="clr-namespace:HobbyXP.Views.Controls"
              xmlns:conv="clr-namespace:HobbyXP.Converters">
@@ -51,6 +52,9 @@
             </DataTemplate>
             <DataTemplate DataType="{x:Type vmAch:AchievementsViewModel}">
                 <views:AchievementsView />
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type vmSet:SettingsViewModel}">
+                <views:SettingsView />
             </DataTemplate>
         </ResourceDictionary>
     </Application.Resources>

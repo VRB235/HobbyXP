@@ -5,6 +5,7 @@ using HobbyXP.ViewModels.Messaging;
 using HobbyXP.ViewModels.Navigation;
 using HobbyXP.ViewModels.PersonalGrowth;
 using HobbyXP.ViewModels.Physical;
+using HobbyXP.ViewModels.Settings;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace HobbyXP.ViewModels;
@@ -33,9 +34,11 @@ public static class ViewModelServiceCollectionExtensions
         services.AddScoped<PersonalGrowthViewModel>();
 
         services.AddScoped<MedalShowcaseViewModel>();
+        services.AddScoped<MedalsEditorViewModel>();
         services.AddScoped<RulesEditorViewModel>();
         services.AddScoped<RewardShopViewModel>();
         services.AddScoped<AchievementsViewModel>();
+        services.AddScoped<SettingsViewModel>();
 
         return services;
     }

@@ -126,6 +126,20 @@ public sealed class RunningService : IRunningService
                 MilestoneSourceType.System));
         }
 
+        events.AddRange(await _achievementEngine.TryAwardMilestonesForTrackAsync(
+            MedalMilestoneTrack.RunningSessions,
+            MilestoneSourceType.Running,
+            nameof(RunningSession),
+            session.Id,
+            cancellationToken));
+
+        events.AddRange(await _achievementEngine.TryAwardMilestonesForTrackAsync(
+            MedalMilestoneTrack.RunningKilometers,
+            MilestoneSourceType.Running,
+            nameof(RunningSession),
+            session.Id,
+            cancellationToken));
+
         return OperationResult<RunningSession>.WithEvents(session, events.ToArray());
     }
 
@@ -199,15 +213,14 @@ public sealed class RunningService : IRunningService
                 RequiresCelebration: true));
         }
 
-        var medalEvent = await _achievementEngine.TryAwardMedalAsync(
-            MedalCode.GoldRace,
+        var medalEvents = await _achievementEngine.TryAwardMilestonesForTrackAsync(
+            MedalMilestoneTrack.OfficialRacesCompleted,
             MilestoneSourceType.OfficialRace,
             nameof(OfficialRace),
             race.Id,
             cancellationToken);
 
-        if (medalEvent is not null)
-            events.Add(medalEvent);
+        events.AddRange(medalEvents);
 
         return OperationResult<OfficialRace>.WithEvents(race, events.ToArray());
     }

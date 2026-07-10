@@ -4,6 +4,7 @@ using HobbyXP.Helpers;
 using HobbyXP.Models.Core;
 using HobbyXP.Services.Abstractions;
 using HobbyXP.Services.Internal;
+using HobbyXP.Services.Messaging;
 using HobbyXP.Services.Results;
 using Microsoft.EntityFrameworkCore;
 
@@ -12,10 +13,14 @@ namespace HobbyXP.Services;
 public sealed class PlayerProfileService : IPlayerProfileService
 {
     private readonly IDbContextFactory<HobbyXpDbContext> _dbContextFactory;
+    private readonly IProfileRefreshMessenger _profileRefreshMessenger;
 
-    public PlayerProfileService(IDbContextFactory<HobbyXpDbContext> dbContextFactory)
+    public PlayerProfileService(
+        IDbContextFactory<HobbyXpDbContext> dbContextFactory,
+        IProfileRefreshMessenger profileRefreshMessenger)
     {
         _dbContextFactory = dbContextFactory;
+        _profileRefreshMessenger = profileRefreshMessenger;
     }
 
     public async Task<PlayerProfile> GetProfileAsync(CancellationToken cancellationToken = default)
@@ -65,6 +70,25 @@ public sealed class PlayerProfileService : IPlayerProfileService
         profile.AvatarPath = storedPath;
         profile.UpdatedAt = DateTime.UtcNow;
         await db.SaveChangesAsync(cancellationToken);
+        return profile;
+    }
+
+    public async Task<PlayerProfile> UpdateBaseXpPerLevelAsync(
+        int baseXpPerLevel,
+        CancellationToken cancellationToken = default)
+    {
+        if (baseXpPerLevel <= 0)
+            throw new ArgumentOutOfRangeException(nameof(baseXpPerLevel), "El XP base por nivel debe ser mayor que cero.");
+
+        await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var profile = await GetProfileAsync(db, cancellationToken);
+
+        profile.BaseXpPerLevel = baseXpPerLevel;
+        XpLevelCalculator.RecalculateLevel(profile);
+        profile.UpdatedAt = DateTime.UtcNow;
+
+        await db.SaveChangesAsync(cancellationToken);
+        _profileRefreshMessenger.RequestRefresh();
         return profile;
     }
 
