@@ -1,4 +1,6 @@
-﻿using System.Windows;
+﻿using System.IO;
+using System.Windows;
+using System.Windows.Media.Imaging;
 using HobbyXP.ViewModels;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -13,7 +15,17 @@ public partial class MainWindow : Window
         _scope = serviceProvider.CreateScope();
         DataContext = _scope.ServiceProvider.GetRequiredService<MainViewModel>();
         InitializeComponent();
+        ApplyWindowIcon();
         Loaded += OnLoaded;
+    }
+
+    private void ApplyWindowIcon()
+    {
+        var iconPath = Path.Combine(AppContext.BaseDirectory, "Assets", "HobbyXP.ico");
+        if (!File.Exists(iconPath))
+            return;
+
+        Icon = BitmapFrame.Create(new Uri(iconPath, UriKind.Absolute));
     }
 
     private async void OnLoaded(object sender, RoutedEventArgs e)

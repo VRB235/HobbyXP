@@ -48,7 +48,11 @@
                             <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                 <TextBox Text="{Binding DisplayName, UpdateSourceTrigger=PropertyChanged}"
                                          Background="Transparent" BorderThickness="0" Padding="0"
-                                         FontWeight="Bold" FontSize="16" Foreground="{StaticResource TextPrimaryBrush}" />
+                                         FontWeight="Bold" FontSize="16" Foreground="{StaticResource TextPrimaryBrush}">
+                                    <TextBox.InputBindings>
+                                        <KeyBinding Key="Return" Command="{Binding SaveDisplayNameCommand}" />
+                                    </TextBox.InputBindings>
+                                </TextBox>
                                 <controls:FormValidationBanner Message="{Binding DisplayNameValidationMessage}" Margin="0,2,0,0" />
                                 <TextBlock Text="{Binding SidebarLevelText}" Style="{StaticResource MutedText}" FontSize="12" Margin="0,2,0,0" />
                                 <TextBlock Text="{Binding SidebarXpSummary}" Style="{StaticResource MutedText}" FontSize="11" />

@@ -356,8 +356,8 @@ dotnet build
 
 - [x] Aplicar **`Font.Display`** de forma consistente en títulos de todas las secciones (hoy está fuerte en dashboard/sidebar).
 - [x] **Validaciones en formularios** (campos vacíos, números negativos, páginas > total, etc.) con mensajes claros en UI.
-- [ ] Pulir **animación level-up** (opcional: sonido, más partículas/confeti).
-- [ ] **Guardar nombre** al pulsar Enter en el `TextBox` del sidebar (hoy solo botón).
+- [x] Pulir **animación level-up** (opcional: sonido, más partículas/confeti).
+- [x] **Guardar nombre** al pulsar Enter en el `TextBox` del sidebar (hoy solo botón).
 - [x] Refrescar `SaveDisplayNameCommand.CanExecute` cuando cambia `DisplayName`.
 - [ ] Avatar: validar que rutas inválidas o archivos borrados no rompan la UI (fallback).
 
