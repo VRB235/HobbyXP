@@ -8,6 +8,7 @@ using HobbyXP.Services.Results;
 using HobbyXP.ViewModels.Common;
 using HobbyXP.ViewModels.Navigation;
 using LiveChartsCore;
+using LiveChartsCore.Kernel.Sketches;
 using LiveChartsCore.SkiaSharpView;
 using LiveChartsCore.SkiaSharpView.Painting;
 using SkiaSharp;
@@ -16,6 +17,10 @@ namespace HobbyXP.ViewModels.Dashboard;
 
 public sealed class DashboardViewModel : LoadableViewModelBase
 {
+    private static readonly SKColor ChartAccent = SKColor.Parse("00E5FF");
+    private static readonly SKColor ChartLabel = SKColor.Parse("8892A4");
+    private static readonly SKColor ChartSeparator = SKColor.Parse("2A3347");
+
     private readonly IDashboardService _dashboardService;
     private readonly IPlayerProfileService _playerProfileService;
     private int _currentLevel = 1;
@@ -25,6 +30,9 @@ public sealed class DashboardViewModel : LoadableViewModelBase
     private double _progressPercentage;
     private ISeries[] _weeklyXpSeries = [];
     private ISeries[] _hobbyDistributionSeries = [];
+    private ICartesianAxis[] _weeklyXpXAxes = [];
+    private ICartesianAxis[] _weeklyXpYAxes = [];
+    private bool _hasHobbyDistribution;
     private string _playerDisplayName = "Aventurero";
     private ImageSource? _avatarImage;
     private bool _hasCustomAvatar;
@@ -115,6 +123,24 @@ public sealed class DashboardViewModel : LoadableViewModelBase
         private set => SetProperty(ref _hobbyDistributionSeries, value);
     }
 
+    public ICartesianAxis[] WeeklyXpXAxes
+    {
+        get => _weeklyXpXAxes;
+        private set => SetProperty(ref _weeklyXpXAxes, value);
+    }
+
+    public ICartesianAxis[] WeeklyXpYAxes
+    {
+        get => _weeklyXpYAxes;
+        private set => SetProperty(ref _weeklyXpYAxes, value);
+    }
+
+    public bool HasHobbyDistribution
+    {
+        get => _hasHobbyDistribution;
+        private set => SetProperty(ref _hasHobbyDistribution, value);
+    }
+
     public AsyncRelayCommand RefreshCommand { get; }
 
     public string SuggestionsSummary
@@ -191,7 +217,29 @@ public sealed class DashboardViewModel : LoadableViewModelBase
 
     private void BuildWeeklyChart(IReadOnlyList<DailyXpPoint> weeklyXp)
     {
-        var cyan = SKColor.Parse("00E5FF");
+        WeeklyXpXAxes =
+        [
+            new Axis
+            {
+                Labels = weeklyXp.Select(p => p.Date.ToString("dd/MM")).ToArray(),
+                LabelsPaint = new SolidColorPaint(ChartLabel),
+                SeparatorsPaint = new SolidColorPaint(ChartSeparator) { StrokeThickness = 1 },
+                TextSize = 12
+            }
+        ];
+
+        WeeklyXpYAxes =
+        [
+            new Axis
+            {
+                MinLimit = 0,
+                Labeler = value => value.ToString("N0"),
+                LabelsPaint = new SolidColorPaint(ChartLabel),
+                SeparatorsPaint = new SolidColorPaint(ChartSeparator) { StrokeThickness = 1 },
+                TextSize = 12
+            }
+        ];
+
         WeeklyXpSeries =
         [
             new LineSeries<int>
@@ -199,8 +247,8 @@ public sealed class DashboardViewModel : LoadableViewModelBase
                 Name = "XP diaria",
                 Values = weeklyXp.Select(p => p.TotalXp).ToArray(),
                 Fill = null,
-                Stroke = new SolidColorPaint(cyan) { StrokeThickness = 3 },
-                GeometryFill = new SolidColorPaint(cyan),
+                Stroke = new SolidColorPaint(ChartAccent) { StrokeThickness = 3 },
+                GeometryFill = new SolidColorPaint(ChartAccent),
                 GeometryStroke = null,
                 LineSmoothness = 0.35
             }
@@ -211,10 +259,12 @@ public sealed class DashboardViewModel : LoadableViewModelBase
     {
         if (distribution.Count == 0)
         {
+            HasHobbyDistribution = false;
             HobbyDistributionSeries = [];
             return;
         }
 
+        HasHobbyDistribution = true;
         var palette = new[]
         {
             SKColor.Parse("00B0FF"),

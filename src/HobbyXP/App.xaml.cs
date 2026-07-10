@@ -1,5 +1,6 @@
 ﻿using System.Windows;
 using HobbyXP.Data;
+using HobbyXP.Helpers;
 using HobbyXP.Services;
 using HobbyXP.ViewModels;
 using Microsoft.Extensions.DependencyInjection;
@@ -13,6 +14,8 @@ public partial class App : Application
 
     protected override async void OnStartup(StartupEventArgs e)
     {
+        LiveChartsThemeSetup.ApplyDarkTheme();
+
         _host = Host.CreateDefaultBuilder()
             .ConfigureServices(static services =>
             {

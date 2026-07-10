@@ -44,7 +44,7 @@
 |----------|-------|
 | SO | Windows 10/11 |
 | Runtime | .NET 8 SDK |
-| Ejecución | `dotnet run` desde `src\HobbyXP` o `HobbyXP.exe` en `bin\Debug\net8.0-windows\` |
+| Ejecución | `dotnet run` desde `src\HobbyXP` o `HobbyXP.exe` en `bin\Debug\net8.0-windows10.0.19041\` |
 | Base de datos | `%LocalAppData%\HobbyXP\hobbyxp.db` |
 | Carpeta de datos | `%LocalAppData%\HobbyXP\` |
 | Avatar gestionado | `%LocalAppData%\HobbyXP\Avatar\profile.{ext}` |

@@ -11,7 +11,7 @@
 
 | Aspecto | Decisión |
 |---------|----------|
-| Plataforma | Windows, WPF (`net8.0-windows`) |
+| Plataforma | Windows, WPF (`net8.0-windows10.0.19041`) |
 | Arquitectura | MVVM + inyección de dependencias |
 | Persistencia | SQLite local con EF Core 8 |
 | Autenticación / nube | No (app 100 % local) |
@@ -91,7 +91,7 @@ En Windows: `C:\Users\<usuario>\AppData\Local\HobbyXP\hobbyxp.db`
 - **Views** por sección enlazadas vía `DataTemplate` en `App.xaml`.
 - **`MainWindow`**: sidebar con perfil, navegación, área principal con fondo geométrico.
 - **`DashboardView`**: hero de nivel/XP, gráficos LiveCharts (XP semanal + distribución por hobby), sugerencias de actividades para subir de nivel, hitos recientes.
-- Paquete **LiveChartsCore.SkiaSharpView.WPF** `2.0.0-rc5.4`.
+- Paquete **LiveChartsCore.SkiaSharpView.WPF** `2.0.4` (GA estable).
 
 ### Fase 5 — Personalización y refinamientos UI ✅
 
@@ -306,7 +306,7 @@ dotnet build
 | `Microsoft.EntityFrameworkCore.Design` | 8.0.11 | Solo design-time |
 | `Microsoft.Extensions.Hosting` | 8.0.1 | |
 | `Microsoft.Extensions.DependencyInjection` | 8.0.1 | |
-| `LiveChartsCore.SkiaSharpView.WPF` | 2.0.0-rc5.4 | ⚠️ RC; warnings NU1701 por OpenTK/SkiaSharp |
+| `LiveChartsCore.SkiaSharpView.WPF` | 2.0.4 | Dashboard: línea XP semanal + pie hobbies |
 
 ---
 
@@ -372,7 +372,7 @@ dotnet build
 
 ### Baja prioridad — ingeniería
 
-- [ ] Evaluar estabilizar LiveCharts (salir de RC) o fijar versión estable.
+- [x] Evaluar estabilizar LiveCharts (salir de RC) o fijar versión estable → **2.0.4** GA + TFM `net8.0-windows10.0.19041` (SkiaSharp 3 nativo, sin NU1701).
 - [ ] Tests unitarios: `XpLevelCalculator`, `XpService` (cálculo de puntos), servicios críticos.
 - [ ] **GitLab CI:** `dotnet build` en pipeline.
 - [ ] Empaquetado (MSIX / instalador) si se desea distribución.

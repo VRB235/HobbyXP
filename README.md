@@ -2,7 +2,7 @@
 
 Aplicativo de escritorio **WPF (.NET 8)** para gamificar hobbies personales (running, gimnasio, entretenimiento, libros/cursos) con sistema de **XP, niveles, medallas y premios**.
 
-- **Plataforma**: Windows 10/11, `net8.0-windows`.
+- **Plataforma**: Windows 10/11, `net8.0-windows10.0.19041`.
 - **Arquitectura**: MVVM con inyección de dependencias (`Microsoft.Extensions.Hosting`).
 - **Persistencia**: SQLite local vía **EF Core 8**.
 - **UI**: tema oscuro estilo RPG, gráficos con **LiveCharts2 (SkiaSharp)**.

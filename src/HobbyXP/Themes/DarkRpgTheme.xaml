@@ -214,6 +214,9 @@
         </Setter>
     </Style>
 
+    <!-- Botones sin Style explícito heredan el aspecto oscuro (evita fondos blancos por defecto de WPF). -->
+    <Style TargetType="Button" BasedOn="{StaticResource PrimaryButton}" />
+
     <Style x:Key="AccentButton" TargetType="Button" BasedOn="{StaticResource PrimaryButton}">
         <Setter Property="Background" Value="#1B3D2F" />
         <Setter Property="BorderBrush" Value="{StaticResource AccentGreenBrush}" />

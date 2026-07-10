@@ -52,7 +52,13 @@
                     <StackPanel>
                         <TextBlock Text="Rendimiento semanal" Style="{StaticResource SectionTitleText}" Margin="0,0,0,4" />
                         <TextBlock Text="XP ganada en los últimos 7 días" Style="{StaticResource MutedText}" Margin="0,0,0,12" />
-                        <lvc:CartesianChart Series="{Binding WeeklyXpSeries}" Height="240" />
+                        <lvc:CartesianChart Series="{Binding WeeklyXpSeries}"
+                                            XAxes="{Binding WeeklyXpXAxes}"
+                                            YAxes="{Binding WeeklyXpYAxes}"
+                                            Background="Transparent"
+                                            LegendPosition="Hidden"
+                                            TooltipPosition="Top"
+                                            Height="240" />
                     </StackPanel>
                 </Border>
 
@@ -60,7 +66,19 @@
                     <StackPanel>
                         <TextBlock Text="Distribución de hobbies" Style="{StaticResource SectionTitleText}" Margin="0,0,0,4" />
                         <TextBlock Text="Registros del mes actual por categoría" Style="{StaticResource MutedText}" Margin="0,0,0,12" />
-                        <lvc:PieChart Series="{Binding HobbyDistributionSeries}" Height="240" />
+                        <Grid Height="240">
+                            <lvc:PieChart Series="{Binding HobbyDistributionSeries}"
+                                          Background="Transparent"
+                                          LegendPosition="Bottom"
+                                          TooltipPosition="Top"
+                                          Visibility="{Binding HasHobbyDistribution, Converter={StaticResource BoolToVisibilityConverter}}" />
+                            <TextBlock Text="Sin registros este mes"
+                                       Style="{StaticResource MutedText}"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center"
+                                       TextAlignment="Center"
+                                       Visibility="{Binding HasHobbyDistribution, Converter={StaticResource InverseBoolToVisibilityConverter}}" />
+                        </Grid>
                     </StackPanel>
                 </Border>
             </Grid>
