@@ -1,8 +1,2 @@
 <Solution>
-  <Folder Name="/src/">
-    <Project Path="src/HobbyXP/HobbyXP.csproj" />
-  </Folder>
-  <Folder Name="/tests/">
-    <Project Path="tests/HobbyXP.Tests/HobbyXP.Tests.csproj" />
-  </Folder>
 </Solution>

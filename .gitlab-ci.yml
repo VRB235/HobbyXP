@@ -1,0 +1,53 @@
+# HobbyXP — pipeline .NET (WPF requiere runner Windows).
+# Registre un runner con tag `windows` y .NET 8 SDK instalado.
+# Los shared runners Linux de GitLab.com no pueden compilar WPF.
+
+stages:
+  - build
+  - test
+
+variables:
+  DOTNET_CLI_TELEMETRY_OPTOUT: "true"
+  DOTNET_NOLOGO: "true"
+  CONFIGURATION: "Release"
+  NUGET_PACKAGES: "$CI_PROJECT_DIR/.nuget/packages"
+
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_COMMIT_TAG
+
+.dotnet_windows:
+  tags:
+    - windows
+  cache:
+    key:
+      files:
+        - src/HobbyXP/HobbyXP.csproj
+        - tests/HobbyXP.Tests/HobbyXP.Tests.csproj
+    paths:
+      - .nuget/packages/
+    policy: pull-push
+  before_script:
+    - dotnet --info
+
+build:
+  extends: .dotnet_windows
+  stage: build
+  script:
+    - dotnet restore HobbyXP.sln
+    - dotnet build HobbyXP.sln --configuration $env:CONFIGURATION --no-restore
+  artifacts:
+    expire_in: 1 week
+    paths:
+      - src/HobbyXP/bin/Release/
+      - tests/HobbyXP.Tests/bin/Release/
+
+test:
+  extends: .dotnet_windows
+  stage: test
+  needs:
+    - build
+  script:
+    - dotnet test tests/HobbyXP.Tests/HobbyXP.Tests.csproj --configuration $env:CONFIGURATION --no-build --verbosity normal

@@ -341,7 +341,7 @@ dotnet build
 - **Estado:** proyecto nuevo; la mayoría de archivos están **sin commitear** (solo `.gitignore` modificado en tracking inicial).
 - **`README.md`:** prácticamente vacío (solo título).
 - **Ignorar:** `bin/`, `obj/`, `.vs/`, `*.db` ya están en `.gitignore`.
-- **Pendiente:** primer commit estructurado, posible `.gitlab-ci.yml`, issue/MR en GitLab.
+- **Pendiente:** primer commit estructurado, issue/MR en GitLab. CI: `.gitlab-ci.yml` (runner `windows`).
 
 ---
 
@@ -374,7 +374,7 @@ dotnet build
 
 - [x] Evaluar estabilizar LiveCharts (salir de RC) o fijar versión estable → **2.0.4** GA + TFM `net8.0-windows10.0.19041` (SkiaSharp 3 nativo, sin NU1701).
 - [x] Tests unitarios: `XpLevelCalculator`, `XpService` (cálculo de puntos), servicios críticos (`AchievementEngineService`, `PlayerProfileService`, `RewardService`) → `tests/HobbyXP.Tests` (42 pruebas, xUnit + SQLite in-memory).
-- [ ] **GitLab CI:** `dotnet build` en pipeline.
+- [x] **GitLab CI:** `dotnet build` en pipeline (`.gitlab-ci.yml`: build + test en runner `windows`).
 - [ ] Empaquetado (MSIX / instalador) si se desea distribución.
 - [ ] `global.json` para fijar SDK si hay discrepancia VS CLI (se observó SDK 10.0.301 con target `net8.0`).
 
@@ -442,6 +442,11 @@ dotnet build
 
 # Cerrar instancia bloqueada
 Stop-Process -Name HobbyXP -Force -ErrorAction SilentlyContinue
+
+# CI local (misma secuencia que .gitlab-ci.yml)
+dotnet restore HobbyXP.sln
+dotnet build HobbyXP.sln -c Release
+dotnet test tests\HobbyXP.Tests\HobbyXP.Tests.csproj -c Release --no-build
 ```
 
 ---
