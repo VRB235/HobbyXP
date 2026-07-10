@@ -373,7 +373,7 @@ dotnet build
 ### Baja prioridad — ingeniería
 
 - [x] Evaluar estabilizar LiveCharts (salir de RC) o fijar versión estable → **2.0.4** GA + TFM `net8.0-windows10.0.19041` (SkiaSharp 3 nativo, sin NU1701).
-- [ ] Tests unitarios: `XpLevelCalculator`, `XpService` (cálculo de puntos), servicios críticos.
+- [x] Tests unitarios: `XpLevelCalculator`, `XpService` (cálculo de puntos), servicios críticos (`AchievementEngineService`, `PlayerProfileService`, `RewardService`) → `tests/HobbyXP.Tests` (42 pruebas, xUnit + SQLite in-memory).
 - [ ] **GitLab CI:** `dotnet build` en pipeline.
 - [ ] Empaquetado (MSIX / instalador) si se desea distribución.
 - [ ] `global.json` para fijar SDK si hay discrepancia VS CLI (se observó SDK 10.0.301 con target `net8.0`).
@@ -428,7 +428,12 @@ cd src\HobbyXP
 # Compilar
 dotnet build
 
+# Tests unitarios (desde la raíz del repo)
+cd ..\..
+dotnet test tests\HobbyXP.Tests\HobbyXP.Tests.csproj
+
 # Ejecutar
+cd src\HobbyXP
 dotnet run
 
 # Limpiar artefactos WPF (si hay errores raros)

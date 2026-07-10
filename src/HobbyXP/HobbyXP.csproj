@@ -39,5 +39,9 @@
     <Resource Include="Assets\Fonts\Rajdhani-SemiBold.ttf" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="HobbyXP.Tests" />
+  </ItemGroup>
+
 </Project>
 
