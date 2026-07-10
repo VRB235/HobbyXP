@@ -63,3 +63,11 @@ CodeCoverage/
 *.VisualState.xml
 TestResult.xml
 nunit-*.xml
+
+# Empaquetado / distribución
+artifacts/
+src/HobbyXP.Package/AppPackages/
+src/HobbyXP.Package/BundleArtifacts/
+src/HobbyXP.Package/*.pfx
+*.msix
+*.msixbundle

@@ -71,7 +71,9 @@ Estos flujos están descritos con mayor detalle y con pasos para pruebas manuale
 ## Requisitos de entorno
 
 - **Sistema operativo**: Windows 10/11.
-- **SDK**: [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0).
+- **SDK**: [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0) (mínimo **8.0.404**; el repo fija la banda 8.0 vía `global.json`).
+  - Puede coexistir con SDK 9/10 instalados; `dotnet` en la raíz del repo usará 8.0.x.
+  - Verificar: `dotnet --version` desde la raíz (debe mostrar `8.0.x`).
 
 Base de datos SQLite:
 
@@ -89,7 +91,19 @@ cd src\HobbyXP
 dotnet run
 ```
 
-Comandos útiles adicionales (`dotnet` CLI y EF Core) están documentados en `docs/ESTADO-PROYECTO.md` (sección 9 y 17).
+Comandos útiles adicionales (`dotnet` CLI, EF Core y empaquetado) están en `docs/ESTADO-PROYECTO.md` (secciones 9 y 17) y `docs/DISTRIBUCION.md`.
+
+---
+
+## Distribución
+
+Para generar un ZIP portable autocontenido:
+
+```powershell
+.\scripts\package-portable.ps1
+```
+
+MSIX e instalador Inno Setup: ver [`docs/DISTRIBUCION.md`](docs/DISTRIBUCION.md).
 
 ---
 

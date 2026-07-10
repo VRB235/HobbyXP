@@ -375,8 +375,8 @@ dotnet build
 - [x] Evaluar estabilizar LiveCharts (salir de RC) o fijar versión estable → **2.0.4** GA + TFM `net8.0-windows10.0.19041` (SkiaSharp 3 nativo, sin NU1701).
 - [x] Tests unitarios: `XpLevelCalculator`, `XpService` (cálculo de puntos), servicios críticos (`AchievementEngineService`, `PlayerProfileService`, `RewardService`) → `tests/HobbyXP.Tests` (42 pruebas, xUnit + SQLite in-memory).
 - [x] **GitLab CI:** `dotnet build` en pipeline (`.gitlab-ci.yml`: build + test en runner `windows`).
-- [ ] Empaquetado (MSIX / instalador) si se desea distribución.
-- [ ] `global.json` para fijar SDK si hay discrepancia VS CLI (se observó SDK 10.0.301 con target `net8.0`).
+- [x] Empaquetado (MSIX / instalador) si se desea distribución → ver [`docs/DISTRIBUCION.md`](DISTRIBUCION.md): MSIX (`HobbyXP.Package`), portable ZIP e Inno Setup.
+- [x] `global.json` para fijar SDK 8.0.x (evita compilar `net8.0` con SDK 10 por defecto); ver sección 17.
 
 ---
 
@@ -421,6 +421,30 @@ dotnet build
 
 ## 17. Comandos de desarrollo rápidos
 
+### SDK (`global.json`)
+
+El repo incluye `global.json` en la raíz:
+
+```json
+{
+  "sdk": {
+    "version": "8.0.404",
+    "rollForward": "latestFeature",
+    "allowPrerelease": false
+  }
+}
+```
+
+- **Objetivo:** alinear CLI, CI y Visual Studio en la banda **8.0.x**, coherente con `net8.0-windows10.0.19041`.
+- **`rollForward: latestFeature`:** acepta parches 8.0.405, 8.0.416, etc., pero **no** SDK 9 ni 10.
+- Si solo tiene SDK 10 (`dotnet --list-sdks`), instale [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0); convive sin desinstalar el 10.
+
+```powershell
+# Desde la raíz del repo
+dotnet --version          # debe ser 8.0.x
+dotnet --list-sdks        # debe aparecer al menos una 8.0.x
+```
+
 ```powershell
 # Desde la raíz del repo
 cd src\HobbyXP
@@ -447,6 +471,10 @@ Stop-Process -Name HobbyXP -Force -ErrorAction SilentlyContinue
 dotnet restore HobbyXP.sln
 dotnet build HobbyXP.sln -c Release
 dotnet test tests\HobbyXP.Tests\HobbyXP.Tests.csproj -c Release --no-build
+
+# Empaquetado (distribución)
+.\scripts\package-portable.ps1
+# .\scripts\package-msix.ps1   # requiere herramientas MSIX de Visual Studio
 ```
 
 ---

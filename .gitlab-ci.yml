@@ -5,6 +5,7 @@
 stages:
   - build
   - test
+  - package
 
 variables:
   DOTNET_CLI_TELEMETRY_OPTOUT: "true"
@@ -51,3 +52,17 @@ test:
     - build
   script:
     - dotnet test tests/HobbyXP.Tests/HobbyXP.Tests.csproj --configuration $env:CONFIGURATION --no-build --verbosity normal
+
+package:portable:
+  extends: .dotnet_windows
+  stage: package
+  needs:
+    - test
+  when: manual
+  script:
+    - powershell -ExecutionPolicy Bypass -File scripts/package-portable.ps1 -Configuration $env:CONFIGURATION
+  artifacts:
+    expire_in: 4 weeks
+    paths:
+      - artifacts/HobbyXP-win-x64-Release.zip
+      - artifacts/publish/win-x64/
