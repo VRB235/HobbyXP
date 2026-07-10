@@ -126,7 +126,11 @@
                             <TextBox Text="{Binding EditUnlockHint, UpdateSourceTrigger=PropertyChanged}"
                                      TextWrapping="Wrap" AcceptsReturn="True" MinHeight="48" Margin="0,0,0,8" />
 
-                            <TextBlock Text="Icono personalizado (opcional)" Style="{StaticResource MutedText}" />
+                            <TextBlock Text="Icono" Style="{StaticResource MutedText}" />
+                            <Image Source="{Binding EditIconPath, Converter={StaticResource PathToImageSourceConverter}}"
+                                   Width="72" Height="72" Margin="0,4,0,8"
+                                   HorizontalAlignment="Left"
+                                   RenderOptions.BitmapScalingMode="HighQuality" />
                             <Grid Margin="0,0,0,8">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*" />
@@ -136,8 +140,8 @@
                                 <TextBox Text="{Binding EditIconPath, Mode=OneWay}" IsReadOnly="True" />
                                 <Button Grid.Column="1" Content="Buscar…" Command="{Binding PickIconCommand}"
                                         Style="{StaticResource PrimaryButton}" Margin="8,0,0,0" />
-                                <Button Grid.Column="2" Content="Quitar" Command="{Binding ClearIconCommand}"
-                                        Margin="8,0,0,0" />
+                                <Button Grid.Column="2" Content="Restablecer" Command="{Binding ClearIconCommand}"
+                                        Margin="8,0,0,0" ToolTip="Vuelve al icono predeterminado del catálogo." />
                             </Grid>
 
                             <controls:FormValidationBanner Message="{Binding ValidationMessage}" Margin="0,0,0,8" />

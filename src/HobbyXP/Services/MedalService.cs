@@ -1,4 +1,5 @@
 using HobbyXP.Data;
+using HobbyXP.Helpers;
 using HobbyXP.Services.Abstractions;
 using HobbyXP.Services.Results;
 using Microsoft.EntityFrameworkCore;
@@ -42,7 +43,7 @@ public sealed class MedalService : IMedalService
                     definition.Name,
                     definition.Description,
                     definition.UnlockHint,
-                    definition.IconPath,
+                    ResolveIconPath(definition),
                     instance is not null,
                     instance?.EarnedAt);
             })
@@ -64,10 +65,15 @@ public sealed class MedalService : IMedalService
         CancellationToken cancellationToken = default)
     {
         await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
-        return await db.MedalDefinitions
+        var definitions = await db.MedalDefinitions
             .AsNoTracking()
             .OrderBy(m => m.Id)
             .ToListAsync(cancellationToken);
+
+        foreach (var definition in definitions)
+            definition.IconPath = ResolveIconPath(definition);
+
+        return definitions;
     }
 
     public async Task<Models.Achievements.MedalDefinition> UpdateDefinitionAsync(
@@ -85,6 +91,12 @@ public sealed class MedalService : IMedalService
         existing.UpdatedAt = DateTime.UtcNow;
 
         await db.SaveChangesAsync(cancellationToken);
+        existing.IconPath = ResolveIconPath(existing);
         return existing;
     }
+
+    private static string ResolveIconPath(Models.Achievements.MedalDefinition definition) =>
+        string.IsNullOrWhiteSpace(definition.IconPath)
+            ? MedalIconPaths.ForMedalCode(definition.Code)
+            : definition.IconPath;
 }

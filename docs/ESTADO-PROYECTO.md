@@ -368,7 +368,7 @@ dotnet build
 - [x] **Casos de prueba funcionales** documentados (formato para analista: pasos, datos, BD esperada) por módulo → ver [`docs/CASOS-PRUEBA-FUNCIONALES.md`](CASOS-PRUEBA-FUNCIONALES.md).
 - [x] Pantalla o flujo de **configuración** (`BaseXpPerLevel`, reset de perfil, exportar BD).
 - [x] Más **medallas / reglas** editables desde UI (el editor de reglas existe en ViewModel; validar UX completa).
-- [ ] **Iconos reales** para medallas (`IconPath`) en lugar de solo emoji.
+- [x] **Iconos reales** para medallas (`IconPath`) en lugar de solo emoji.
 
 ### Baja prioridad — ingeniería
 

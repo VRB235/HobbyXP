@@ -8,7 +8,8 @@ public static class LocalImageLoader
 {
     public static ImageSource? TryLoad(string? path)
     {
-        if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
+        var resolved = MedalIconPaths.ResolveAbsolutePath(path);
+        if (resolved is null)
             return null;
 
         try
@@ -16,7 +17,7 @@ public static class LocalImageLoader
             var bitmap = new BitmapImage();
             bitmap.BeginInit();
             bitmap.CacheOption = BitmapCacheOption.OnLoad;
-            bitmap.UriSource = new Uri(path, UriKind.Absolute);
+            bitmap.UriSource = new Uri(resolved, UriKind.Absolute);
             bitmap.EndInit();
             bitmap.Freeze();
             return bitmap;

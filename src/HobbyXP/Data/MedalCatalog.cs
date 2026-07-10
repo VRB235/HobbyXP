@@ -1,5 +1,6 @@
 using HobbyXP.Models.Achievements;
 using HobbyXP.Models.Enums;
+using HobbyXP.Helpers;
 using Microsoft.EntityFrameworkCore;
 
 namespace HobbyXP.Data;
@@ -11,7 +12,8 @@ internal sealed record MedalCatalogEntry(
     int Threshold,
     string Name,
     string Description,
-    string UnlockHint);
+    string UnlockHint,
+    string IconPath);
 
 /// <summary>
 /// Catálogo único de medallas: primer logro (Ids 1–7) + hitos acumulativos.
@@ -36,6 +38,7 @@ internal static class MedalCatalog
                 Name = entry.Name,
                 Description = entry.Description,
                 UnlockHint = entry.UnlockHint,
+                IconPath = entry.IconPath,
                 CreatedAt = SeedTimestamp
             });
         }
@@ -224,5 +227,5 @@ internal static class MedalCatalog
         string name,
         string description,
         string unlockHint) =>
-        new(id, code, track, threshold, name, description, unlockHint);
+        new(id, code, track, threshold, name, description, unlockHint, MedalIconPaths.ForTrack(track));
 }

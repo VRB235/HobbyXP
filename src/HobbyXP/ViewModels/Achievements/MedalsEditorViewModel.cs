@@ -163,7 +163,13 @@ public sealed class MedalsEditorViewModel : LoadableViewModelBase
         EditIconPath = path;
     }
 
-    private void ClearIcon() => EditIconPath = null;
+    private void ClearIcon()
+    {
+        if (SelectedMedal is null)
+            return;
+
+        EditIconPath = MedalIconPaths.ForMedalCode(SelectedMedal.Code);
+    }
 
     private async Task SaveMedalAsync()
     {

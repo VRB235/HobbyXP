@@ -216,26 +216,7 @@ public sealed class PathToImageSourceConverter : IValueConverter
         if (local is not null)
             return local;
 
-        if (!Uri.TryCreate(path, UriKind.RelativeOrAbsolute, out var uri))
-            return null;
-
-        if (uri.IsAbsoluteUri && uri.IsFile && !File.Exists(uri.LocalPath))
-            return null;
-
-        try
-        {
-            var bitmap = new BitmapImage();
-            bitmap.BeginInit();
-            bitmap.CacheOption = BitmapCacheOption.OnLoad;
-            bitmap.UriSource = uri;
-            bitmap.EndInit();
-            bitmap.Freeze();
-            return bitmap;
-        }
-        catch
-        {
-            return null;
-        }
+        return null;
     }
 
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) =>
