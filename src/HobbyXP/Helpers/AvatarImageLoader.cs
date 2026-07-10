@@ -1,27 +1,21 @@
 using System.IO;
-using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 
 namespace HobbyXP.Helpers;
 
+public readonly record struct AvatarLoadResult(ImageSource? Image, bool HasCustomAvatar)
+{
+    public static AvatarLoadResult Empty { get; } = new(null, false);
+}
+
 public static class AvatarImageLoader
 {
-    private static readonly ImageSource DefaultAvatar;
-
-    static AvatarImageLoader()
+    public static AvatarLoadResult Load(string? storedPath)
     {
-        DefaultAvatar = new DrawingImage(
-            new GeometryDrawing(
-                new SolidColorBrush(Color.FromRgb(42, 51, 71)),
-                new Pen(new SolidColorBrush(Color.FromRgb(124, 77, 255)), 2),
-                new EllipseGeometry(new System.Windows.Point(24, 24), 22, 22)));
-    }
-
-    public static ImageSource LoadOrDefault(string? path)
-    {
+        var path = AvatarStorage.ResolvePath(storedPath);
         if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
-            return DefaultAvatar;
+            return AvatarLoadResult.Empty;
 
         try
         {
@@ -31,11 +25,11 @@ public static class AvatarImageLoader
             bitmap.UriSource = new Uri(path, UriKind.Absolute);
             bitmap.EndInit();
             bitmap.Freeze();
-            return bitmap;
+            return new AvatarLoadResult(bitmap, true);
         }
         catch
         {
-            return DefaultAvatar;
+            return AvatarLoadResult.Empty;
         }
     }
 }

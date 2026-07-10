@@ -1,4 +1,6 @@
+using System.IO;
 using HobbyXP.Data;
+using HobbyXP.Helpers;
 using HobbyXP.Models.Core;
 using HobbyXP.Services.Abstractions;
 using HobbyXP.Services.Internal;
@@ -19,7 +21,8 @@ public sealed class PlayerProfileService : IPlayerProfileService
     public async Task<PlayerProfile> GetProfileAsync(CancellationToken cancellationToken = default)
     {
         await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
-        return await GetProfileAsync(db, cancellationToken);
+        var profile = await GetProfileAsync(db, cancellationToken);
+        return await SanitizeAvatarPathAsync(db, profile, cancellationToken);
     }
 
     public async Task<LevelProgressInfo> GetLevelProgressAsync(CancellationToken cancellationToken = default)
@@ -50,10 +53,31 @@ public sealed class PlayerProfileService : IPlayerProfileService
     {
         await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
         var profile = await GetProfileAsync(db, cancellationToken);
-        profile.AvatarPath = avatarPath;
+
+        string? storedPath = null;
+        if (!string.IsNullOrWhiteSpace(avatarPath))
+        {
+            storedPath = AvatarStorage.IsManagedPath(avatarPath)
+                ? ToStoredPathIfNeeded(avatarPath)
+                : AvatarStorage.SaveFromSource(avatarPath);
+        }
+
+        profile.AvatarPath = storedPath;
         profile.UpdatedAt = DateTime.UtcNow;
         await db.SaveChangesAsync(cancellationToken);
         return profile;
+    }
+
+    private static string? ToStoredPathIfNeeded(string path)
+    {
+        if (!Path.IsPathRooted(path))
+            return path;
+
+        var databaseDirectory = DatabaseConstants.GetDatabaseDirectory();
+        if (path.StartsWith(databaseDirectory, StringComparison.OrdinalIgnoreCase))
+            return Path.GetRelativePath(databaseDirectory, path);
+
+        return path;
     }
 
     private static async Task<PlayerProfile> GetProfileAsync(
@@ -62,5 +86,34 @@ public sealed class PlayerProfileService : IPlayerProfileService
     {
         return await db.PlayerProfiles.FirstOrDefaultAsync(cancellationToken)
             ?? throw new InvalidOperationException("No existe un perfil de jugador inicializado.");
+    }
+
+    private static async Task<PlayerProfile> SanitizeAvatarPathAsync(
+        HobbyXpDbContext db,
+        PlayerProfile profile,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(profile.AvatarPath))
+            return profile;
+
+        if (!AvatarStorage.Exists(profile.AvatarPath))
+        {
+            profile.AvatarPath = null;
+            profile.UpdatedAt = DateTime.UtcNow;
+            await db.SaveChangesAsync(cancellationToken);
+            return profile;
+        }
+
+        if (AvatarStorage.IsManagedPath(profile.AvatarPath))
+            return profile;
+
+        var migratedPath = AvatarStorage.MigrateExternalIfNeeded(profile.AvatarPath);
+        if (migratedPath is null || string.Equals(migratedPath, profile.AvatarPath, StringComparison.OrdinalIgnoreCase))
+            return profile;
+
+        profile.AvatarPath = migratedPath;
+        profile.UpdatedAt = DateTime.UtcNow;
+        await db.SaveChangesAsync(cancellationToken);
+        return profile;
     }
 }

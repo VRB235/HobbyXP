@@ -359,7 +359,7 @@ dotnet build
 - [x] Pulir **animación level-up** (opcional: sonido, más partículas/confeti).
 - [x] **Guardar nombre** al pulsar Enter en el `TextBox` del sidebar (hoy solo botón).
 - [x] Refrescar `SaveDisplayNameCommand.CanExecute` cuando cambia `DisplayName`.
-- [ ] Avatar: validar que rutas inválidas o archivos borrados no rompan la UI (fallback).
+- [x] Avatar: validar que rutas inválidas o archivos borrados no rompan la UI (fallback).
 
 ### Media prioridad — producto
 

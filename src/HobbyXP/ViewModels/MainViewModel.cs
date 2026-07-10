@@ -132,11 +132,7 @@ public sealed class MainViewModel : ViewModelBase
     public ImageSource? AvatarImage
     {
         get => _avatarImage;
-        private set
-        {
-            if (SetProperty(ref _avatarImage, value))
-                HasCustomAvatar = value is not null;
-        }
+        private set => SetProperty(ref _avatarImage, value);
     }
 
     public bool HasCustomAvatar
@@ -241,15 +237,9 @@ public sealed class MainViewModel : ViewModelBase
 
     private void ApplyAvatar(string? path)
     {
-        if (string.IsNullOrWhiteSpace(path))
-        {
-            AvatarImage = null;
-            HasCustomAvatar = false;
-            return;
-        }
-
-        AvatarImage = AvatarImageLoader.LoadOrDefault(path);
-        HasCustomAvatar = true;
+        var result = AvatarImageLoader.Load(path);
+        AvatarImage = result.Image;
+        HasCustomAvatar = result.HasCustomAvatar;
     }
 
     private async Task RefreshDashboardAsync()

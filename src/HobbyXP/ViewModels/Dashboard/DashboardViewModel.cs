@@ -122,11 +122,10 @@ public sealed class DashboardViewModel : LoadableViewModelBase
     protected override async Task LoadCoreAsync()
     {
         var profile = await _playerProfileService.GetProfileAsync();
+        var avatar = AvatarImageLoader.Load(profile.AvatarPath);
         PlayerDisplayName = profile.DisplayName;
-        AvatarImage = string.IsNullOrWhiteSpace(profile.AvatarPath)
-            ? null
-            : AvatarImageLoader.LoadOrDefault(profile.AvatarPath);
-        HasCustomAvatar = !string.IsNullOrWhiteSpace(profile.AvatarPath);
+        AvatarImage = avatar.Image;
+        HasCustomAvatar = avatar.HasCustomAvatar;
 
         var summary = await _dashboardService.GetSummaryAsync();
         ApplyLevelProgress(summary.LevelProgress);
