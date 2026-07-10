@@ -42,6 +42,7 @@ public sealed class PuzzlesViewModel : AchievementAwareViewModel
         RemovePhotoCommand = new RelayCommand(RemovePhoto);
         ClearDateFilterCommand = new RelayCommand(ClearDateFilter);
         DeletePuzzleCommand = new AsyncRelayCommand(p => DeletePuzzleAsync(p));
+        RefreshRegisterValidation();
     }
 
     public ObservableCollection<Puzzle> Puzzles { get; }
@@ -53,13 +54,21 @@ public sealed class PuzzlesViewModel : AchievementAwareViewModel
     public string Name
     {
         get => _name;
-        set => SetProperty(ref _name, value);
+        set
+        {
+            if (SetProperty(ref _name, value))
+                RefreshRegisterValidation();
+        }
     }
 
     public string PieceCount
     {
         get => _pieceCount;
-        set => SetProperty(ref _pieceCount, value);
+        set
+        {
+            if (SetProperty(ref _pieceCount, value))
+                RefreshRegisterValidation();
+        }
     }
 
     public PuzzleCategory Category
@@ -71,7 +80,11 @@ public sealed class PuzzlesViewModel : AchievementAwareViewModel
     public DateTime? CompletedDate
     {
         get => _completedDate;
-        set => SetProperty(ref _completedDate, value);
+        set
+        {
+            if (SetProperty(ref _completedDate, value))
+                RefreshRegisterValidation();
+        }
     }
 
     public DateTime? FilterFromDate
@@ -163,13 +176,26 @@ public sealed class PuzzlesViewModel : AchievementAwareViewModel
         OnPropertyChanged(nameof(HasSelectedPhotos));
     }
 
-    private bool CanRegister() =>
-        !string.IsNullOrWhiteSpace(Name) && int.TryParse(PieceCount, out var count) && count > 0;
+    private ValidationResult ValidateRegisterForm() =>
+        FormValidation.FirstFailure(
+            FormValidation.RequireText(Name, "el nombre"),
+            FormValidation.RequirePositiveInt(PieceCount, "La cantidad de piezas", out _),
+            CompletedDate.HasValue
+                ? ValidationResult.Ok()
+                : ValidationResult.Fail("Indique la fecha de finalización."));
+
+    private void RefreshRegisterValidation() =>
+        RefreshValidation(ValidateRegisterForm(), RegisterCommand);
+
+    private bool CanRegister() => ValidateRegisterForm().IsValid;
 
     private async Task RegisterAsync()
     {
-        if (!CanRegister())
+        if (!ValidateRegisterForm().IsValid)
+        {
+            RefreshRegisterValidation();
             return;
+        }
 
         var pieces = int.Parse(PieceCount);
         var photoPaths = SelectedPhotos.Select(photo => photo.FilePath).ToList();
@@ -189,6 +215,7 @@ public sealed class PuzzlesViewModel : AchievementAwareViewModel
             CompletedDate = DateTime.Today;
             SelectedPhotos.Clear();
             OnPropertyChanged(nameof(HasSelectedPhotos));
+            ClearValidation();
             StatusMessage = $"Rompecabezas registrado · +{result.Value.XpEarned} XP";
         }, "Guardando rompecabezas...");
     }

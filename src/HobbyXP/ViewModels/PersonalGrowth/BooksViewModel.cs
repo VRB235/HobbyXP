@@ -32,6 +32,7 @@ public sealed class BooksViewModel : AchievementAwareViewModel
         CompletedBooks = new ObservableCollection<Book>();
         RegisterCommand = new AsyncRelayCommand(RegisterAsync, CanRegister);
         ClearCompletedDateFilterCommand = new RelayCommand(ClearCompletedDateFilter);
+        RefreshRegisterValidation();
     }
 
     public ObservableCollection<BookReadingRowViewModel> ReadingRows { get; }
@@ -41,19 +42,31 @@ public sealed class BooksViewModel : AchievementAwareViewModel
     public string Title
     {
         get => _title;
-        set => SetProperty(ref _title, value);
+        set
+        {
+            if (SetProperty(ref _title, value))
+                RefreshRegisterValidation();
+        }
     }
 
     public string Author
     {
         get => _author;
-        set => SetProperty(ref _author, value);
+        set
+        {
+            if (SetProperty(ref _author, value))
+                RefreshRegisterValidation();
+        }
     }
 
     public string TotalPages
     {
         get => _totalPages;
-        set => SetProperty(ref _totalPages, value);
+        set
+        {
+            if (SetProperty(ref _totalPages, value))
+                RefreshRegisterValidation();
+        }
     }
 
     public DateTime? CompletedFromDate
@@ -114,15 +127,24 @@ public sealed class BooksViewModel : AchievementAwareViewModel
         ApplyFilter();
     }
 
-    private bool CanRegister() =>
-        !string.IsNullOrWhiteSpace(Title) &&
-        !string.IsNullOrWhiteSpace(Author) &&
-        int.TryParse(TotalPages, out var pages) && pages > 0;
+    private ValidationResult ValidateRegisterForm() =>
+        FormValidation.FirstFailure(
+            FormValidation.RequireText(Title, "el título"),
+            FormValidation.RequireText(Author, "el autor"),
+            FormValidation.RequirePositiveInt(TotalPages, "Las páginas totales", out _));
+
+    private void RefreshRegisterValidation() =>
+        RefreshValidation(ValidateRegisterForm(), RegisterCommand);
+
+    private bool CanRegister() => ValidateRegisterForm().IsValid;
 
     private async Task RegisterAsync()
     {
-        if (!CanRegister())
+        if (!ValidateRegisterForm().IsValid)
+        {
+            RefreshRegisterValidation();
             return;
+        }
 
         var pages = int.Parse(TotalPages);
         await RunBusyAsync(async () =>
@@ -134,6 +156,7 @@ public sealed class BooksViewModel : AchievementAwareViewModel
             Title = string.Empty;
             Author = string.Empty;
             TotalPages = "300";
+            ClearValidation();
             StatusMessage = $"Libro '{book.Title}' agregado.";
         }, "Registrando libro...");
     }

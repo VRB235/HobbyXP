@@ -347,18 +347,18 @@ dotnet build
 
 ### Alta prioridad — estabilización
 
-- [ ] **Primer commit** con estructura limpia (excluir `bin/`, `obj/`, `.vs/`).
-- [ ] **README.md** básico: requisitos (.NET 8 SDK, Windows), cómo compilar/ejecutar, ruta de BD.
-- [ ] **Prueba funcional completa** por sección (checklist abajo) y anotar bugs.
-- [ ] Revisar que **todas las barras de progreso** (libros, videojuegos con `ProgressBar` estándar) no fallen con datos extremos.
+- [x] **Primer commit** con estructura limpia (excluir `bin/`, `obj/`, `.vs/`).
+- [x] **README.md** básico: requisitos (.NET 8 SDK, Windows), cómo compilar/ejecutar, ruta de BD.
+- [x] **Prueba funcional completa** por sección (checklist abajo) y anotar bugs.
+- [x] Revisar que **todas las barras de progreso** (libros, videojuegos con `ProgressBar` estándar) no fallen con datos extremos.
 
 ### Media prioridad — UX y pulido
 
-- [ ] Aplicar **`Font.Display`** de forma consistente en títulos de todas las secciones (hoy está fuerte en dashboard/sidebar).
-- [ ] **Validaciones en formularios** (campos vacíos, números negativos, páginas > total, etc.) con mensajes claros en UI.
+- [x] Aplicar **`Font.Display`** de forma consistente en títulos de todas las secciones (hoy está fuerte en dashboard/sidebar).
+- [x] **Validaciones en formularios** (campos vacíos, números negativos, páginas > total, etc.) con mensajes claros en UI.
 - [ ] Pulir **animación level-up** (opcional: sonido, más partículas/confeti).
 - [ ] **Guardar nombre** al pulsar Enter en el `TextBox` del sidebar (hoy solo botón).
-- [ ] Refrescar `SaveDisplayNameCommand.CanExecute` cuando cambia `DisplayName`.
+- [x] Refrescar `SaveDisplayNameCommand.CanExecute` cuando cambia `DisplayName`.
 - [ ] Avatar: validar que rutas inválidas o archivos borrados no rompan la UI (fallback).
 
 ### Media prioridad — producto

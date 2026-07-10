@@ -1,3 +1,4 @@
+using HobbyXP.Helpers;
 using HobbyXP.Models.PersonalGrowth;
 using HobbyXP.ViewModels.Common;
 
@@ -8,6 +9,7 @@ public sealed class CourseProgressRowViewModel : ViewModelBase
     private readonly Func<Course, DateTime, int, Task> _logSessionsAsync;
     private DateTime? _sessionDate = DateTime.Today;
     private int _sessionsToLog = 1;
+    private string? _validationMessage;
 
     public CourseProgressRowViewModel(Course course, Func<Course, DateTime, int, Task> logSessionsAsync)
     {
@@ -17,6 +19,7 @@ public sealed class CourseProgressRowViewModel : ViewModelBase
         LogSessionsCommand = new AsyncRelayCommand(LogSessionsAsync, CanLogSessions);
         BumpSessionsCommand = new RelayCommand(BumpSessions);
         CompleteAllCommand = new RelayCommand(CompleteAll);
+        RefreshValidation();
     }
 
     public Course Course { get; }
@@ -41,13 +44,19 @@ public sealed class CourseProgressRowViewModel : ViewModelBase
     public string ProgressSummary =>
         $"Progreso: {SessionsCompleted}/{TotalSessions} sesiones";
 
+    public string? ValidationMessage
+    {
+        get => _validationMessage;
+        private set => SetProperty(ref _validationMessage, value);
+    }
+
     public DateTime? SessionDate
     {
         get => _sessionDate;
         set
         {
             if (SetProperty(ref _sessionDate, value))
-                LogSessionsCommand.RaiseCanExecuteChanged();
+                RefreshValidation();
         }
     }
 
@@ -56,11 +65,10 @@ public sealed class CourseProgressRowViewModel : ViewModelBase
         get => _sessionsToLog;
         set
         {
-            var clamped = Math.Clamp(value, 1, Math.Max(1, RemainingSessions));
-            if (!SetProperty(ref _sessionsToLog, clamped))
+            if (!SetProperty(ref _sessionsToLog, value))
                 return;
 
-            LogSessionsCommand.RaiseCanExecuteChanged();
+            RefreshValidation();
         }
     }
 
@@ -70,11 +78,32 @@ public sealed class CourseProgressRowViewModel : ViewModelBase
 
     public RelayCommand CompleteAllCommand { get; }
 
-    private bool CanLogSessions() =>
-        RemainingSessions > 0 &&
-        SessionDate.HasValue &&
-        SessionsToLog > 0 &&
-        SessionsToLog <= RemainingSessions;
+    private ValidationResult ValidateForm()
+    {
+        if (RemainingSessions <= 0)
+            return ValidationResult.Fail("Este curso ya está completado.");
+
+        if (!SessionDate.HasValue)
+            return ValidationResult.Fail("Indique la fecha de las sesiones.");
+
+        if (SessionsToLog <= 0)
+            return ValidationResult.Fail("Las sesiones a registrar deben ser mayor que cero.");
+
+        return FormValidation.RequireNotAbove(
+            SessionsToLog,
+            RemainingSessions,
+            "Las sesiones a registrar",
+            "sesiones");
+    }
+
+    private void RefreshValidation()
+    {
+        var result = ValidateForm();
+        ValidationMessage = result.IsValid ? null : result.Message;
+        LogSessionsCommand.RaiseCanExecuteChanged();
+    }
+
+    private bool CanLogSessions() => ValidateForm().IsValid;
 
     private void BumpSessions(object? parameter)
     {
@@ -85,19 +114,25 @@ public sealed class CourseProgressRowViewModel : ViewModelBase
             _ => 1
         };
 
-        SessionsToLog = Math.Min(RemainingSessions, SessionsToLog + amount);
+        SessionsToLog = SessionsToLog + amount;
     }
 
     private void CompleteAll() => SessionsToLog = RemainingSessions;
 
     private async Task LogSessionsAsync()
     {
-        if (!CanLogSessions() || !SessionDate.HasValue)
+        if (!ValidateForm().IsValid)
+        {
+            RefreshValidation();
+            return;
+        }
+
+        if (!SessionDate.HasValue)
             return;
 
         await _logSessionsAsync(Course, SessionDate.Value, SessionsToLog);
         SessionsToLog = Math.Min(1, RemainingSessions);
         OnPropertyChanged(nameof(RemainingSessions));
-        LogSessionsCommand.RaiseCanExecuteChanged();
+        RefreshValidation();
     }
 }

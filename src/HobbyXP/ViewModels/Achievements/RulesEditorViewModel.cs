@@ -1,4 +1,6 @@
 using System.Collections.ObjectModel;
+using System.Globalization;
+using HobbyXP.Helpers;
 using HobbyXP.Models.Achievements;
 using HobbyXP.Services.Abstractions;
 using HobbyXP.ViewModels.Common;
@@ -14,7 +16,7 @@ public sealed class RulesEditorViewModel : LoadableViewModelBase
     {
         _achievementEngine = achievementEngine;
         Rules = new ObservableCollection<AchievementRule>();
-        SaveRuleCommand = new AsyncRelayCommand(SaveRuleAsync, () => SelectedRule is not null);
+        SaveRuleCommand = new AsyncRelayCommand(SaveRuleAsync, CanSaveRule);
     }
 
     public ObservableCollection<AchievementRule> Rules { get; }
@@ -22,7 +24,118 @@ public sealed class RulesEditorViewModel : LoadableViewModelBase
     public AchievementRule? SelectedRule
     {
         get => _selectedRule;
-        set => SetProperty(ref _selectedRule, value);
+        set
+        {
+            if (!SetProperty(ref _selectedRule, value))
+                return;
+
+            ClearValidation();
+            NotifyEditPropertiesChanged();
+            RefreshRuleValidation();
+        }
+    }
+
+    public string EditDisplayName
+    {
+        get => SelectedRule?.DisplayName ?? string.Empty;
+        set
+        {
+            if (SelectedRule is null || SelectedRule.DisplayName == value)
+                return;
+
+            SelectedRule.DisplayName = value;
+            OnPropertyChanged();
+            RefreshRuleValidation();
+        }
+    }
+
+    public string EditUnitLabel
+    {
+        get => SelectedRule?.UnitLabel ?? string.Empty;
+        set
+        {
+            if (SelectedRule is null || SelectedRule.UnitLabel == value)
+                return;
+
+            SelectedRule.UnitLabel = value;
+            OnPropertyChanged();
+            RefreshRuleValidation();
+        }
+    }
+
+    public string EditPointsPerUnit
+    {
+        get => SelectedRule?.PointsPerUnit.ToString(CultureInfo.CurrentCulture) ?? string.Empty;
+        set
+        {
+            if (SelectedRule is null)
+                return;
+
+            if (!decimal.TryParse(value, NumberStyles.Number, CultureInfo.CurrentCulture, out var parsed)
+                && !decimal.TryParse(value, NumberStyles.Number, CultureInfo.InvariantCulture, out parsed))
+            {
+                OnPropertyChanged();
+                RefreshRuleValidation();
+                return;
+            }
+
+            if (SelectedRule.PointsPerUnit == parsed)
+                return;
+
+            SelectedRule.PointsPerUnit = parsed;
+            OnPropertyChanged();
+            RefreshRuleValidation();
+        }
+    }
+
+    public string EditFlatBonusPoints
+    {
+        get => SelectedRule?.FlatBonusPoints?.ToString(CultureInfo.CurrentCulture) ?? string.Empty;
+        set
+        {
+            if (SelectedRule is null)
+                return;
+
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                if (SelectedRule.FlatBonusPoints is null)
+                    return;
+
+                SelectedRule.FlatBonusPoints = null;
+                OnPropertyChanged();
+                RefreshRuleValidation();
+                return;
+            }
+
+            if (!int.TryParse(value, NumberStyles.Integer, CultureInfo.CurrentCulture, out var parsed)
+                && !int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out parsed))
+            {
+                OnPropertyChanged();
+                RefreshRuleValidation();
+                return;
+            }
+
+            if (SelectedRule.FlatBonusPoints == parsed)
+                return;
+
+            SelectedRule.FlatBonusPoints = parsed;
+            OnPropertyChanged();
+            RefreshRuleValidation();
+        }
+    }
+
+    public bool EditIsActive
+    {
+        get => SelectedRule?.IsActive ?? false;
+        set
+        {
+            if (SelectedRule is null || SelectedRule.IsActive == value)
+                return;
+
+            SelectedRule.IsActive = value;
+            OnPropertyChanged();
+            RefreshRuleValidation();
+        }
     }
 
     public AsyncRelayCommand SaveRuleCommand { get; }
@@ -37,8 +150,44 @@ public sealed class RulesEditorViewModel : LoadableViewModelBase
         SelectedRule ??= Rules.FirstOrDefault();
     }
 
+    private ValidationResult ValidateSelectedRule()
+    {
+        if (SelectedRule is null)
+            return ValidationResult.Fail("Seleccione una regla.");
+
+        return FormValidation.FirstFailure(
+            FormValidation.RequireText(SelectedRule.DisplayName, "el nombre"),
+            FormValidation.RequireText(SelectedRule.UnitLabel, "la unidad"),
+            SelectedRule.PointsPerUnit >= 0m
+                ? ValidationResult.Ok()
+                : ValidationResult.Fail("Los puntos por unidad no pueden ser negativos."),
+            SelectedRule.FlatBonusPoints is null or >= 0
+                ? ValidationResult.Ok()
+                : ValidationResult.Fail("El bono fijo no puede ser negativo."));
+    }
+
+    private void RefreshRuleValidation() =>
+        RefreshValidation(ValidateSelectedRule(), SaveRuleCommand);
+
+    private void NotifyEditPropertiesChanged()
+    {
+        OnPropertyChanged(nameof(EditDisplayName));
+        OnPropertyChanged(nameof(EditUnitLabel));
+        OnPropertyChanged(nameof(EditPointsPerUnit));
+        OnPropertyChanged(nameof(EditFlatBonusPoints));
+        OnPropertyChanged(nameof(EditIsActive));
+    }
+
+    private bool CanSaveRule() => SelectedRule is not null && ValidateSelectedRule().IsValid;
+
     private async Task SaveRuleAsync()
     {
+        if (!ValidateSelectedRule().IsValid)
+        {
+            RefreshRuleValidation();
+            return;
+        }
+
         if (SelectedRule is null)
             return;
 
@@ -50,6 +199,7 @@ public sealed class RulesEditorViewModel : LoadableViewModelBase
                 Rules[index] = updated;
 
             SelectedRule = updated;
+            ClearValidation();
             StatusMessage = $"Regla '{updated.DisplayName}' actualizada.";
         }, "Guardando regla...");
     }

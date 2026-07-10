@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using HobbyXP.Helpers;
 using HobbyXP.Models.Achievements;
 using HobbyXP.Models.Enums;
 using HobbyXP.Services.Abstractions;
@@ -29,6 +30,7 @@ public sealed class RewardShopViewModel : AchievementAwareViewModel
 
         CreateRewardCommand = new AsyncRelayCommand(CreateRewardAsync, CanCreateReward);
         RedeemRewardCommand = new AsyncRelayCommand(RedeemRewardAsync, CanRedeemSelected);
+        RefreshCreateValidation();
     }
 
     public ObservableCollection<Reward> Rewards { get; }
@@ -36,7 +38,11 @@ public sealed class RewardShopViewModel : AchievementAwareViewModel
     public string Name
     {
         get => _name;
-        set => SetProperty(ref _name, value);
+        set
+        {
+            if (SetProperty(ref _name, value))
+                RefreshCreateValidation();
+        }
     }
 
     public string CostInPoints
@@ -45,7 +51,10 @@ public sealed class RewardShopViewModel : AchievementAwareViewModel
         set
         {
             if (SetProperty(ref _costInPoints, value))
+            {
+                RefreshCreateValidation();
                 OnPropertyChanged(nameof(CanAffordSelected));
+            }
         }
     }
 
@@ -109,16 +118,25 @@ public sealed class RewardShopViewModel : AchievementAwareViewModel
             Rewards.Add(reward);
     }
 
-    private bool CanCreateReward() =>
-        !string.IsNullOrWhiteSpace(Name) &&
-        int.TryParse(CostInPoints, out var cost) && cost > 0;
+    private ValidationResult ValidateCreateForm() =>
+        FormValidation.FirstFailure(
+            FormValidation.RequireText(Name, "el nombre del premio"),
+            FormValidation.RequirePositiveInt(CostInPoints, "El costo en XP", out _));
+
+    private void RefreshCreateValidation() =>
+        RefreshValidation(ValidateCreateForm(), CreateRewardCommand);
+
+    private bool CanCreateReward() => ValidateCreateForm().IsValid;
 
     private bool CanRedeemSelected() => CanAffordSelected;
 
     private async Task CreateRewardAsync()
     {
-        if (!CanCreateReward())
+        if (!ValidateCreateForm().IsValid)
+        {
+            RefreshCreateValidation();
             return;
+        }
 
         var cost = int.Parse(CostInPoints);
         await RunBusyAsync(async () =>
@@ -129,6 +147,7 @@ public sealed class RewardShopViewModel : AchievementAwareViewModel
             Name = string.Empty;
             CostInPoints = "500";
             Description = null;
+            ClearValidation();
             StatusMessage = $"Premio '{reward.Name}' creado.";
         }, "Creando premio...");
     }

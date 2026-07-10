@@ -32,6 +32,7 @@ public sealed class CoursesViewModel : AchievementAwareViewModel
         CompletedCourses = new ObservableCollection<Course>();
         RegisterCommand = new AsyncRelayCommand(RegisterAsync, CanRegister);
         ClearCompletedDateFilterCommand = new RelayCommand(ClearCompletedDateFilter);
+        RefreshRegisterValidation();
     }
 
     public ObservableCollection<CourseProgressRowViewModel> InProgressRows { get; }
@@ -44,7 +45,7 @@ public sealed class CoursesViewModel : AchievementAwareViewModel
         set
         {
             if (SetProperty(ref _name, value))
-                RegisterCommand.RaiseCanExecuteChanged();
+                RefreshRegisterValidation();
         }
     }
 
@@ -60,7 +61,7 @@ public sealed class CoursesViewModel : AchievementAwareViewModel
         set
         {
             if (SetProperty(ref _totalSessions, value))
-                RegisterCommand.RaiseCanExecuteChanged();
+                RefreshRegisterValidation();
         }
     }
 
@@ -122,14 +123,23 @@ public sealed class CoursesViewModel : AchievementAwareViewModel
         ApplyFilter();
     }
 
-    private bool CanRegister() =>
-        !string.IsNullOrWhiteSpace(Name) &&
-        int.TryParse(TotalSessions, out var sessions) && sessions > 0;
+    private ValidationResult ValidateRegisterForm() =>
+        FormValidation.FirstFailure(
+            FormValidation.RequireText(Name, "el nombre del curso"),
+            FormValidation.RequirePositiveInt(TotalSessions, "Las sesiones totales", out _));
+
+    private void RefreshRegisterValidation() =>
+        RefreshValidation(ValidateRegisterForm(), RegisterCommand);
+
+    private bool CanRegister() => ValidateRegisterForm().IsValid;
 
     private async Task RegisterAsync()
     {
-        if (!CanRegister())
+        if (!ValidateRegisterForm().IsValid)
+        {
+            RefreshRegisterValidation();
             return;
+        }
 
         var totalSessions = int.Parse(TotalSessions);
         await RunBusyAsync(async () =>
@@ -140,6 +150,7 @@ public sealed class CoursesViewModel : AchievementAwareViewModel
 
             Name = string.Empty;
             TotalSessions = "10";
+            ClearValidation();
             StatusMessage = $"Curso '{course.Name}' agregado ({course.TotalSessions} sesiones).";
         }, "Agregando curso...");
     }

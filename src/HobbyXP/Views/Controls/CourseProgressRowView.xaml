@@ -79,6 +79,8 @@
                         Command="{Binding LogSessionsCommand}"
                         ToolTip="Guardar sesiones del día" />
             </Grid>
+
+            <controls:FormValidationBanner Message="{Binding ValidationMessage}" Margin="0,8,0,0" />
         </StackPanel>
     </Border>
 </UserControl>

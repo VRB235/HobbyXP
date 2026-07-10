@@ -35,9 +35,10 @@ public sealed class MediaViewModel : AchievementAwareViewModel
         _messageDialogService = messageDialogService;
         _profileRefreshMessenger = profileRefreshMessenger;
         History = new ObservableCollection<MediaEntry>();
-        RegisterCommand = new AsyncRelayCommand(RegisterAsync, () => !string.IsNullOrWhiteSpace(Title));
+        RegisterCommand = new AsyncRelayCommand(RegisterAsync, CanRegister);
         ClearDateFilterCommand = new RelayCommand(ClearDateFilter);
         DeleteEntryCommand = new AsyncRelayCommand(p => DeleteEntryAsync(p));
+        RefreshRegisterValidation();
     }
 
     public ObservableCollection<MediaEntry> History { get; }
@@ -47,7 +48,11 @@ public sealed class MediaViewModel : AchievementAwareViewModel
     public string Title
     {
         get => _title;
-        set => SetProperty(ref _title, value);
+        set
+        {
+            if (SetProperty(ref _title, value))
+                RefreshRegisterValidation();
+        }
     }
 
     public MediaType MediaType
@@ -59,7 +64,11 @@ public sealed class MediaViewModel : AchievementAwareViewModel
     public DateTime? CompletedDate
     {
         get => _completedDate;
-        set => SetProperty(ref _completedDate, value);
+        set
+        {
+            if (SetProperty(ref _completedDate, value))
+                RefreshRegisterValidation();
+        }
     }
 
     public DateTime? FilterFromDate
@@ -137,8 +146,26 @@ public sealed class MediaViewModel : AchievementAwareViewModel
         YearlyTotal = counters.TotalCount;
     }
 
+    private ValidationResult ValidateRegisterForm() =>
+        FormValidation.FirstFailure(
+            FormValidation.RequireText(Title, "el título"),
+            CompletedDate.HasValue
+                ? ValidationResult.Ok()
+                : ValidationResult.Fail("Indique la fecha de finalización."));
+
+    private void RefreshRegisterValidation() =>
+        RefreshValidation(ValidateRegisterForm(), RegisterCommand);
+
+    private bool CanRegister() => ValidateRegisterForm().IsValid;
+
     private async Task RegisterAsync()
     {
+        if (!ValidateRegisterForm().IsValid)
+        {
+            RefreshRegisterValidation();
+            return;
+        }
+
         await RunBusyAsync(async () =>
         {
             var completedAt = DateTimeHelper.ToUtcFromLocalDate(CompletedDate ?? DateTime.Today);
@@ -151,6 +178,7 @@ public sealed class MediaViewModel : AchievementAwareViewModel
 
             Title = string.Empty;
             CompletedDate = DateTime.Today;
+            ClearValidation();
             StatusMessage = $"Obra registrada · +{result.Value.XpEarned} XP";
         }, "Registrando obra...");
     }

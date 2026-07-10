@@ -1,4 +1,6 @@
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
+using System.Windows.Input;
 using HobbyXP.Helpers;
 using HobbyXP.Models.Enums;
 using HobbyXP.Models.Physical;
@@ -20,6 +22,7 @@ public sealed class GymViewModel : AchievementAwareViewModel
     private DateTime? _historyFromDate;
     private DateTime? _historyToDate;
     private List<GymWorkout> _allWorkouts = [];
+    private string? _exerciseValidationMessage;
 
     public GymViewModel(
         IGymService gymService,
@@ -37,12 +40,21 @@ public sealed class GymViewModel : AchievementAwareViewModel
 
         AddRowCommand = new RelayCommand(AddRow);
         RemoveRowCommand = new RelayCommand(RemoveRow, _ => Entries.Count > 0);
-        SaveWorkoutCommand = new AsyncRelayCommand(SaveWorkoutAsync, () => Entries.Count > 0);
-        CreateExerciseCommand = new AsyncRelayCommand(CreateExerciseAsync, () => !string.IsNullOrWhiteSpace(NewExerciseName));
+        SaveWorkoutCommand = new AsyncRelayCommand(SaveWorkoutAsync, CanSaveWorkout);
+        CreateExerciseCommand = new AsyncRelayCommand(CreateExerciseAsync, CanCreateExercise);
         ClearHistoryDateFilterCommand = new RelayCommand(ClearHistoryDateFilter);
         DeleteWorkoutCommand = new AsyncRelayCommand(p => DeleteWorkoutAsync(p));
 
+        Entries.CollectionChanged += OnEntriesCollectionChanged;
         AddRow();
+        RefreshWorkoutValidation();
+        RefreshExerciseValidation();
+    }
+
+    public string? ExerciseValidationMessage
+    {
+        get => _exerciseValidationMessage;
+        private set => SetProperty(ref _exerciseValidationMessage, value);
     }
 
     public ObservableCollection<Exercise> Exercises { get; }
@@ -82,7 +94,11 @@ public sealed class GymViewModel : AchievementAwareViewModel
     public string NewExerciseName
     {
         get => _newExerciseName;
-        set => SetProperty(ref _newExerciseName, value);
+        set
+        {
+            if (SetProperty(ref _newExerciseName, value))
+                RefreshExerciseValidation();
+        }
     }
 
     public ExerciseType NewExerciseType
@@ -143,9 +159,16 @@ public sealed class GymViewModel : AchievementAwareViewModel
 
     protected override Task LoadCoreAsync() => LoadDataAsync();
 
+    private void OnEntriesCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        RefreshWorkoutValidation();
+        CommandManager.InvalidateRequerySuggested();
+    }
+
     private void AddRow()
     {
         var row = new GymEntryRowViewModel(Entries.Count);
+        row.PropertyChanged += (_, _) => RefreshWorkoutValidation();
         row.PropertyChanged += (_, args) =>
         {
             if (args.PropertyName == nameof(GymEntryRowViewModel.SelectedExerciseId))
@@ -160,6 +183,52 @@ public sealed class GymViewModel : AchievementAwareViewModel
             Entries.Remove(row);
     }
 
+    private ValidationResult ValidateExerciseForm() =>
+        FormValidation.RequireText(NewExerciseName, "el nombre del ejercicio");
+
+    private ValidationResult ValidateWorkoutForm()
+    {
+        if (Entries.Count == 0)
+            return ValidationResult.Fail("Agregue al menos un ejercicio al entrenamiento.");
+
+        for (var index = 0; index < Entries.Count; index++)
+        {
+            var row = Entries[index];
+            var rowNumber = index + 1;
+
+            if (!row.SelectedExerciseId.HasValue)
+                return ValidationResult.Fail($"Seleccione un ejercicio en la fila {rowNumber}.");
+
+            if (row.Sets <= 0)
+                return ValidationResult.Fail($"Las series deben ser mayor que cero (fila {rowNumber}).");
+
+            if (row.CanEditRepetitions && row.Repetitions is <= 0)
+                return ValidationResult.Fail($"Las repeticiones deben ser mayor que cero (fila {rowNumber}).");
+
+            if (row.CanEditWeight && row.WeightKg is < 0)
+                return ValidationResult.Fail($"El peso no puede ser negativo (fila {rowNumber}).");
+
+            if (row.CanEditDuration && row.DurationMinutes == 0 && row.DurationSeconds == 0)
+                return ValidationResult.Fail($"Indique una duración mayor que cero (fila {rowNumber}).");
+        }
+
+        return ValidationResult.Ok();
+    }
+
+    private void RefreshExerciseValidation()
+    {
+        var result = ValidateExerciseForm();
+        ExerciseValidationMessage = result.IsValid ? null : result.Message;
+        CreateExerciseCommand.RaiseCanExecuteChanged();
+    }
+
+    private void RefreshWorkoutValidation() =>
+        RefreshValidation(ValidateWorkoutForm(), SaveWorkoutCommand);
+
+    private bool CanCreateExercise() => ValidateExerciseForm().IsValid;
+
+    private bool CanSaveWorkout() => ValidateWorkoutForm().IsValid;
+
     private void SyncRowExercise(GymEntryRowViewModel row)
     {
         var exercise = Exercises.FirstOrDefault(e => e.Id == row.SelectedExerciseId);
@@ -169,6 +238,12 @@ public sealed class GymViewModel : AchievementAwareViewModel
 
     private async Task CreateExerciseAsync()
     {
+        if (!ValidateExerciseForm().IsValid)
+        {
+            RefreshExerciseValidation();
+            return;
+        }
+
         await RunBusyAsync(async () =>
         {
             var exercise = await _gymService.CreateOrGetExerciseAsync(NewExerciseName, NewExerciseType);
@@ -176,12 +251,19 @@ public sealed class GymViewModel : AchievementAwareViewModel
                 Exercises.Add(exercise);
 
             NewExerciseName = string.Empty;
+            ExerciseValidationMessage = null;
             StatusMessage = $"Ejercicio '{exercise.Name}' disponible.";
         }, "Creando ejercicio...");
     }
 
     private async Task SaveWorkoutAsync()
     {
+        if (!ValidateWorkoutForm().IsValid)
+        {
+            RefreshWorkoutValidation();
+            return;
+        }
+
         await RunBusyAsync(async () =>
         {
             var drafts = Entries.Select(e => e.ToDraft()).ToList();
@@ -194,6 +276,7 @@ public sealed class GymViewModel : AchievementAwareViewModel
             await LoadHistoryAsync();
             SelectedWorkout = History.FirstOrDefault(w => w.Id == result.Value.Id) ?? History.FirstOrDefault();
 
+            ClearValidation();
             var overload = result.Value.TriggeredProgressiveOverload ? " · ¡Sobrecarga progresiva!" : string.Empty;
             StatusMessage = $"Entrenamiento guardado · +{result.Value.XpEarned} XP{overload}";
         }, "Guardando entrenamiento...");

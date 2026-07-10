@@ -1,6 +1,7 @@
 <UserControl x:Class="HobbyXP.Views.AchievementsView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="clr-namespace:HobbyXP.Views.Controls">
     <DockPanel Margin="24,20">
         <TextBlock DockPanel.Dock="Top" Text="Logros y Premios" Style="{StaticResource PageTitleText}" Margin="0,0,0,16" />
 
@@ -107,17 +108,16 @@
                     <ListBox Grid.Column="0" ItemsSource="{Binding Rules}" SelectedItem="{Binding SelectedRule}" DisplayMemberPath="DisplayName" Margin="0,0,8,0" />
 
                     <StackPanel Grid.Column="1">
-                        <StackPanel DataContext="{Binding SelectedRule}">
-                            <TextBlock Text="Nombre" />
-                            <TextBox Text="{Binding DisplayName, UpdateSourceTrigger=LostFocus}" Margin="0,0,0,8" />
-                            <TextBlock Text="Unidad" />
-                            <TextBox Text="{Binding UnitLabel, UpdateSourceTrigger=LostFocus}" Margin="0,0,0,8" />
-                            <TextBlock Text="Puntos por unidad" />
-                            <TextBox Text="{Binding PointsPerUnit, UpdateSourceTrigger=LostFocus}" Margin="0,0,0,8" />
-                            <TextBlock Text="Bono fijo" />
-                            <TextBox Text="{Binding FlatBonusPoints, UpdateSourceTrigger=LostFocus}" Margin="0,0,0,8" />
-                            <CheckBox Content="Activa" IsChecked="{Binding IsActive}" Margin="0,0,0,12" />
-                        </StackPanel>
+                        <TextBlock Text="Nombre" />
+                        <TextBox Text="{Binding EditDisplayName, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8" />
+                        <TextBlock Text="Unidad" />
+                        <TextBox Text="{Binding EditUnitLabel, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8" />
+                        <TextBlock Text="Puntos por unidad" />
+                        <TextBox Text="{Binding EditPointsPerUnit, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8" />
+                        <TextBlock Text="Bono fijo" />
+                        <TextBox Text="{Binding EditFlatBonusPoints, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8" />
+                        <CheckBox Content="Activa" IsChecked="{Binding EditIsActive}" Margin="0,0,0,8" />
+                        <controls:FormValidationBanner Message="{Binding ValidationMessage}" Margin="0,0,0,12" />
                         <Button Content="Guardar regla"
                                 Command="{Binding SaveRuleCommand}"
                                 Style="{StaticResource AccentButton}"
@@ -132,32 +132,35 @@
                         <TextBlock Text="{Binding BalanceText}" Style="{StaticResource SubsectionTitleText}" Margin="0,0,0,12" />
 
                         <GroupBox Header="Crear premio" Padding="12" Margin="0,0,0,12">
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="200" />
-                                    <ColumnDefinition Width="100" />
-                                    <ColumnDefinition Width="*" MinWidth="180" />
-                                    <ColumnDefinition Width="Auto" />
-                                </Grid.ColumnDefinitions>
+                            <StackPanel>
+                                <Grid Margin="0,0,0,4">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="200" />
+                                        <ColumnDefinition Width="100" />
+                                        <ColumnDefinition Width="*" MinWidth="180" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
 
-                                <StackPanel Grid.Column="0" Margin="0,0,8,0">
-                                    <TextBlock Text="Nombre" Style="{StaticResource MutedText}" />
-                                    <TextBox Text="{Binding Name}" HorizontalAlignment="Stretch" />
-                                </StackPanel>
+                                    <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                                        <TextBlock Text="Nombre" Style="{StaticResource MutedText}" />
+                                        <TextBox Text="{Binding Name}" HorizontalAlignment="Stretch" />
+                                    </StackPanel>
 
-                                <StackPanel Grid.Column="1" Margin="0,0,8,0">
-                                    <TextBlock Text="Costo (XP)" Style="{StaticResource MutedText}" />
-                                    <TextBox Text="{Binding CostInPoints}" HorizontalAlignment="Stretch" />
-                                </StackPanel>
+                                    <StackPanel Grid.Column="1" Margin="0,0,8,0">
+                                        <TextBlock Text="Costo (XP)" Style="{StaticResource MutedText}" />
+                                        <TextBox Text="{Binding CostInPoints}" HorizontalAlignment="Stretch" />
+                                    </StackPanel>
 
-                                <StackPanel Grid.Column="2" Margin="0,0,8,0">
-                                    <TextBlock Text="Descripción (opcional)" Style="{StaticResource MutedText}" />
-                                    <TextBox Text="{Binding Description}" HorizontalAlignment="Stretch" />
-                                </StackPanel>
+                                    <StackPanel Grid.Column="2" Margin="0,0,8,0">
+                                        <TextBlock Text="Descripción (opcional)" Style="{StaticResource MutedText}" />
+                                        <TextBox Text="{Binding Description}" HorizontalAlignment="Stretch" />
+                                    </StackPanel>
 
-                                <Button Grid.Column="3" Content="Crear" Command="{Binding CreateRewardCommand}"
-                                        Style="{StaticResource PrimaryButton}" VerticalAlignment="Bottom" />
-                            </Grid>
+                                    <Button Grid.Column="3" Content="Crear" Command="{Binding CreateRewardCommand}"
+                                            Style="{StaticResource PrimaryButton}" VerticalAlignment="Bottom" />
+                                </Grid>
+                                <controls:FormValidationBanner Message="{Binding ValidationMessage}" />
+                            </StackPanel>
                         </GroupBox>
 
                         <ListBox ItemsSource="{Binding Rewards}" SelectedItem="{Binding SelectedReward}" Height="220" Margin="0,0,0,8">

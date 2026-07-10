@@ -26,6 +26,7 @@ public sealed class MainViewModel : ViewModelBase
     private int _playerTotalXp;
     private double _playerProgressPercentage;
     private string _displayName = "Aventurero";
+    private string? _displayNameValidationMessage;
     private ImageSource? _avatarImage;
     private bool _hasCustomAvatar;
     private bool _isLevelUpVisible;
@@ -58,8 +59,10 @@ public sealed class MainViewModel : ViewModelBase
 
         NavigateCommand = new AsyncRelayCommand(NavigateAsync);
         PickAvatarCommand = new AsyncRelayCommand(PickAvatarAsync);
-        SaveDisplayNameCommand = new AsyncRelayCommand(SaveDisplayNameAsync, () => !string.IsNullOrWhiteSpace(DisplayName));
+        SaveDisplayNameCommand = new AsyncRelayCommand(SaveDisplayNameAsync, CanSaveDisplayName);
         DismissLevelUpCommand = new RelayCommand(DismissLevelUp);
+
+        RefreshDisplayNameValidation();
 
         _navigationService.CurrentViewModelChanged += (_, _) => SyncNavigationState();
         _achievementMessenger.AchievementPublished += OnAchievementPublished;
@@ -110,7 +113,20 @@ public sealed class MainViewModel : ViewModelBase
     public string DisplayName
     {
         get => _displayName;
-        set => SetProperty(ref _displayName, value);
+        set
+        {
+            if (SetProperty(ref _displayName, value))
+            {
+                RefreshDisplayNameValidation();
+                OnPropertyChanged(nameof(SidebarProfileTitle));
+            }
+        }
+    }
+
+    public string? DisplayNameValidationMessage
+    {
+        get => _displayNameValidationMessage;
+        private set => SetProperty(ref _displayNameValidationMessage, value);
     }
 
     public ImageSource? AvatarImage
@@ -176,6 +192,7 @@ public sealed class MainViewModel : ViewModelBase
         PlayerTotalXp = progress.TotalXp;
         PlayerProgressPercentage = progress.ProgressPercentage;
         DisplayName = profile.DisplayName;
+        RefreshDisplayNameValidation();
         ApplyAvatar(profile.AvatarPath);
 
         OnPropertyChanged(nameof(SidebarProfileTitle));
@@ -197,12 +214,26 @@ public sealed class MainViewModel : ViewModelBase
         await RefreshDashboardAsync();
     }
 
+    private void RefreshDisplayNameValidation()
+    {
+        var result = FormValidation.RequireText(DisplayName, "el nombre del personaje");
+        DisplayNameValidationMessage = result.IsValid ? null : result.Message;
+        SaveDisplayNameCommand.RaiseCanExecuteChanged();
+    }
+
+    private bool CanSaveDisplayName() =>
+        FormValidation.RequireText(DisplayName, "el nombre del personaje").IsValid;
+
     private async Task SaveDisplayNameAsync()
     {
-        if (string.IsNullOrWhiteSpace(DisplayName))
+        if (!CanSaveDisplayName())
+        {
+            RefreshDisplayNameValidation();
             return;
+        }
 
-        await _playerProfileService.UpdateDisplayNameAsync(DisplayName);
+        await _playerProfileService.UpdateDisplayNameAsync(DisplayName.Trim());
+        DisplayNameValidationMessage = null;
         OnPropertyChanged(nameof(SidebarProfileTitle));
         LatestAchievementMessage = $"Nombre guardado: {DisplayName}";
         await RefreshDashboardAsync();

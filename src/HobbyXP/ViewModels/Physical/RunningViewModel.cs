@@ -31,6 +31,8 @@ public sealed class RunningViewModel : AchievementAwareViewModel
     private string _raceSearchText = string.Empty;
     private DateTime? _racesFromDate;
     private DateTime? _racesToDate;
+    private string? _sessionValidationMessage;
+    private string? _raceValidationMessage;
 
     public RunningViewModel(
         IRunningService runningService,
@@ -52,7 +54,23 @@ public sealed class RunningViewModel : AchievementAwareViewModel
         ClearSessionsDateFilterCommand = new RelayCommand(ClearSessionsDateFilter);
         ClearOfficialRacesFilterCommand = new RelayCommand(ClearOfficialRacesFilter);
         DeleteSessionCommand = new AsyncRelayCommand(p => DeleteSessionAsync(p));
-        DeleteOfficialRaceCommand = new AsyncRelayCommand(p => DeleteOfficialRaceAsync(p), _ => SelectedRace is not null);
+        DeleteOfficialRaceCommand = new AsyncRelayCommand(
+            p => DeleteOfficialRaceAsync(p),
+            p => p is OfficialRace || SelectedRace is not null);
+        RefreshSessionValidation();
+        RefreshRaceValidation();
+    }
+
+    public string? SessionValidationMessage
+    {
+        get => _sessionValidationMessage;
+        private set => SetProperty(ref _sessionValidationMessage, value);
+    }
+
+    public string? RaceValidationMessage
+    {
+        get => _raceValidationMessage;
+        private set => SetProperty(ref _raceValidationMessage, value);
     }
 
     public ObservableCollection<RunningSession> Sessions { get; }
@@ -64,19 +82,31 @@ public sealed class RunningViewModel : AchievementAwareViewModel
     public string DistanceKm
     {
         get => _distanceKm;
-        set => SetProperty(ref _distanceKm, value);
+        set
+        {
+            if (SetProperty(ref _distanceKm, value))
+                RefreshSessionValidation();
+        }
     }
 
     public string DurationMinutes
     {
         get => _durationMinutes;
-        set => SetProperty(ref _durationMinutes, value);
+        set
+        {
+            if (SetProperty(ref _durationMinutes, value))
+                RefreshSessionValidation();
+        }
     }
 
     public string DurationSeconds
     {
         get => _durationSeconds;
-        set => SetProperty(ref _durationSeconds, value);
+        set
+        {
+            if (SetProperty(ref _durationSeconds, value))
+                RefreshSessionValidation();
+        }
     }
 
     public RaceOption? SelectedRaceOption
@@ -107,13 +137,21 @@ public sealed class RunningViewModel : AchievementAwareViewModel
     public string NewRaceName
     {
         get => _newRaceName;
-        set => SetProperty(ref _newRaceName, value);
+        set
+        {
+            if (SetProperty(ref _newRaceName, value))
+                RefreshRaceValidation();
+        }
     }
 
     public string NewRaceDistanceKm
     {
         get => _newRaceDistanceKm;
-        set => SetProperty(ref _newRaceDistanceKm, value);
+        set
+        {
+            if (SetProperty(ref _newRaceDistanceKm, value))
+                RefreshRaceValidation();
+        }
     }
 
     public DateTime? NewRaceEventDate
@@ -291,16 +329,55 @@ public sealed class RunningViewModel : AchievementAwareViewModel
         ApplyOfficialRacesFilter();
     }
 
-    private bool CanRegisterOfficialRace() =>
-        !string.IsNullOrWhiteSpace(NewRaceName) &&
-        decimal.TryParse(NewRaceDistanceKm, out var km) && km > 0;
+    private ValidationResult ValidateSessionForm()
+    {
+        var distance = FormValidation.RequirePositiveDecimal(DistanceKm, "La distancia (km)", out _);
+        if (!distance.IsValid)
+            return distance;
+
+        var minutes = FormValidation.RequireNonNegativeInt(DurationMinutes, "Los minutos", out var min);
+        if (!minutes.IsValid)
+            return minutes;
+
+        var seconds = FormValidation.RequireIntInRange(DurationSeconds, "Los segundos", 0, 59, out var sec);
+        if (!seconds.IsValid)
+            return seconds;
+
+        return min == 0 && sec == 0
+            ? ValidationResult.Fail("Indique una duración mayor que cero.")
+            : ValidationResult.Ok();
+    }
+
+    private ValidationResult ValidateRaceForm() =>
+        FormValidation.FirstFailure(
+            FormValidation.RequireText(NewRaceName, "el nombre de la carrera"),
+            FormValidation.RequirePositiveDecimal(NewRaceDistanceKm, "La distancia (km)", out _));
+
+    private void RefreshSessionValidation()
+    {
+        var result = ValidateSessionForm();
+        SessionValidationMessage = result.IsValid ? null : result.Message;
+        SaveSessionCommand.RaiseCanExecuteChanged();
+    }
+
+    private void RefreshRaceValidation()
+    {
+        var result = ValidateRaceForm();
+        RaceValidationMessage = result.IsValid ? null : result.Message;
+        RegisterOfficialRaceCommand.RaiseCanExecuteChanged();
+    }
+
+    private bool CanRegisterOfficialRace() => ValidateRaceForm().IsValid;
 
     private async Task RegisterOfficialRaceAsync()
     {
-        if (!CanRegisterOfficialRace())
+        if (!ValidateRaceForm().IsValid)
+        {
+            RefreshRaceValidation();
             return;
+        }
 
-        var distanceKm = decimal.Parse(NewRaceDistanceKm);
+        FormValidation.RequirePositiveDecimal(NewRaceDistanceKm, "La distancia (km)", out var distanceKm);
 
         await RunBusyAsync(async () =>
         {
@@ -325,24 +402,26 @@ public sealed class RunningViewModel : AchievementAwareViewModel
             NewRaceDistanceKm = string.Empty;
             NewRaceEventDate = null;
             NewRaceLocation = string.Empty;
+            RaceValidationMessage = null;
 
             StatusMessage = $"Carrera oficial registrada: {saved.Name} ({saved.DistanceKm:0.##} km)";
         }, "Registrando carrera...");
     }
 
-    private bool CanSaveSession() =>
-        decimal.TryParse(DistanceKm, out var km) && km > 0 &&
-        int.TryParse(DurationMinutes, out var min) && min >= 0 &&
-        int.TryParse(DurationSeconds, out var sec) && sec >= 0 &&
-        (min > 0 || sec > 0);
+    private bool CanSaveSession() => ValidateSessionForm().IsValid;
 
     private async Task SaveSessionAsync()
     {
-        if (!CanSaveSession())
+        if (!ValidateSessionForm().IsValid)
+        {
+            RefreshSessionValidation();
             return;
+        }
 
-        var distance = decimal.Parse(DistanceKm);
-        var duration = new TimeSpan(0, int.Parse(DurationMinutes), int.Parse(DurationSeconds));
+        FormValidation.RequirePositiveDecimal(DistanceKm, "La distancia (km)", out var distance);
+        FormValidation.RequireNonNegativeInt(DurationMinutes, "Los minutos", out var min);
+        FormValidation.RequireIntInRange(DurationSeconds, "Los segundos", 0, 59, out var sec);
+        var duration = new TimeSpan(0, min, sec);
         var raceId = SelectedRaceOption?.Id;
 
         await RunBusyAsync(async () =>
@@ -355,6 +434,7 @@ public sealed class RunningViewModel : AchievementAwareViewModel
             DistanceKm = string.Empty;
             DurationMinutes = string.Empty;
             DurationSeconds = string.Empty;
+            SessionValidationMessage = null;
             StatusMessage = $"Sesión guardada · Ritmo: {result.Value.PaceMinPerKm:0.00} min/km · +{result.Value.XpEarned} XP";
         }, "Guardando sesión...");
     }

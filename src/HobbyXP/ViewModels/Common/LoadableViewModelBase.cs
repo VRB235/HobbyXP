@@ -1,4 +1,5 @@
 using HobbyXP.ViewModels.Navigation;
+using System.Windows.Input;
 
 namespace HobbyXP.ViewModels.Common;
 
@@ -7,6 +8,7 @@ public abstract class BusyViewModelBase : ViewModelBase
     private bool _isLoading;
     private string? _statusMessage;
     private string? _errorMessage;
+    private string? _validationMessage;
 
     public bool IsLoading
     {
@@ -24,6 +26,29 @@ public abstract class BusyViewModelBase : ViewModelBase
     {
         get => _errorMessage;
         protected set => SetProperty(ref _errorMessage, value);
+    }
+
+    public string? ValidationMessage
+    {
+        get => _validationMessage;
+        protected set => SetProperty(ref _validationMessage, value);
+    }
+
+    protected void ApplyValidation(Helpers.ValidationResult result) =>
+        ValidationMessage = result.IsValid ? null : result.Message;
+
+    protected void ClearValidation() => ValidationMessage = null;
+
+    protected void RefreshValidation(Helpers.ValidationResult result, params ICommand[] commands)
+    {
+        ApplyValidation(result);
+        foreach (var command in commands)
+        {
+            if (command is AsyncRelayCommand asyncCommand)
+                asyncCommand.RaiseCanExecuteChanged();
+        }
+
+        CommandManager.InvalidateRequerySuggested();
     }
 
     protected async Task RunBusyAsync(Func<Task> action, string? busyMessage = null)

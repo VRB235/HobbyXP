@@ -24,73 +24,79 @@
                         <RowDefinition Height="*" MinHeight="120" />
                     </Grid.RowDefinitions>
                         <GroupBox Grid.Row="0" Header="Nueva sesión" Padding="12" Margin="0,0,0,12">
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto" />
-                                    <ColumnDefinition Width="120" />
-                                    <ColumnDefinition Width="Auto" />
-                                    <ColumnDefinition Width="80" />
-                                    <ColumnDefinition Width="Auto" />
-                                    <ColumnDefinition Width="80" />
-                                    <ColumnDefinition Width="Auto" />
-                                    <ColumnDefinition Width="200" />
-                                    <ColumnDefinition Width="Auto" />
-                                </Grid.ColumnDefinitions>
+                            <StackPanel>
+                                <Grid Margin="0,0,0,4">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="120" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="80" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="80" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="200" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
 
-                                <TextBlock Grid.Column="0" Text="Distancia (km):" VerticalAlignment="Center" Margin="0,0,8,0" />
-                                <TextBox Grid.Column="1" Text="{Binding DistanceKm, UpdateSourceTrigger=PropertyChanged}" />
+                                    <TextBlock Grid.Column="0" Text="Distancia (km):" VerticalAlignment="Center" Margin="0,0,8,0" />
+                                    <TextBox Grid.Column="1" Text="{Binding DistanceKm, UpdateSourceTrigger=PropertyChanged}" />
 
-                                <TextBlock Grid.Column="2" Text="Min:" VerticalAlignment="Center" Margin="12,0,8,0" />
-                                <TextBox Grid.Column="3" Text="{Binding DurationMinutes, UpdateSourceTrigger=PropertyChanged}" />
+                                    <TextBlock Grid.Column="2" Text="Min:" VerticalAlignment="Center" Margin="12,0,8,0" />
+                                    <TextBox Grid.Column="3" Text="{Binding DurationMinutes, UpdateSourceTrigger=PropertyChanged}" />
 
-                                <TextBlock Grid.Column="4" Text="Seg:" VerticalAlignment="Center" Margin="12,0,8,0" />
-                                <TextBox Grid.Column="5" Text="{Binding DurationSeconds, UpdateSourceTrigger=PropertyChanged}" />
+                                    <TextBlock Grid.Column="4" Text="Seg:" VerticalAlignment="Center" Margin="12,0,8,0" />
+                                    <TextBox Grid.Column="5" Text="{Binding DurationSeconds, UpdateSourceTrigger=PropertyChanged}" />
 
-                                <TextBlock Grid.Column="6" Text="Carrera:" VerticalAlignment="Center" Margin="12,0,8,0" />
-                                <ComboBox Grid.Column="7" ItemsSource="{Binding RaceOptions}" DisplayMemberPath="Name"
-                                          SelectedItem="{Binding SelectedRaceOption}" />
+                                    <TextBlock Grid.Column="6" Text="Carrera:" VerticalAlignment="Center" Margin="12,0,8,0" />
+                                    <ComboBox Grid.Column="7" ItemsSource="{Binding RaceOptions}" DisplayMemberPath="Name"
+                                              SelectedItem="{Binding SelectedRaceOption}" />
 
-                                <Button Grid.Column="8" Content="Guardar" Command="{Binding SaveSessionCommand}" Style="{StaticResource AccentButton}" Margin="12,0,0,0" />
-                            </Grid>
+                                    <Button Grid.Column="8" Content="Guardar" Command="{Binding SaveSessionCommand}" Style="{StaticResource AccentButton}" Margin="12,0,0,0" />
+                                </Grid>
+                                <controls:FormValidationBanner Message="{Binding SessionValidationMessage}" />
+                            </StackPanel>
                         </GroupBox>
 
                         <TextBlock Grid.Row="1" Text="{Binding StatusMessage}" Foreground="{StaticResource AccentGreenBrush}" Margin="0,0,0,8" />
 
                         <GroupBox Grid.Row="2" Header="Nueva carrera oficial" Padding="12" Margin="0,0,0,12">
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="2*" />
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="2*" />
-                                    <ColumnDefinition Width="Auto" />
-                                </Grid.ColumnDefinitions>
+                            <StackPanel>
+                                <Grid Margin="0,0,0,4">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="2*" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="2*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
 
-                                <StackPanel Grid.Column="0" Margin="0,0,8,0">
-                                    <TextBlock Text="Nombre" Style="{StaticResource MutedText}" />
-                                    <TextBox Text="{Binding NewRaceName, UpdateSourceTrigger=PropertyChanged}" />
-                                </StackPanel>
+                                    <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                                        <TextBlock Text="Nombre" Style="{StaticResource MutedText}" />
+                                        <TextBox Text="{Binding NewRaceName, UpdateSourceTrigger=PropertyChanged}" />
+                                    </StackPanel>
 
-                                <StackPanel Grid.Column="1" Margin="0,0,8,0">
-                                    <TextBlock Text="Distancia (km)" Style="{StaticResource MutedText}" />
-                                    <TextBox Text="{Binding NewRaceDistanceKm, UpdateSourceTrigger=PropertyChanged}" />
-                                </StackPanel>
+                                    <StackPanel Grid.Column="1" Margin="0,0,8,0">
+                                        <TextBlock Text="Distancia (km)" Style="{StaticResource MutedText}" />
+                                        <TextBox Text="{Binding NewRaceDistanceKm, UpdateSourceTrigger=PropertyChanged}" />
+                                    </StackPanel>
 
-                                <StackPanel Grid.Column="2" Margin="0,0,8,0">
-                                    <TextBlock Text="Fecha (opcional)" Style="{StaticResource MutedText}" />
-                                    <DatePicker SelectedDate="{Binding NewRaceEventDate}" />
-                                </StackPanel>
+                                    <StackPanel Grid.Column="2" Margin="0,0,8,0">
+                                        <TextBlock Text="Fecha (opcional)" Style="{StaticResource MutedText}" />
+                                        <DatePicker SelectedDate="{Binding NewRaceEventDate}" />
+                                    </StackPanel>
 
-                                <StackPanel Grid.Column="3" Margin="0,0,8,0">
-                                    <TextBlock Text="Ubicación (opcional)" Style="{StaticResource MutedText}" />
-                                    <TextBox Text="{Binding NewRaceLocation, UpdateSourceTrigger=PropertyChanged}" />
-                                </StackPanel>
+                                    <StackPanel Grid.Column="3" Margin="0,0,8,0">
+                                        <TextBlock Text="Ubicación (opcional)" Style="{StaticResource MutedText}" />
+                                        <TextBox Text="{Binding NewRaceLocation, UpdateSourceTrigger=PropertyChanged}" />
+                                    </StackPanel>
 
-                                <Button Grid.Column="4" Content="Registrar carrera"
-                                        Command="{Binding RegisterOfficialRaceCommand}"
-                                        Style="{StaticResource AccentButton}"
-                                        VerticalAlignment="Bottom" />
-                            </Grid>
+                                    <Button Grid.Column="4" Content="Registrar carrera"
+                                            Command="{Binding RegisterOfficialRaceCommand}"
+                                            Style="{StaticResource AccentButton}"
+                                            VerticalAlignment="Bottom" />
+                                </Grid>
+                                <controls:FormValidationBanner Message="{Binding RaceValidationMessage}" />
+                            </StackPanel>
                         </GroupBox>
 
                         <GroupBox Grid.Row="3" Header="Historial de carreras oficiales" Padding="12" Margin="0,0,0,12" VerticalAlignment="Stretch">
@@ -173,7 +179,7 @@
                                                             <Button Content="✕"
                                                                     Style="{StaticResource DangerIconButton}"
                                                                     ToolTip="Eliminar del historial"
-                                                                    Command="{Binding DataContext.DeleteOfficialRaceCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                                    Command="{Binding DataContext.DeleteOfficialRaceCommand, RelativeSource={RelativeSource AncestorType=ListView}}"
                                                                     CommandParameter="{Binding}" />
                                                         </DataTemplate>
                                                     </GridViewColumn.CellTemplate>
@@ -229,7 +235,7 @@
                                                         <Button Content="✕"
                                                                 Style="{StaticResource DangerIconButton}"
                                                                 ToolTip="Eliminar del historial"
-                                                                Command="{Binding DataContext.DeleteSessionCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                                Command="{Binding DataContext.DeleteSessionCommand, RelativeSource={RelativeSource AncestorType=ListView}}"
                                                                 CommandParameter="{Binding}" />
                                                     </DataTemplate>
                                                 </GridViewColumn.CellTemplate>
@@ -252,10 +258,13 @@
                         <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
                         <GroupBox Grid.Row="0" Header="Catálogo de ejercicios" Padding="12" Margin="0,0,0,12">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBox Width="200" Text="{Binding NewExerciseName, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,8,0" />
-                                <ComboBox Width="160" ItemsSource="{Binding ExerciseTypes}" SelectedItem="{Binding NewExerciseType}" Margin="0,0,8,0" />
-                                <Button Content="Agregar ejercicio" Command="{Binding CreateExerciseCommand}" Style="{StaticResource PrimaryButton}" />
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBox Width="200" Text="{Binding NewExerciseName, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,8,0" />
+                                    <ComboBox Width="160" ItemsSource="{Binding ExerciseTypes}" SelectedItem="{Binding NewExerciseType}" Margin="0,0,8,0" />
+                                    <Button Content="Agregar ejercicio" Command="{Binding CreateExerciseCommand}" Style="{StaticResource PrimaryButton}" />
+                                </StackPanel>
+                                <controls:FormValidationBanner Message="{Binding ExerciseValidationMessage}" />
                             </StackPanel>
                         </GroupBox>
 
@@ -360,6 +369,7 @@
                                 <Button Content="Agregar ejercicio" Command="{Binding AddRowCommand}" Style="{StaticResource PrimaryButton}" Margin="0,0,8,0" />
                                 <Button Content="Guardar entrenamiento" Command="{Binding SaveWorkoutCommand}" Style="{StaticResource AccentButton}" />
                             </StackPanel>
+                            <controls:FormValidationBanner Message="{Binding ValidationMessage}" Margin="0,8,0,0" />
                             </StackPanel>
                         </GroupBox>
 
@@ -410,7 +420,7 @@
                                                         <Button Content="✕"
                                                                 Style="{StaticResource DangerIconButton}"
                                                                 ToolTip="Eliminar del historial"
-                                                                Command="{Binding DataContext.DeleteWorkoutCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                                Command="{Binding DataContext.DeleteWorkoutCommand, RelativeSource={RelativeSource AncestorType=ListView}}"
                                                                 CommandParameter="{Binding}" />
                                                     </DataTemplate>
                                                 </GridViewColumn.CellTemplate>

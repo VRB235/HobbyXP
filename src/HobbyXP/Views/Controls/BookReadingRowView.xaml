@@ -81,6 +81,8 @@
                         Command="{Binding ApplyPagesCommand}"
                         ToolTip="Guardar el progreso de lectura" />
             </Grid>
+
+            <controls:FormValidationBanner Message="{Binding ValidationMessage}" Margin="0,8,0,0" />
         </StackPanel>
     </Border>
 </UserControl>

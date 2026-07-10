@@ -15,7 +15,7 @@
             <TabItem Header="Rompecabezas">
                 <ScrollViewer x:Name="PuzzlesScrollViewer" DataContext="{Binding Puzzles}">
                     <StackPanel Margin="8">
-                        <Grid Margin="0,0,0,12">
+                        <Grid Margin="0,0,0,4">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="160" />
                                 <ColumnDefinition Width="80" />
@@ -54,6 +54,7 @@
                             <Button Grid.Column="4" Content="Registrar" Command="{Binding RegisterCommand}"
                                     Style="{StaticResource AccentButton}" VerticalAlignment="Bottom" />
                         </Grid>
+                        <controls:FormValidationBanner Message="{Binding ValidationMessage}" Margin="0,0,0,12" />
 
                         <StackPanel Margin="0,0,0,12">
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
@@ -182,33 +183,36 @@
                         <RowDefinition Height="*" MinHeight="120" />
                     </Grid.RowDefinitions>
 
-                    <Grid Grid.Row="0" Margin="0,0,0,12">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="220" />
-                            <ColumnDefinition Width="120" />
-                            <ColumnDefinition Width="130" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Row="0" Margin="0,0,0,12">
+                        <Grid Margin="0,0,0,4">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="220" />
+                                <ColumnDefinition Width="120" />
+                                <ColumnDefinition Width="130" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
 
-                        <StackPanel Grid.Column="0" Margin="0,0,8,0">
-                            <TextBlock Text="Título" Style="{StaticResource MutedText}" />
-                            <TextBox Text="{Binding Title}" HorizontalAlignment="Stretch" />
-                        </StackPanel>
+                            <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                                <TextBlock Text="Título" Style="{StaticResource MutedText}" />
+                                <TextBox Text="{Binding Title}" HorizontalAlignment="Stretch" />
+                            </StackPanel>
 
-                        <StackPanel Grid.Column="1" Margin="0,0,8,0">
-                            <TextBlock Text="Tipo" Style="{StaticResource MutedText}" />
-                            <ComboBox ItemsSource="{Binding MediaTypes}" SelectedItem="{Binding MediaType}"
-                                      HorizontalAlignment="Stretch" />
-                        </StackPanel>
+                            <StackPanel Grid.Column="1" Margin="0,0,8,0">
+                                <TextBlock Text="Tipo" Style="{StaticResource MutedText}" />
+                                <ComboBox ItemsSource="{Binding MediaTypes}" SelectedItem="{Binding MediaType}"
+                                          HorizontalAlignment="Stretch" />
+                            </StackPanel>
 
-                        <StackPanel Grid.Column="2" Margin="0,0,8,0">
-                            <TextBlock Text="Fecha" Style="{StaticResource MutedText}" />
-                            <DatePicker SelectedDate="{Binding CompletedDate}" HorizontalAlignment="Stretch" />
-                        </StackPanel>
+                            <StackPanel Grid.Column="2" Margin="0,0,8,0">
+                                <TextBlock Text="Fecha" Style="{StaticResource MutedText}" />
+                                <DatePicker SelectedDate="{Binding CompletedDate}" HorizontalAlignment="Stretch" />
+                            </StackPanel>
 
-                        <Button Grid.Column="3" Content="Registrar" Command="{Binding RegisterCommand}"
-                                Style="{StaticResource AccentButton}" VerticalAlignment="Bottom" />
-                    </Grid>
+                            <Button Grid.Column="3" Content="Registrar" Command="{Binding RegisterCommand}"
+                                    Style="{StaticResource AccentButton}" VerticalAlignment="Bottom" />
+                        </Grid>
+                        <controls:FormValidationBanner Message="{Binding ValidationMessage}" />
+                    </StackPanel>
 
                     <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,12">
                         <TextBlock Text="{Binding YearlyMovies, StringFormat=Películas ({0})}" Style="{StaticResource SubsectionTitleText}" Margin="0,0,16,0" />
@@ -256,7 +260,7 @@
                                                     <Button Content="✕"
                                                             Style="{StaticResource DangerIconButton}"
                                                             ToolTip="Eliminar del historial"
-                                                            Command="{Binding DataContext.DeleteEntryCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                            Command="{Binding DataContext.DeleteEntryCommand, RelativeSource={RelativeSource AncestorType=ListView}}"
                                                             CommandParameter="{Binding}" />
                                                 </DataTemplate>
                                             </GridViewColumn.CellTemplate>
@@ -270,42 +274,45 @@
             </TabItem>
 
             <TabItem Header="Videojuegos">
-                <ScrollViewer DataContext="{Binding VideoGames}">
+                <ScrollViewer x:Name="VideoGamesScrollViewer" DataContext="{Binding VideoGames}">
                     <StackPanel Margin="8">
-                        <Grid Margin="0,0,0,12">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="180" />
-                                <ColumnDefinition Width="130" />
-                                <ColumnDefinition Width="130" />
-                                <ColumnDefinition Width="140" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
+                        <StackPanel Margin="0,0,0,12">
+                            <Grid Margin="0,0,0,4">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="180" />
+                                    <ColumnDefinition Width="130" />
+                                    <ColumnDefinition Width="130" />
+                                    <ColumnDefinition Width="140" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
 
-                            <StackPanel Grid.Column="0" Margin="0,0,8,0">
-                                <TextBlock Text="Título" Style="{StaticResource MutedText}" />
-                                <TextBox Text="{Binding Title}" HorizontalAlignment="Stretch" />
-                            </StackPanel>
+                                <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                                    <TextBlock Text="Título" Style="{StaticResource MutedText}" />
+                                    <TextBox Text="{Binding Title}" HorizontalAlignment="Stretch" />
+                                </StackPanel>
 
-                            <StackPanel Grid.Column="1" Margin="0,0,8,0">
-                                <TextBlock Text="Plataforma" Style="{StaticResource MutedText}" />
-                                <ComboBox ItemsSource="{Binding Platforms}" SelectedItem="{Binding Platform}"
-                                          HorizontalAlignment="Stretch" />
-                            </StackPanel>
+                                <StackPanel Grid.Column="1" Margin="0,0,8,0">
+                                    <TextBlock Text="Plataforma" Style="{StaticResource MutedText}" />
+                                    <ComboBox ItemsSource="{Binding Platforms}" SelectedItem="{Binding Platform}"
+                                              HorizontalAlignment="Stretch" />
+                                </StackPanel>
 
-                            <StackPanel Grid.Column="2" Margin="0,0,8,0">
-                                <TextBlock Text="Fecha inicio" Style="{StaticResource MutedText}" />
-                                <DatePicker SelectedDate="{Binding StartedDate}" HorizontalAlignment="Stretch" />
-                            </StackPanel>
+                                <StackPanel Grid.Column="2" Margin="0,0,8,0">
+                                    <TextBlock Text="Fecha inicio" Style="{StaticResource MutedText}" />
+                                    <DatePicker SelectedDate="{Binding StartedDate}" HorizontalAlignment="Stretch" />
+                                </StackPanel>
 
-                            <StackPanel Grid.Column="3" Margin="0,0,8,0">
-                                <TextBlock Text="Progreso inicial (%)" Style="{StaticResource MutedText}" />
-                                <Slider Minimum="0" Maximum="100" Value="{Binding InitialCompletion}"
-                                        VerticalAlignment="Center" />
-                            </StackPanel>
+                                <StackPanel Grid.Column="3" Margin="0,0,8,0">
+                                    <TextBlock Text="Progreso inicial (%)" Style="{StaticResource MutedText}" />
+                                    <Slider Minimum="0" Maximum="100" Value="{Binding InitialCompletion}"
+                                            VerticalAlignment="Center" />
+                                </StackPanel>
 
-                            <Button Grid.Column="4" Content="Registrar" Command="{Binding RegisterCommand}"
-                                    Style="{StaticResource AccentButton}" VerticalAlignment="Bottom" />
-                        </Grid>
+                                <Button Grid.Column="4" Content="Registrar" Command="{Binding RegisterCommand}"
+                                        Style="{StaticResource AccentButton}" VerticalAlignment="Bottom" />
+                            </Grid>
+                            <controls:FormValidationBanner Message="{Binding ValidationMessage}" />
+                        </StackPanel>
 
                         <GroupBox Header="Historial" Padding="12">
                             <StackPanel>
@@ -350,7 +357,7 @@
                                                                 ToolTip="Eliminar del historial"
                                                                 HorizontalAlignment="Right"
                                                                 VerticalAlignment="Top"
-                                                                Command="{Binding DataContext.DeleteGameCommand, RelativeSource={RelativeSource AncestorType=ScrollViewer}}"
+                                                                Command="{Binding DataContext.DeleteGameCommand, ElementName=VideoGamesScrollViewer}"
                                                                 CommandParameter="{Binding Game}" />
                                                     </Grid>
 
@@ -432,7 +439,7 @@
                                                             ToolTip="Eliminar del historial"
                                                             HorizontalAlignment="Right"
                                                             VerticalAlignment="Top"
-                                                            Command="{Binding DataContext.DeleteGameCommand, RelativeSource={RelativeSource AncestorType=ScrollViewer}}"
+                                                            Command="{Binding DataContext.DeleteGameCommand, ElementName=VideoGamesScrollViewer}"
                                                             CommandParameter="{Binding}" />
                                                 </Grid>
                                             </Border>

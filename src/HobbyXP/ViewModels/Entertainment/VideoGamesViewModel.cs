@@ -36,9 +36,10 @@ public sealed class VideoGamesViewModel : AchievementAwareViewModel
         InProgressRows = new ObservableCollection<VideoGameProgressRowViewModel>();
         PlatinumGames = new ObservableCollection<VideoGame>();
 
-        RegisterCommand = new AsyncRelayCommand(RegisterAsync, () => !string.IsNullOrWhiteSpace(Title));
+        RegisterCommand = new AsyncRelayCommand(RegisterAsync, CanRegister);
         ClearDateFilterCommand = new RelayCommand(ClearDateFilter);
         DeleteGameCommand = new AsyncRelayCommand(p => DeleteGameAsync(p));
+        RefreshRegisterValidation();
     }
 
     public ObservableCollection<VideoGameProgressRowViewModel> InProgressRows { get; }
@@ -50,7 +51,11 @@ public sealed class VideoGamesViewModel : AchievementAwareViewModel
     public string Title
     {
         get => _title;
-        set => SetProperty(ref _title, value);
+        set
+        {
+            if (SetProperty(ref _title, value))
+                RefreshRegisterValidation();
+        }
     }
 
     public VideoGamePlatform Platform
@@ -68,7 +73,11 @@ public sealed class VideoGamesViewModel : AchievementAwareViewModel
     public DateTime? StartedDate
     {
         get => _startedDate;
-        set => SetProperty(ref _startedDate, value);
+        set
+        {
+            if (SetProperty(ref _startedDate, value))
+                RefreshRegisterValidation();
+        }
     }
 
     public DateTime? FilterFromDate
@@ -143,8 +152,26 @@ public sealed class VideoGamesViewModel : AchievementAwareViewModel
         }, "Actualizando progreso...");
     }
 
+    private ValidationResult ValidateRegisterForm() =>
+        FormValidation.FirstFailure(
+            FormValidation.RequireText(Title, "el título"),
+            StartedDate.HasValue
+                ? ValidationResult.Ok()
+                : ValidationResult.Fail("Indique la fecha de inicio."));
+
+    private void RefreshRegisterValidation() =>
+        RefreshValidation(ValidateRegisterForm(), RegisterCommand);
+
+    private bool CanRegister() => ValidateRegisterForm().IsValid;
+
     private async Task RegisterAsync()
     {
+        if (!ValidateRegisterForm().IsValid)
+        {
+            RefreshRegisterValidation();
+            return;
+        }
+
         await RunBusyAsync(async () =>
         {
             var startedAt = DateTimeHelper.ToUtcFromLocalDate(StartedDate ?? DateTime.Today);
@@ -155,6 +182,7 @@ public sealed class VideoGamesViewModel : AchievementAwareViewModel
             Title = string.Empty;
             InitialCompletion = 0;
             StartedDate = DateTime.Today;
+            ClearValidation();
             StatusMessage = $"Juego registrado · +{result.Value.XpEarned} XP";
         }, "Registrando juego...");
     }
