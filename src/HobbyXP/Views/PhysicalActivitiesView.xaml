@@ -15,13 +15,18 @@
 
         <TabControl SelectedIndex="{Binding SelectedTabIndex}" VerticalAlignment="Stretch">
             <TabItem Header="Running">
-                <Grid DataContext="{Binding Running}" Margin="8">
+                <!-- ViewportHeight: las filas * crecen con la ventana; MinHeight garantiza ~10 filas por tabla -->
+                <ScrollViewer x:Name="RunningScroll"
+                              VerticalScrollBarVisibility="Auto"
+                              HorizontalScrollBarVisibility="Disabled">
+                <Grid DataContext="{Binding Running}" Margin="8"
+                      MinHeight="{Binding ViewportHeight, ElementName=RunningScroll}">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
-                        <RowDefinition Height="*" MinHeight="120" />
-                        <RowDefinition Height="*" MinHeight="120" />
+                        <RowDefinition Height="*" MinHeight="560" />
+                        <RowDefinition Height="*" MinHeight="560" />
                     </Grid.RowDefinitions>
                         <GroupBox Grid.Row="0" Header="Nueva sesión" Padding="12" Margin="0,0,0,12">
                             <StackPanel>
@@ -116,11 +121,11 @@
                                     <TextBlock Text="{Binding BestPaceMinPerKm, StringFormat=Mejor ritmo: {0:0.00} min/km}" />
                                 </StackPanel>
 
-                                <Grid Grid.Column="1">
+                                <Grid Grid.Column="1" VerticalAlignment="Stretch">
                                     <Grid.RowDefinitions>
                                         <RowDefinition Height="Auto" />
                                         <RowDefinition Height="Auto" />
-                                        <RowDefinition Height="*" />
+                                        <RowDefinition Height="*" MinHeight="480" />
                                     </Grid.RowDefinitions>
 
                                     <Grid Grid.Row="0" Margin="0,0,0,8">
@@ -163,6 +168,7 @@
                                     <ListView Grid.Row="2"
                                               ItemsSource="{Binding OfficialRaces}"
                                               SelectedItem="{Binding SelectedRace}"
+                                              MinHeight="480"
                                               HorizontalAlignment="Stretch"
                                               VerticalAlignment="Stretch"
                                               helpers:GridViewStretchHelper.StretchColumns="True">
@@ -192,10 +198,10 @@
                         </GroupBox>
 
                         <GroupBox Grid.Row="4" Header="Sesiones recientes" Padding="12" VerticalAlignment="Stretch">
-                            <Grid>
+                            <Grid VerticalAlignment="Stretch">
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto" />
-                                    <RowDefinition Height="*" MinHeight="80" />
+                                    <RowDefinition Height="*" MinHeight="480" />
                                 </Grid.RowDefinitions>
 
                                 <Grid Grid.Row="0" Margin="0,0,0,8">
@@ -219,6 +225,7 @@
 
                                 <ListView Grid.Row="1"
                                           ItemsSource="{Binding Sessions}"
+                                          MinHeight="480"
                                           HorizontalAlignment="Stretch"
                                           VerticalAlignment="Stretch"
                                           helpers:GridViewStretchHelper.StretchColumns="True">
@@ -246,15 +253,19 @@
                             </Grid>
                         </GroupBox>
                 </Grid>
+                </ScrollViewer>
             </TabItem>
 
             <TabItem Header="Gimnasio">
-                <Grid DataContext="{Binding Gym}" Margin="8">
+                <ScrollViewer x:Name="GymScroll"
+                              VerticalScrollBarVisibility="Auto"
+                              HorizontalScrollBarVisibility="Disabled">
+                <Grid DataContext="{Binding Gym}" Margin="8"
+                      MinHeight="{Binding ViewportHeight, ElementName=GymScroll}">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
-                        <RowDefinition Height="*" MinHeight="120" />
-                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" MinHeight="560" />
                         <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
                         <GroupBox Grid.Row="0" Header="Catálogo de ejercicios" Padding="12" Margin="0,0,0,12">
@@ -374,10 +385,10 @@
                         </GroupBox>
 
                         <GroupBox Grid.Row="2" Header="Historial de entrenamientos" Padding="12" Margin="0,0,0,12" VerticalAlignment="Stretch">
-                            <Grid>
+                            <Grid VerticalAlignment="Stretch">
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto" />
-                                    <RowDefinition Height="*" MinHeight="80" />
+                                    <RowDefinition Height="*" MinHeight="480" />
                                     <RowDefinition Height="Auto" />
                                     <RowDefinition Height="Auto" />
                                 </Grid.RowDefinitions>
@@ -404,6 +415,7 @@
                                 <ListView Grid.Row="1"
                                           ItemsSource="{Binding History}"
                                           SelectedItem="{Binding SelectedWorkout}"
+                                          MinHeight="480"
                                           HorizontalAlignment="Stretch"
                                           VerticalAlignment="Stretch"
                                           helpers:GridViewStretchHelper.StretchColumns="True">
@@ -437,7 +449,8 @@
 
                                 <ListView Grid.Row="3"
                                           ItemsSource="{Binding SelectedWorkout.Entries}"
-                                          MaxHeight="160"
+                                          MinHeight="160"
+                                          MaxHeight="220"
                                           HorizontalAlignment="Stretch"
                                           helpers:GridViewStretchHelper.StretchColumns="True"
                                           Visibility="{Binding SelectedWorkout, Converter={StaticResource NullToVisibility}}">
@@ -454,6 +467,7 @@
 
                         <TextBlock Grid.Row="3" Text="{Binding StatusMessage}" Foreground="{StaticResource AccentGreenBrush}" />
                 </Grid>
+                </ScrollViewer>
             </TabItem>
         </TabControl>
     </DockPanel>

@@ -75,10 +75,14 @@ Estos flujos están descritos con mayor detalle y con pasos para pruebas manuale
   - Puede coexistir con SDK 9/10 instalados; `dotnet` en la raíz del repo usará 8.0.x.
   - Verificar: `dotnet --version` desde la raíz (debe mostrar `8.0.x`).
 
-Base de datos SQLite:
+Base de datos SQLite (ambientes separados):
 
-- Ruta: `%LocalAppData%\HobbyXP\hobbyxp.db`
-- En Windows: `C:\Users\<usuario>\AppData\Local\HobbyXP\hobbyxp.db`
+| Entorno | Carpeta de datos |
+|---------|------------------|
+| **Producción** (exe publicado / Release) | `%LocalAppData%\HobbyXP\` |
+| **Desarrollo** (`dotnet run` / Debug) | `%LocalAppData%\HobbyXP-Dev\` |
+
+Override opcional: variable de entorno `HOBBYXP_DATA_DIR` (nombre bajo LocalAppData o ruta absoluta).
 
 ---
 

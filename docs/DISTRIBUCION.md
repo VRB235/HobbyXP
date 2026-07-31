@@ -8,7 +8,14 @@ HobbyXP ofrece **tres vías** de distribución en Windows 10/11:
 | **Instalador clásico** | `installer/HobbyXP.iss` (Inno Setup 6) | Usuarios que prefieren asistente `.exe` |
 | **MSIX** | `scripts/package-msix.ps1` | Sideload, actualizaciones empaquetadas, Microsoft Store (con certificado de producción) |
 
-Los datos de usuario (SQLite, avatar, fotos) **no van dentro del paquete**: se guardan en `%LocalAppData%\HobbyXP\`.
+Los datos de usuario (SQLite, avatar, fotos) **no van dentro del paquete**.
+
+| Binario | Carpeta de datos |
+|---------|------------------|
+| Publicación **Release** (portable, Inno, MSIX) | `%LocalAppData%\HobbyXP\` |
+| Compilación **Debug** (`dotnet run`, F5) | `%LocalAppData%\HobbyXP-Dev\` |
+
+Así las pruebas en desarrollo no modifican la BD del ejecutable de producción en la misma máquina.
 
 ---
 

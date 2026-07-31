@@ -44,10 +44,11 @@
 |----------|-------|
 | SO | Windows 10/11 |
 | Runtime | .NET 8 SDK |
-| Ejecución | `dotnet run` desde `src\HobbyXP` o `HobbyXP.exe` en `bin\Debug\net8.0-windows10.0.19041\` |
-| Base de datos | `%LocalAppData%\HobbyXP\hobbyxp.db` |
-| Carpeta de datos | `%LocalAppData%\HobbyXP\` |
-| Avatar gestionado | `%LocalAppData%\HobbyXP\Avatar\profile.{ext}` |
+| Ejecución (pruebas) | `dotnet run` desde `src\HobbyXP` (Debug) — **no** usar el exe de producción |
+| Base de datos (Dev) | `%LocalAppData%\HobbyXP-Dev\hobbyxp.db` |
+| Carpeta de datos (Dev) | `%LocalAppData%\HobbyXP-Dev\` |
+| Avatar gestionado (Dev) | `%LocalAppData%\HobbyXP-Dev\Avatar\profile.{ext}` |
+| Producción (no tocar en pruebas) | `%LocalAppData%\HobbyXP\` |
 
 **Herramientas recomendadas para BD:** [DB Browser for SQLite](https://sqlitebrowser.org/) o `sqlite3` en consola.  
 **Nota:** HobbyXP no expone API HTTP; la verificación de persistencia es directa sobre SQLite y archivos locales.
@@ -110,12 +111,12 @@ UNION ALL SELECT 'Courses', COUNT(*) FROM Courses;
 | Campo | Detalle |
 |-------|---------|
 | **Prioridad** | Alta |
-| **Precondiciones** | No existe `%LocalAppData%\HobbyXP\` (renombrar carpeta si hace falta). |
+| **Precondiciones** | No existe `%LocalAppData%\HobbyXP-Dev\` (renombrar carpeta si hace falta). |
 | **Datos** | N/A |
 | **Pasos** | 1. Ejecutar la aplicación.<br>2. Esperar carga del dashboard. |
 | **UI** | Ventana principal visible; sidebar con nombre «Aventurero», nivel 1, XP 0; icono de avatar por defecto (⚔). |
 | **BD** | `SELECT COUNT(*) FROM PlayerProfiles;` → **1** fila con `DisplayName='Aventurero'`, `CurrentLevel=1`, `TotalXp=0`, `BaseXpPerLevel=1000`. |
-| **Archivos** | Carpeta `%LocalAppData%\HobbyXP\` creada con `hobbyxp.db`. |
+| **Archivos** | Carpeta `%LocalAppData%\HobbyXP-Dev\` creada con `hobbyxp.db`. |
 
 ---
 
@@ -177,12 +178,12 @@ UNION ALL SELECT 'Courses', COUNT(*) FROM Courses;
 | Campo | Detalle |
 |-------|---------|
 | **Prioridad** | Alta |
-| **Precondiciones** | Imagen de prueba en disco, p. ej. `C:\Temp\avatar-test.jpg` (fuera de `%LocalAppData%\HobbyXP\`). |
+| **Precondiciones** | Imagen de prueba en disco, p. ej. `C:\Temp\avatar-test.jpg` (fuera de `%LocalAppData%\HobbyXP-Dev\`). |
 | **Datos** | JPG o PNG válido |
 | **Pasos** | 1. Sidebar → **📷 Avatar**.<br>2. Elegir la imagen de prueba.<br>3. Verificar visualización en sidebar y dashboard. |
 | **UI** | Avatar personalizado visible; mensaje «Avatar actualizado.» |
 | **BD** | `SELECT AvatarPath FROM PlayerProfiles;` → ruta **relativa** tipo `Avatar\profile.jpg` (no ruta absoluta de `C:\Temp\...`). |
-| **Archivos** | Existe `%LocalAppData%\HobbyXP\Avatar\profile.jpg` (o extensión elegida). |
+| **Archivos** | Existe `%LocalAppData%\HobbyXP-Dev\Avatar\profile.jpg` (o extensión elegida). |
 
 ---
 
@@ -195,7 +196,7 @@ UNION ALL SELECT 'Courses', COUNT(*) FROM Courses;
 | **Pasos** | 1. Eliminar `C:\Temp\avatar-test.jpg` del disco.<br>2. Cerrar y reabrir la aplicación.<br>3. Revisar sidebar y dashboard. |
 | **UI** | Avatar personalizado sigue visible (carga desde copia local). |
 | **BD** | `AvatarPath` sigue apuntando a `Avatar\profile.*`. |
-| **Archivos** | Copia en `%LocalAppData%\HobbyXP\Avatar\` intacta. |
+| **Archivos** | Copia en `%LocalAppData%\HobbyXP-Dev\Avatar\` intacta. |
 
 ---
 
@@ -205,7 +206,7 @@ UNION ALL SELECT 'Courses', COUNT(*) FROM Courses;
 |-------|---------|
 | **Prioridad** | Alta |
 | **Precondiciones** | Perfil con `AvatarPath` en BD pero archivo borrado manualmente de `Avatar\`. |
-| **Pasos** | 1. Borrar `%LocalAppData%\HobbyXP\Avatar\profile.*`.<br>2. Reiniciar app. |
+| **Pasos** | 1. Borrar `%LocalAppData%\HobbyXP-Dev\Avatar\profile.*`.<br>2. Reiniciar app. |
 | **UI** | Muestra avatar por defecto (⚔); sin área en blanco ni excepción. |
 | **BD** | Tras carga, `AvatarPath` debe quedar `NULL` (sanitización automática). |
 
@@ -760,7 +761,7 @@ UNION ALL SELECT 'Courses', COUNT(*) FROM Courses;
 
 ## 17. Notas para el analista
 
-1. **Aislamiento:** para casos de primera ejecución o avatar, conviene renombrar `%LocalAppData%\HobbyXP` a `HobbyXP_backup_YYYYMMDD` antes de probar.
+1. **Aislamiento:** `dotnet run` (Debug) usa `%LocalAppData%\HobbyXP-Dev\`; el exe de producción usa `%LocalAppData%\HobbyXP\`. No mezclar. Para casos de primera ejecución, renombrar `HobbyXP-Dev` a `HobbyXP-Dev_backup_YYYYMMDD`.
 2. **Cerrar la app** antes de inspeccionar o modificar `hobbyxp.db` para evitar bloqueos de archivo.
 3. **Eliminaciones:** todos los flujos de borrado deben mostrar diálogo de confirmación; si el botón no responde, verificar que se está en la pestaña correcta y que el listado tiene foco.
 4. **XP exacto:** el monto puede variar si se editaron reglas en CP-LOG-002; anotar reglas activas antes de validar montos.

@@ -20,8 +20,10 @@
 
 **Solución:** `HobbyXP.slnx` → proyecto `src/HobbyXP/HobbyXP.csproj`
 
-**Base de datos:** `%LocalAppData%\HobbyXP\hobbyxp.db`  
-En Windows: `C:\Users\<usuario>\AppData\Local\HobbyXP\hobbyxp.db`
+**Base de datos (ambientes separados):**  
+- Producción (Release): `%LocalAppData%\HobbyXP\hobbyxp.db`  
+- Desarrollo (Debug): `%LocalAppData%\HobbyXP-Dev\hobbyxp.db`  
+Override: variable `HOBBYXP_DATA_DIR`.
 
 ---
 
@@ -384,7 +386,7 @@ dotnet build
 
 ### Arranque
 - [x] App abre sin excepciones.
-- [x] BD se crea en `%LocalAppData%\HobbyXP\`.
+- [x] BD se crea en `%LocalAppData%\HobbyXP-Dev\` (Debug) o `%LocalAppData%\HobbyXP\` (Release).
 - [x] Dashboard carga con perfil inicial (Aventurero, Nivel 1).
 
 ### Perfil
