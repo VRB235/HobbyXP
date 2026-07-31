@@ -1,0 +1,15 @@
+---
+description: Documentar mejoras de producto/UX en el README
+alwaysApply: true
+---
+
+# Documentación de mejoras en README
+
+Al implementar mejoras visibles (UX, ambientes, tablas, flujos de UI, helpers de presentación), **actualizar el README en el mismo cambio**:
+
+1. Sección **Funcionalidades** / **Interfaz** si aplica.
+2. Tabla **«Mejoras recientes»** (añadir o ajustar la fila correspondiente).
+3. Requisitos/ejecución si cambia rutas de datos, comandos o entornos.
+4. Detalle técnico y checklist en `docs/ESTADO-PROYECTO.md` cuando el cambio lo merezca.
+
+No dejar el README desfasado para “documentar después”: forma parte de la entrega de la mejora.

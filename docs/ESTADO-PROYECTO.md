@@ -364,6 +364,9 @@ dotnet build
 - [x] **Guardar nombre** al pulsar Enter en el `TextBox` del sidebar (hoy solo botón).
 - [x] Refrescar `SaveDisplayNameCommand.CanExecute` cuando cambia `DisplayName`.
 - [x] Avatar: validar que rutas inválidas o archivos borrados no rompan la UI (fallback).
+- [x] **Ambientes Dev/Prod** separados (`HobbyXP-Dev` vs `HobbyXP`); título `[DEV]` en Debug.
+- [x] Historiales de actividad física con altura útil (~10 filas) + scroll de página.
+- [x] **Ordenación por columnas** en tablas de historial / catálogos (`GridViewSortHelper`).
 
 ### Media prioridad — producto
 

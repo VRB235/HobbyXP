@@ -43,6 +43,9 @@ El `README.md` se mantiene como **vista ejecutiva y técnica resumida** del esta
   - Sidebar con perfil, navegación lateral y estado de XP/nivel.
   - Dashboard con gráficos de XP (semanal y por hobby), sugerencias de actividades para subir de nivel y lista de hitos recientes.
   - Overlay de celebración al subir de nivel (`LevelUpOverlay`).
+  - Tablas de historial (running, gimnasio, media, libros, cursos, logros) con **ordenación por columna** (clic en cabecera Asc/Desc; helper `GridViewSortHelper`).
+  - Historiales de actividad física con **altura mínima** para ~10 filas visibles y scroll de página si no caben formularios + tablas.
+  - En Debug, título de ventana `HobbyXP [DEV]` para distinguir el entorno de desarrollo.
 
 Para un listado completo de entidades, servicios y controles reutilizables, ver secciones 5–8 de `docs/ESTADO-PROYECTO.md`.
 
@@ -84,6 +87,24 @@ Base de datos SQLite (ambientes separados):
 
 Override opcional: variable de entorno `HOBBYXP_DATA_DIR` (nombre bajo LocalAppData o ruta absoluta).
 
+`dotnet run` / F5 **no escribe** sobre la BD del ejecutable de producción. Para sembrar Dev con una copia de Prod (sin modificar Prod):
+
+```powershell
+Copy-Item "$env:LOCALAPPDATA\HobbyXP\*" "$env:LOCALAPPDATA\HobbyXP-Dev\" -Recurse -Force
+```
+
+---
+
+## Mejoras recientes (desarrollar en develop)
+
+| Área | Qué cambió |
+|------|------------|
+| **Ambientes** | Datos Debug en `HobbyXP-Dev`; Release/prod en `HobbyXP`. Override `HOBBYXP_DATA_DIR`. Título `[DEV]` en Debug. |
+| **Tablas físico** | Historiales de running/gimnasio con más alto útil (~10 filas) y scroll de página. |
+| **Ordenación** | Clic en cabeceras de historiales (y catálogos de logros) para ordenar Asc/Desc (`GridViewSortHelper`). |
+
+Las siguientes mejoras de producto/UX deben reflejarse aquí en cuanto se implementen (ver sección de mantenimiento).
+
 ---
 
 ## Cómo ejecutar en desarrollo
@@ -118,8 +139,9 @@ MSIX e instalador Inno Setup: ver [`docs/DISTRIBUCION.md`](docs/DISTRIBUCION.md)
   - Lista de funcionalidades disponibles.
   - Flujos funcionales principales para entender el producto.
   - Requisitos y forma de ejecución.
+  - **Tabla «Mejoras recientes»**: cada mejora de UX, ambientes, tablas o comportamiento visible al usuario.
 - **`docs/ESTADO-PROYECTO.md`**: fuente de verdad detallada (modelo de dominio, servicios, migraciones, decisiones de diseño, checklist de pruebas, pendientes).
 
-Al introducir nuevas pantallas, servicios, flujos o cambios de arquitectura, actualizar **ambos** archivos:
-- Añadir/ajustar el resumen en este `README.md`.
+Al introducir nuevas pantallas, servicios, flujos o cambios de arquitectura **o UX**, actualizar **ambos** archivos:
+- Añadir/ajustar el resumen (y la fila en «Mejoras recientes») en este `README.md`.
 - Registrar el detalle técnico y de pruebas en `docs/ESTADO-PROYECTO.md`.
