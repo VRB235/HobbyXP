@@ -171,14 +171,18 @@
                                               MinHeight="480"
                                               HorizontalAlignment="Stretch"
                                               VerticalAlignment="Stretch"
-                                              helpers:GridViewStretchHelper.StretchColumns="True">
+                                              helpers:GridViewStretchHelper.StretchColumns="True"
+                                              helpers:GridViewSortHelper.EnableSort="True">
                                         <ListView.View>
                                             <GridView>
                                                 <GridViewColumn Header="Nombre" DisplayMemberBinding="{Binding Name}" Width="180" />
-                                                <GridViewColumn Header="Fecha" DisplayMemberBinding="{Binding EventDateLabel}" Width="90" />
+                                                <GridViewColumn Header="Fecha" DisplayMemberBinding="{Binding EventDateLabel}"
+                                                                helpers:GridViewSortHelper.SortProperty="EventDate" Width="90" />
                                                 <GridViewColumn Header="Km" DisplayMemberBinding="{Binding DistanceKm, StringFormat={}{0:0.##}}" Width="55" />
-                                                <GridViewColumn Header="Ubicación" DisplayMemberBinding="{Binding LocationLabel}" Width="140" />
-                                                <GridViewColumn Header="Estado" DisplayMemberBinding="{Binding StatusLabel}" Width="90" />
+                                                <GridViewColumn Header="Ubicación" DisplayMemberBinding="{Binding LocationLabel}"
+                                                                helpers:GridViewSortHelper.SortProperty="Location" Width="140" />
+                                                <GridViewColumn Header="Estado" DisplayMemberBinding="{Binding StatusLabel}"
+                                                                helpers:GridViewSortHelper.SortProperty="IsCompleted" Width="90" />
                                                 <GridViewColumn Header="" Width="44">
                                                     <GridViewColumn.CellTemplate>
                                                         <DataTemplate>
@@ -228,7 +232,8 @@
                                           MinHeight="480"
                                           HorizontalAlignment="Stretch"
                                           VerticalAlignment="Stretch"
-                                          helpers:GridViewStretchHelper.StretchColumns="True">
+                                          helpers:GridViewStretchHelper.StretchColumns="True"
+                                          helpers:GridViewSortHelper.EnableSort="True">
                                     <ListView.View>
                                         <GridView>
                                             <GridViewColumn Header="Fecha" DisplayMemberBinding="{Binding RecordedAt, StringFormat={}{0:dd/MM/yyyy}}" Width="90" />
@@ -418,14 +423,16 @@
                                           MinHeight="480"
                                           HorizontalAlignment="Stretch"
                                           VerticalAlignment="Stretch"
-                                          helpers:GridViewStretchHelper.StretchColumns="True">
+                                          helpers:GridViewStretchHelper.StretchColumns="True"
+                                          helpers:GridViewSortHelper.EnableSort="True">
                                     <ListView.View>
                                         <GridView>
                                             <GridViewColumn Header="Fecha" DisplayMemberBinding="{Binding WorkoutDate, StringFormat={}{0:dd/MM/yyyy}}" Width="90" />
                                             <GridViewColumn Header="Ejercicios" DisplayMemberBinding="{Binding ExerciseCount}" Width="80" />
                                             <GridViewColumn Header="Resumen" DisplayMemberBinding="{Binding ExerciseSummary}" Width="260" />
                                             <GridViewColumn Header="XP" DisplayMemberBinding="{Binding XpEarned}" Width="50" />
-                                            <GridViewColumn Header="Récord" DisplayMemberBinding="{Binding OverloadLabel}" Width="70" />
+                                            <GridViewColumn Header="Récord" DisplayMemberBinding="{Binding OverloadLabel}"
+                                                            helpers:GridViewSortHelper.SortProperty="TriggeredProgressiveOverload" Width="70" />
                                             <GridViewColumn Header="" Width="44">
                                                 <GridViewColumn.CellTemplate>
                                                     <DataTemplate>
@@ -453,12 +460,14 @@
                                           MaxHeight="220"
                                           HorizontalAlignment="Stretch"
                                           helpers:GridViewStretchHelper.StretchColumns="True"
+                                          helpers:GridViewSortHelper.EnableSort="True"
                                           Visibility="{Binding SelectedWorkout, Converter={StaticResource NullToVisibility}}">
                                     <ListView.View>
                                         <GridView>
                                             <GridViewColumn Header="Ejercicio" DisplayMemberBinding="{Binding Exercise.Name}" Width="180" />
                                             <GridViewColumn Header="Detalle" DisplayMemberBinding="{Binding DetailSummary}" Width="200" />
-                                            <GridViewColumn Header="Récord personal" DisplayMemberBinding="{Binding RecordLabel}" Width="110" />
+                                            <GridViewColumn Header="Récord personal" DisplayMemberBinding="{Binding RecordLabel}"
+                                                            helpers:GridViewSortHelper.SortProperty="IsPersonalRecord" Width="110" />
                                         </GridView>
                                     </ListView.View>
                                 </ListView>

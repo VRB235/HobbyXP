@@ -247,7 +247,8 @@
                                       ItemsSource="{Binding History}"
                                       HorizontalAlignment="Stretch"
                                       VerticalAlignment="Stretch"
-                                      helpers:GridViewStretchHelper.StretchColumns="True">
+                                      helpers:GridViewStretchHelper.StretchColumns="True"
+                                      helpers:GridViewSortHelper.EnableSort="True">
                                 <ListView.View>
                                     <GridView>
                                         <GridViewColumn Header="Título" DisplayMemberBinding="{Binding Title}" Width="220" />

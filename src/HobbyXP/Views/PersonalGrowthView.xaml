@@ -75,7 +75,8 @@
                               ItemsSource="{Binding CompletedBooks}"
                               HorizontalAlignment="Stretch"
                               VerticalAlignment="Stretch"
-                              helpers:GridViewStretchHelper.StretchColumns="True">
+                              helpers:GridViewStretchHelper.StretchColumns="True"
+                              helpers:GridViewSortHelper.EnableSort="True">
                         <ListView.View>
                             <GridView>
                                 <GridViewColumn Header="Título" DisplayMemberBinding="{Binding Title}" Width="220" />
@@ -155,7 +156,8 @@
                               ItemsSource="{Binding CompletedCourses}"
                               HorizontalAlignment="Stretch"
                               VerticalAlignment="Stretch"
-                              helpers:GridViewStretchHelper.StretchColumns="True">
+                              helpers:GridViewStretchHelper.StretchColumns="True"
+                              helpers:GridViewSortHelper.EnableSort="True">
                         <ListView.View>
                             <GridView>
                                 <GridViewColumn Header="Curso" DisplayMemberBinding="{Binding Name}" Width="200" />
