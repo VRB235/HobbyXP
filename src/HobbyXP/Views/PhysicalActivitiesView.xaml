@@ -15,31 +15,34 @@
 
         <TabControl SelectedIndex="{Binding SelectedTabIndex}" VerticalAlignment="Stretch">
             <TabItem Header="Running">
-                <!-- ViewportHeight: las filas * crecen con la ventana; MinHeight garantiza ~10 filas por tabla -->
                 <ScrollViewer x:Name="RunningScroll"
                               VerticalScrollBarVisibility="Auto"
                               HorizontalScrollBarVisibility="Disabled">
-                <Grid DataContext="{Binding Running}" Margin="8"
-                      MinHeight="{Binding ViewportHeight, ElementName=RunningScroll}">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="*" MinHeight="560" />
-                        <RowDefinition Height="*" MinHeight="560" />
-                    </Grid.RowDefinitions>
-                        <GroupBox Grid.Row="0" Header="Nueva sesión" Padding="12" Margin="0,0,0,12">
+                <DockPanel DataContext="{Binding Running}" Margin="8"
+                           MinHeight="{Binding ViewportHeight, ElementName=RunningScroll}">
+                    <StackPanel DockPanel.Dock="Bottom" Margin="0,4,0,0">
+                        <TextBlock Text="{Binding StatusMessage}"
+                                   Foreground="{StaticResource AccentGreenBrush}" />
+                        <TextBlock Text="{Binding ErrorMessage}"
+                                   Foreground="{StaticResource DangerBrush}"
+                                   Visibility="{Binding ErrorMessage, Converter={StaticResource NullToVisibility}}" />
+                    </StackPanel>
+                    <StackPanel>
+                        <Expander Header="Nueva sesión"
+                                  IsExpanded="{Binding IsNewSessionExpanded, Mode=TwoWay}">
                             <StackPanel>
                                 <Grid Margin="0,0,0,4">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="Auto" />
-                                        <ColumnDefinition Width="120" />
+                                        <ColumnDefinition Width="100" />
                                         <ColumnDefinition Width="Auto" />
-                                        <ColumnDefinition Width="80" />
+                                        <ColumnDefinition Width="70" />
                                         <ColumnDefinition Width="Auto" />
-                                        <ColumnDefinition Width="80" />
+                                        <ColumnDefinition Width="70" />
                                         <ColumnDefinition Width="Auto" />
-                                        <ColumnDefinition Width="200" />
+                                        <ColumnDefinition Width="150" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="160" />
                                         <ColumnDefinition Width="Auto" />
                                     </Grid.ColumnDefinitions>
 
@@ -52,19 +55,24 @@
                                     <TextBlock Grid.Column="4" Text="Seg:" VerticalAlignment="Center" Margin="12,0,8,0" />
                                     <TextBox Grid.Column="5" Text="{Binding DurationSeconds, UpdateSourceTrigger=PropertyChanged}" />
 
-                                    <TextBlock Grid.Column="6" Text="Carrera:" VerticalAlignment="Center" Margin="12,0,8,0" />
-                                    <ComboBox Grid.Column="7" ItemsSource="{Binding RaceOptions}" DisplayMemberPath="Name"
+                                    <TextBlock Grid.Column="6" Text="Tipo:" VerticalAlignment="Center" Margin="12,0,8,0" />
+                                    <ComboBox Grid.Column="7"
+                                              ItemsSource="{Binding SessionTypeOptions}"
+                                              SelectedItem="{Binding SelectedSessionTypeOption}"
+                                              DisplayMemberPath="Label" />
+
+                                    <TextBlock Grid.Column="8" Text="Carrera:" VerticalAlignment="Center" Margin="12,0,8,0" />
+                                    <ComboBox Grid.Column="9" ItemsSource="{Binding RaceOptions}" DisplayMemberPath="Name"
                                               SelectedItem="{Binding SelectedRaceOption}" />
 
-                                    <Button Grid.Column="8" Content="Guardar" Command="{Binding SaveSessionCommand}" Style="{StaticResource AccentButton}" Margin="12,0,0,0" />
+                                    <Button Grid.Column="10" Content="Guardar" Command="{Binding SaveSessionCommand}" Style="{StaticResource AccentButton}" Margin="12,0,0,0" />
                                 </Grid>
                                 <controls:FormValidationBanner Message="{Binding SessionValidationMessage}" />
                             </StackPanel>
-                        </GroupBox>
+                        </Expander>
 
-                        <TextBlock Grid.Row="1" Text="{Binding StatusMessage}" Foreground="{StaticResource AccentGreenBrush}" Margin="0,0,0,8" />
-
-                        <GroupBox Grid.Row="2" Header="Nueva carrera oficial" Padding="12" Margin="0,0,0,12">
+                        <Expander Header="Nueva carrera oficial"
+                                  IsExpanded="{Binding IsNewRaceExpanded, Mode=TwoWay}">
                             <StackPanel>
                                 <Grid Margin="0,0,0,4">
                                     <Grid.ColumnDefinitions>
@@ -102,10 +110,11 @@
                                 </Grid>
                                 <controls:FormValidationBanner Message="{Binding RaceValidationMessage}" />
                             </StackPanel>
-                        </GroupBox>
+                        </Expander>
 
-                        <GroupBox Grid.Row="3" Header="Historial de carreras oficiales" Padding="12" Margin="0,0,0,12" VerticalAlignment="Stretch">
-                            <Grid VerticalAlignment="Stretch">
+                        <Expander Header="Historial de carreras oficiales"
+                                  IsExpanded="{Binding IsOfficialRacesExpanded, Mode=TwoWay}">
+                            <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="280" />
                                     <ColumnDefinition Width="*" />
@@ -199,29 +208,39 @@
                                     </ListView>
                                 </Grid>
                             </Grid>
-                        </GroupBox>
+                        </Expander>
 
-                        <GroupBox Grid.Row="4" Header="Sesiones recientes" Padding="12" VerticalAlignment="Stretch">
-                            <Grid VerticalAlignment="Stretch">
+                        <Expander Header="Sesiones recientes"
+                                  IsExpanded="{Binding IsSessionsExpanded, Mode=TwoWay}">
+                            <Grid>
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto" />
                                     <RowDefinition Height="*" MinHeight="480" />
+                                    <RowDefinition Height="Auto" />
                                 </Grid.RowDefinitions>
 
                                 <Grid Grid.Row="0" Margin="0,0,0,8">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="Auto" />
-                                        <ColumnDefinition Width="150" />
+                                        <ColumnDefinition Width="140" />
                                         <ColumnDefinition Width="Auto" />
-                                        <ColumnDefinition Width="150" />
+                                        <ColumnDefinition Width="140" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="160" />
                                         <ColumnDefinition Width="Auto" />
                                     </Grid.ColumnDefinitions>
 
                                     <TextBlock Text="Desde:" VerticalAlignment="Center" Margin="0,0,8,0" />
-                                    <DatePicker Grid.Column="1" SelectedDate="{Binding SessionsFromDate}" Margin="0,0,16,0" />
+                                    <DatePicker Grid.Column="1" SelectedDate="{Binding SessionsFromDate}" Margin="0,0,12,0" />
                                     <TextBlock Grid.Column="2" Text="Hasta:" VerticalAlignment="Center" Margin="0,0,8,0" />
-                                    <DatePicker Grid.Column="3" SelectedDate="{Binding SessionsToDate}" Margin="0,0,16,0" />
-                                    <Button Grid.Column="4"
+                                    <DatePicker Grid.Column="3" SelectedDate="{Binding SessionsToDate}" Margin="0,0,12,0" />
+                                    <TextBlock Grid.Column="4" Text="Tipo:" VerticalAlignment="Center" Margin="0,0,8,0" />
+                                    <ComboBox Grid.Column="5"
+                                              ItemsSource="{Binding SessionTypeFilterOptions}"
+                                              SelectedItem="{Binding SessionsTypeFilterOption}"
+                                              DisplayMemberPath="Label"
+                                              Margin="0,0,12,0" />
+                                    <Button Grid.Column="6"
                                             Content="Limpiar"
                                             Command="{Binding ClearSessionsDateFilterCommand}"
                                             Style="{StaticResource PrimaryButton}" />
@@ -229,6 +248,7 @@
 
                                 <ListView Grid.Row="1"
                                           ItemsSource="{Binding Sessions}"
+                                          SelectedItem="{Binding SelectedSession}"
                                           MinHeight="480"
                                           HorizontalAlignment="Stretch"
                                           VerticalAlignment="Stretch"
@@ -237,6 +257,8 @@
                                     <ListView.View>
                                         <GridView>
                                             <GridViewColumn Header="Fecha" DisplayMemberBinding="{Binding RecordedAt, StringFormat={}{0:dd/MM/yyyy}}" Width="90" />
+                                            <GridViewColumn Header="Tipo" DisplayMemberBinding="{Binding SessionTypeLabel}"
+                                                            helpers:GridViewSortHelper.SortProperty="SessionType" Width="120" />
                                             <GridViewColumn Header="Km" DisplayMemberBinding="{Binding DistanceKm, StringFormat={}{0:0.##}}" Width="50" />
                                             <GridViewColumn Header="Ritmo" DisplayMemberBinding="{Binding PaceMinPerKm, StringFormat={}{0:0.00} min/km}" Width="110" />
                                             <GridViewColumn Header="XP" DisplayMemberBinding="{Binding XpEarned}" Width="50" />
@@ -255,9 +277,27 @@
                                         </GridView>
                                     </ListView.View>
                                 </ListView>
+
+                                <StackPanel Grid.Row="2"
+                                            Orientation="Horizontal"
+                                            Margin="0,8,0,0">
+                                    <TextBlock Text="Asignar tipo a la sesión seleccionada:"
+                                               VerticalAlignment="Center"
+                                               Style="{StaticResource MutedText}"
+                                               Margin="0,0,8,0" />
+                                    <ComboBox Width="160"
+                                              ItemsSource="{Binding SessionTypeOptions}"
+                                              SelectedItem="{Binding EditSessionTypeOption}"
+                                              DisplayMemberPath="Label"
+                                              Margin="0,0,8,0" />
+                                    <Button Content="Guardar tipo"
+                                            Command="{Binding UpdateSessionTypeCommand}"
+                                            Style="{StaticResource AccentButton}" />
+                                </StackPanel>
                             </Grid>
-                        </GroupBox>
-                </Grid>
+                        </Expander>
+                    </StackPanel>
+                </DockPanel>
                 </ScrollViewer>
             </TabItem>
 
@@ -265,27 +305,112 @@
                 <ScrollViewer x:Name="GymScroll"
                               VerticalScrollBarVisibility="Auto"
                               HorizontalScrollBarVisibility="Disabled">
-                <Grid DataContext="{Binding Gym}" Margin="8"
-                      MinHeight="{Binding ViewportHeight, ElementName=GymScroll}">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="*" MinHeight="560" />
-                        <RowDefinition Height="Auto" />
-                    </Grid.RowDefinitions>
-                        <GroupBox Grid.Row="0" Header="Catálogo de ejercicios" Padding="12" Margin="0,0,0,12">
+                <DockPanel DataContext="{Binding Gym}" Margin="8"
+                           MinHeight="{Binding ViewportHeight, ElementName=GymScroll}">
+                    <StackPanel DockPanel.Dock="Bottom" Margin="0,4,0,0">
+                        <TextBlock Text="{Binding StatusMessage}"
+                                   Foreground="{StaticResource AccentGreenBrush}" />
+                        <TextBlock Text="{Binding ErrorMessage}"
+                                   Foreground="{StaticResource DangerBrush}"
+                                   Visibility="{Binding ErrorMessage, Converter={StaticResource NullToVisibility}}" />
+                    </StackPanel>
+                    <StackPanel>
+                        <Expander Header="Catálogo de ejercicios"
+                                  IsExpanded="{Binding IsCatalogExpanded, Mode=TwoWay}">
                             <StackPanel>
-                                <StackPanel Orientation="Horizontal">
-                                    <TextBox Width="200" Text="{Binding NewExerciseName, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,8,0" />
-                                    <ComboBox Width="160" ItemsSource="{Binding ExerciseTypes}" SelectedItem="{Binding NewExerciseType}" Margin="0,0,8,0" />
-                                    <Button Content="Agregar ejercicio" Command="{Binding CreateExerciseCommand}" Style="{StaticResource PrimaryButton}" />
-                                </StackPanel>
-                                <controls:FormValidationBanner Message="{Binding ExerciseValidationMessage}" />
-                            </StackPanel>
-                        </GroupBox>
+                                <Grid Margin="0,0,0,8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="2*" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
 
-                        <GroupBox Grid.Row="1" Header="Entrenamiento" Padding="12" Margin="0,0,0,12">
+                                    <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                                        <TextBlock Text="Nombre" Style="{StaticResource MutedText}" />
+                                        <TextBox Text="{Binding NewExerciseName, UpdateSourceTrigger=PropertyChanged}" />
+                                    </StackPanel>
+
+                                    <StackPanel Grid.Column="1" Margin="0,0,8,0">
+                                        <TextBlock Text="Tipo" Style="{StaticResource MutedText}" />
+                                        <ComboBox ItemsSource="{Binding ExerciseTypeOptions}"
+                                                  SelectedItem="{Binding NewExerciseTypeOption}"
+                                                  DisplayMemberPath="Label" />
+                                    </StackPanel>
+
+                                    <StackPanel Grid.Column="2" Margin="0,0,8,0">
+                                        <TextBlock Text="Grupo muscular" Style="{StaticResource MutedText}" />
+                                        <ComboBox ItemsSource="{Binding MuscleGroupCatalogOptions}"
+                                                  SelectedItem="{Binding NewMuscleGroupOption}"
+                                                  DisplayMemberPath="Label" />
+                                    </StackPanel>
+
+                                    <Button Grid.Column="3" Content="Agregar ejercicio"
+                                            Command="{Binding CreateExerciseCommand}"
+                                            Style="{StaticResource PrimaryButton}"
+                                            VerticalAlignment="Bottom" />
+                                </Grid>
+                                <controls:FormValidationBanner Message="{Binding ExerciseValidationMessage}" Margin="0,0,0,8" />
+
+                                <ListView ItemsSource="{Binding CatalogExercisesView}"
+                                          SelectedItem="{Binding SelectedCatalogExercise}"
+                                          MinHeight="480"
+                                          helpers:GridViewStretchHelper.StretchColumns="True"
+                                          helpers:GridViewSortHelper.EnableSort="True">
+                                    <ListView.GroupStyle>
+                                        <GroupStyle>
+                                            <GroupStyle.HeaderTemplate>
+                                                <DataTemplate>
+                                                    <TextBlock Text="{Binding Name}"
+                                                               FontWeight="SemiBold"
+                                                               Foreground="{StaticResource AccentCyanBrush}"
+                                                               Margin="0,6,0,2" />
+                                                </DataTemplate>
+                                            </GroupStyle.HeaderTemplate>
+                                        </GroupStyle>
+                                    </ListView.GroupStyle>
+                                    <ListView.View>
+                                        <GridView>
+                                            <GridViewColumn Header="Ejercicio" DisplayMemberBinding="{Binding Name}" Width="180" />
+                                            <GridViewColumn Header="Tipo" DisplayMemberBinding="{Binding ExerciseTypeLabel}"
+                                                            helpers:GridViewSortHelper.SortProperty="ExerciseType" Width="140" />
+                                            <GridViewColumn Header="Músculo" DisplayMemberBinding="{Binding MuscleGroupLabel}"
+                                                            helpers:GridViewSortHelper.SortProperty="MuscleGroupSortOrder" Width="120" />
+                                        </GridView>
+                                    </ListView.View>
+                                </ListView>
+
+                                <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                                    <TextBlock Text="Asignar grupo al seleccionado:"
+                                               VerticalAlignment="Center"
+                                               Style="{StaticResource MutedText}"
+                                               Margin="0,0,8,0" />
+                                    <ComboBox Width="160"
+                                              ItemsSource="{Binding MuscleGroupCatalogOptions}"
+                                              SelectedItem="{Binding EditMuscleGroupOption}"
+                                              DisplayMemberPath="Label"
+                                              Margin="0,0,8,0" />
+                                    <Button Content="Guardar grupo"
+                                            Command="{Binding UpdateCatalogMuscleGroupCommand}"
+                                            Style="{StaticResource AccentButton}" />
+                                </StackPanel>
+                            </StackPanel>
+                        </Expander>
+
+                        <Expander Header="Entrenamiento"
+                                  IsExpanded="{Binding IsWorkoutExpanded, Mode=TwoWay}">
                             <StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                    <TextBlock Text="Filtrar ejercicios por músculo:"
+                                               VerticalAlignment="Center"
+                                               Style="{StaticResource MutedText}"
+                                               Margin="0,0,8,0" />
+                                    <ComboBox Width="180"
+                                              ItemsSource="{Binding MuscleGroupFilterOptions}"
+                                              SelectedItem="{Binding ExerciseFilterOption}"
+                                              DisplayMemberPath="Label" />
+                                </StackPanel>
+
                                 <Border BorderBrush="{StaticResource BorderBrush}"
                                         BorderThickness="1"
                                         CornerRadius="8"
@@ -329,13 +454,19 @@
                                                     </Grid.ColumnDefinitions>
 
                                                     <ComboBox Grid.Column="0"
-                                                              ItemsSource="{Binding DataContext.Exercises, RelativeSource={RelativeSource AncestorType=StackPanel}}"
-                                                              DisplayMemberPath="Name" SelectedValuePath="Id"
-                                                              SelectedValue="{Binding SelectedExerciseId}" Margin="0,0,6,0" />
+                                                              ItemsSource="{Binding DataContext.FilteredExercises, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                              DisplayMemberPath="PickerDisplayName"
+                                                              SelectedValuePath="Id"
+                                                              SelectedValue="{Binding SelectedExerciseId}"
+                                                              IsEditable="False"
+                                                              Margin="0,0,6,0" />
 
                                                     <ComboBox Grid.Column="1"
-                                                              ItemsSource="{Binding DataContext.ExerciseTypes, RelativeSource={RelativeSource AncestorType=StackPanel}}"
-                                                              SelectedItem="{Binding ExerciseType}" Margin="0,0,6,0" />
+                                                              ItemsSource="{Binding DataContext.ExerciseTypeOptions, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                              DisplayMemberPath="Label"
+                                                              SelectedValuePath="Value"
+                                                              SelectedValue="{Binding ExerciseType}"
+                                                              Margin="0,0,6,0" />
 
                                                     <controls:NumericStepper Grid.Column="2"
                                                                              Value="{Binding Sets, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource FlexibleNumber}}"
@@ -372,7 +503,7 @@
                                                     <Button Grid.Column="7" Content="✕"
                                                             Style="{StaticResource DangerIconButton}"
                                                             ToolTip="Eliminar fila"
-                                                            Command="{Binding DataContext.RemoveRowCommand, RelativeSource={RelativeSource AncestorType=StackPanel}}"
+                                                            Command="{Binding DataContext.RemoveRowCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
                                                             CommandParameter="{Binding}" />
                                                 </Grid>
                                             </DataTemplate>
@@ -387,10 +518,11 @@
                             </StackPanel>
                             <controls:FormValidationBanner Message="{Binding ValidationMessage}" Margin="0,8,0,0" />
                             </StackPanel>
-                        </GroupBox>
+                        </Expander>
 
-                        <GroupBox Grid.Row="2" Header="Historial de entrenamientos" Padding="12" Margin="0,0,0,12" VerticalAlignment="Stretch">
-                            <Grid VerticalAlignment="Stretch">
+                        <Expander Header="Historial de entrenamientos"
+                                  IsExpanded="{Binding IsHistoryExpanded, Mode=TwoWay}">
+                            <Grid>
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto" />
                                     <RowDefinition Height="*" MinHeight="480" />
@@ -401,17 +533,25 @@
                                 <Grid Grid.Row="0" Margin="0,0,0,8">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="Auto" />
-                                        <ColumnDefinition Width="150" />
+                                        <ColumnDefinition Width="140" />
                                         <ColumnDefinition Width="Auto" />
-                                        <ColumnDefinition Width="150" />
+                                        <ColumnDefinition Width="140" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="160" />
                                         <ColumnDefinition Width="Auto" />
                                     </Grid.ColumnDefinitions>
 
                                     <TextBlock Text="Desde:" VerticalAlignment="Center" Margin="0,0,8,0" />
-                                    <DatePicker Grid.Column="1" SelectedDate="{Binding HistoryFromDate}" Margin="0,0,16,0" />
+                                    <DatePicker Grid.Column="1" SelectedDate="{Binding HistoryFromDate}" Margin="0,0,12,0" />
                                     <TextBlock Grid.Column="2" Text="Hasta:" VerticalAlignment="Center" Margin="0,0,8,0" />
-                                    <DatePicker Grid.Column="3" SelectedDate="{Binding HistoryToDate}" Margin="0,0,16,0" />
-                                    <Button Grid.Column="4"
+                                    <DatePicker Grid.Column="3" SelectedDate="{Binding HistoryToDate}" Margin="0,0,12,0" />
+                                    <TextBlock Grid.Column="4" Text="Grupo:" VerticalAlignment="Center" Margin="0,0,8,0" />
+                                    <ComboBox Grid.Column="5"
+                                              ItemsSource="{Binding MuscleGroupFilterOptions}"
+                                              SelectedItem="{Binding HistoryMuscleGroupFilterOption}"
+                                              DisplayMemberPath="Label"
+                                              Margin="0,0,12,0" />
+                                    <Button Grid.Column="6"
                                             Content="Limpiar"
                                             Command="{Binding ClearHistoryDateFilterCommand}"
                                             Style="{StaticResource PrimaryButton}" />
@@ -428,11 +568,25 @@
                                     <ListView.View>
                                         <GridView>
                                             <GridViewColumn Header="Fecha" DisplayMemberBinding="{Binding WorkoutDate, StringFormat={}{0:dd/MM/yyyy}}" Width="90" />
+                                            <GridViewColumn Header="Grupo" DisplayMemberBinding="{Binding MuscleGroupsLabel}" Width="140" />
                                             <GridViewColumn Header="Ejercicios" DisplayMemberBinding="{Binding ExerciseCount}" Width="80" />
-                                            <GridViewColumn Header="Resumen" DisplayMemberBinding="{Binding ExerciseSummary}" Width="260" />
+                                            <GridViewColumn Header="Resumen" DisplayMemberBinding="{Binding ExerciseSummary}" Width="220" />
                                             <GridViewColumn Header="XP" DisplayMemberBinding="{Binding XpEarned}" Width="50" />
-                                            <GridViewColumn Header="Récord" DisplayMemberBinding="{Binding OverloadLabel}"
-                                                            helpers:GridViewSortHelper.SortProperty="TriggeredProgressiveOverload" Width="70" />
+                                            <GridViewColumn Header="Récord" Width="70"
+                                                            helpers:GridViewSortHelper.SortProperty="TriggeredProgressiveOverload">
+                                                <GridViewColumn.CellTemplate>
+                                                    <DataTemplate>
+                                                        <TextBlock Text="★"
+                                                                   FontSize="18"
+                                                                   FontWeight="Bold"
+                                                                   Foreground="{StaticResource AccentGoldBrush}"
+                                                                   HorizontalAlignment="Center"
+                                                                   VerticalAlignment="Center"
+                                                                   ToolTip="Récord / sobrecarga progresiva"
+                                                                   Visibility="{Binding TriggeredProgressiveOverload, Converter={StaticResource BoolToVisibility}}" />
+                                                    </DataTemplate>
+                                                </GridViewColumn.CellTemplate>
+                                            </GridViewColumn>
                                             <GridViewColumn Header="" Width="44">
                                                 <GridViewColumn.CellTemplate>
                                                     <DataTemplate>
@@ -464,18 +618,32 @@
                                           Visibility="{Binding SelectedWorkout, Converter={StaticResource NullToVisibility}}">
                                     <ListView.View>
                                         <GridView>
-                                            <GridViewColumn Header="Ejercicio" DisplayMemberBinding="{Binding Exercise.Name}" Width="180" />
-                                            <GridViewColumn Header="Detalle" DisplayMemberBinding="{Binding DetailSummary}" Width="200" />
-                                            <GridViewColumn Header="Récord personal" DisplayMemberBinding="{Binding RecordLabel}"
-                                                            helpers:GridViewSortHelper.SortProperty="IsPersonalRecord" Width="110" />
+                                            <GridViewColumn Header="Ejercicio" DisplayMemberBinding="{Binding Exercise.Name}" Width="160" />
+                                            <GridViewColumn Header="Grupo" DisplayMemberBinding="{Binding Exercise.MuscleGroupLabel}"
+                                                            helpers:GridViewSortHelper.SortProperty="Exercise.MuscleGroup" Width="110" />
+                                            <GridViewColumn Header="Detalle" DisplayMemberBinding="{Binding DetailSummary}" Width="180" />
+                                            <GridViewColumn Header="Récord" Width="70"
+                                                            helpers:GridViewSortHelper.SortProperty="IsPersonalRecord">
+                                                <GridViewColumn.CellTemplate>
+                                                    <DataTemplate>
+                                                        <TextBlock Text="★"
+                                                                   FontSize="18"
+                                                                   FontWeight="Bold"
+                                                                   Foreground="{StaticResource AccentGoldBrush}"
+                                                                   HorizontalAlignment="Center"
+                                                                   VerticalAlignment="Center"
+                                                                   ToolTip="Récord personal"
+                                                                   Visibility="{Binding IsPersonalRecord, Converter={StaticResource BoolToVisibility}}" />
+                                                    </DataTemplate>
+                                                </GridViewColumn.CellTemplate>
+                                            </GridViewColumn>
                                         </GridView>
                                     </ListView.View>
                                 </ListView>
                             </Grid>
-                        </GroupBox>
-
-                        <TextBlock Grid.Row="3" Text="{Binding StatusMessage}" Foreground="{StaticResource AccentGreenBrush}" />
-                </Grid>
+                        </Expander>
+                    </StackPanel>
+                </DockPanel>
                 </ScrollViewer>
             </TabItem>
         </TabControl>

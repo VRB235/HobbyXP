@@ -91,8 +91,14 @@ internal sealed class ExerciseConfiguration : IEntityTypeConfiguration<Exercise>
             .HasMaxLength(32)
             .IsRequired();
 
+        builder.Property(e => e.MuscleGroup)
+            .HasConversion<string>()
+            .HasMaxLength(32);
+
         builder.HasIndex(e => e.Name)
             .IsUnique();
+
+        builder.HasIndex(e => e.MuscleGroup);
     }
 }
 

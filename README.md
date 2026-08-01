@@ -36,6 +36,7 @@ El `README.md` se mantiene como **vista ejecutiva y técnica resumida** del esta
   - Avatar configurable a partir de imagen local.
 - **Gamificación**:
   - Registro de actividades por dominio (running, gym, puzzles, media, videojuegos, libros, cursos).
+  - Gimnasio: ejercicios con **grupo muscular** opcional (Pecho, Tríceps, Bíceps, Hombros, Core, Espalda, Cuádriceps, Gemelos, Abductores, Aductores, Isquiotibiales); catálogo agrupado, filtro al armar el entrenamiento y asignación a ejercicios legacy.
   - Otorgamiento y deducción de XP mediante `XpService` y registro de transacciones/hitos.
   - Motor de medallas `AchievementEngineService` basado en reglas (`AchievementActionType`).
   - Sistema de recompensas (`Reward`) canjeables por XP.
@@ -102,6 +103,9 @@ Copy-Item "$env:LOCALAPPDATA\HobbyXP\*" "$env:LOCALAPPDATA\HobbyXP-Dev\" -Recurs
 | **Ambientes** | Datos Debug en `HobbyXP-Dev`; Release/prod en `HobbyXP`. Override `HOBBYXP_DATA_DIR`. Título `[DEV]` en Debug. |
 | **Tablas físico** | Historiales de running/gimnasio con más alto útil (~10 filas) y scroll de página. |
 | **Ordenación** | Clic en cabeceras de historiales (y catálogos de logros) para ordenar Asc/Desc (`GridViewSortHelper`). |
+| **Gimnasio / músculos** | Grupo muscular; paneles ☰ colapsables (acordeón) en Running y Gimnasio; tipos de ejercicio en español; cabeceras de tabla centradas; filtro historial por grupo; ★ de récord. |
+| **Running / tipo sesión** | Tipos Regenerativa, Umbral y Tirada larga (nullable en legacy); columna y filtro en historial; **asignar/cambiar tipo** a sesiones ya guardadas. |
+| **UX post-guardado** | Tras guardar sesión/entreno se abre el historial del acordeón (y se limpian filtros de sesiones) para ver la fila nueva. |
 
 Las siguientes mejoras de producto/UX deben reflejarse aquí en cuanto se implementen (ver sección de mantenimiento).
 

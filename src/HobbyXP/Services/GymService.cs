@@ -28,13 +28,16 @@ public sealed class GymService : IGymService
         await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
         return await db.Exercises
             .AsNoTracking()
-            .OrderBy(e => e.Name)
+            .OrderBy(e => e.MuscleGroup == null)
+            .ThenBy(e => e.MuscleGroup)
+            .ThenBy(e => e.Name)
             .ToListAsync(cancellationToken);
     }
 
     public async Task<Exercise> CreateOrGetExerciseAsync(
         string name,
         ExerciseType exerciseType,
+        MuscleGroup? muscleGroup = null,
         CancellationToken cancellationToken = default)
     {
         var normalized = name.Trim();
@@ -46,15 +49,40 @@ public sealed class GymService : IGymService
             .FirstOrDefaultAsync(e => e.Name == normalized, cancellationToken);
 
         if (existing is not null)
+        {
+            // Completa grupo en ejercicios legacy cuando el usuario lo aporta al recrear por nombre.
+            if (existing.MuscleGroup is null && muscleGroup is not null)
+            {
+                existing.MuscleGroup = muscleGroup;
+                await db.SaveChangesAsync(cancellationToken);
+            }
+
             return existing;
+        }
 
         var exercise = new Exercise
         {
             Name = normalized,
-            ExerciseType = exerciseType
+            ExerciseType = exerciseType,
+            MuscleGroup = muscleGroup
         };
 
         db.Exercises.Add(exercise);
+        await db.SaveChangesAsync(cancellationToken);
+        return exercise;
+    }
+
+    public async Task<Exercise?> UpdateExerciseMuscleGroupAsync(
+        int exerciseId,
+        MuscleGroup? muscleGroup,
+        CancellationToken cancellationToken = default)
+    {
+        await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var exercise = await db.Exercises.FirstOrDefaultAsync(e => e.Id == exerciseId, cancellationToken);
+        if (exercise is null)
+            return null;
+
+        exercise.MuscleGroup = muscleGroup;
         await db.SaveChangesAsync(cancellationToken);
         return exercise;
     }

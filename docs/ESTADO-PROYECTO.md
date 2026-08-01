@@ -367,6 +367,8 @@ dotnet build
 - [x] **Ambientes Dev/Prod** separados (`HobbyXP-Dev` vs `HobbyXP`); título `[DEV]` en Debug.
 - [x] Historiales de actividad física con altura útil (~10 filas) + scroll de página.
 - [x] **Ordenación por columnas** en tablas de historial / catálogos (`GridViewSortHelper`).
+- [x] **Grupo muscular** en ejercicios de gimnasio (nullable; catálogo agrupado + filtro + edición).
+- [x] **Tipo de sesión** en running: Regenerativa, Umbral, Tirada larga.
 
 ### Media prioridad — producto
 

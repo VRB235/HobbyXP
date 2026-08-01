@@ -54,6 +54,7 @@ public sealed class RunningService : IRunningService
     public async Task<OperationResult<RunningSession>> SaveSessionAsync(
         decimal distanceKm,
         TimeSpan duration,
+        RunningSessionType sessionType,
         int? carreraId = null,
         string? notes = null,
         CancellationToken cancellationToken = default)
@@ -63,6 +64,9 @@ public sealed class RunningService : IRunningService
 
         if (duration <= TimeSpan.Zero)
             throw new ArgumentOutOfRangeException(nameof(duration), "El tiempo debe ser mayor que cero.");
+
+        if (!Enum.IsDefined(sessionType))
+            throw new ArgumentOutOfRangeException(nameof(sessionType), "Tipo de sesión inválido.");
 
         await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
 
@@ -78,6 +82,7 @@ public sealed class RunningService : IRunningService
             DistanceKm = distanceKm,
             Duration = duration,
             PaceMinPerKm = pace,
+            SessionType = sessionType,
             CarreraId = carreraId,
             Notes = notes,
             RecordedAt = DateTime.UtcNow
@@ -246,6 +251,30 @@ public sealed class RunningService : IRunningService
             sessions.Count,
             sessions.Sum(s => s.DistanceKm),
             sessions.Count == 0 ? null : sessions.Min(s => s.PaceMinPerKm));
+    }
+
+    public async Task<RunningSession?> UpdateSessionTypeAsync(
+        int sessionId,
+        RunningSessionType sessionType,
+        CancellationToken cancellationToken = default)
+    {
+        if (!Enum.IsDefined(sessionType))
+            throw new ArgumentOutOfRangeException(nameof(sessionType), "Tipo de sesión inválido.");
+
+        await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var session = await db.RunningSessions
+            .Include(s => s.Carrera)
+            .FirstOrDefaultAsync(s => s.Id == sessionId, cancellationToken);
+        if (session is null)
+            return null;
+
+        session.SessionType = sessionType;
+        session.UpdatedAt = DateTime.UtcNow;
+        await db.SaveChangesAsync(cancellationToken);
+
+        // Detach-friendly copy for UI (AsNoTracking-style consumers).
+        db.Entry(session).State = EntityState.Detached;
+        return session;
     }
 
     public async Task<bool> DeleteSessionAsync(int sessionId, CancellationToken cancellationToken = default)

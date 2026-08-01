@@ -1,5 +1,7 @@
 using System.ComponentModel.DataAnnotations.Schema;
+using HobbyXP.Helpers;
 using HobbyXP.Models.Common;
+using HobbyXP.Models.Enums;
 
 namespace HobbyXP.Models.Physical;
 
@@ -25,6 +27,11 @@ public class RunningSession : EntityBase
     /// </summary>
     public int? CarreraId { get; set; }
 
+    /// <summary>
+    /// Opcional en sesiones legacy; las nuevas deben indicarlo.
+    /// </summary>
+    public RunningSessionType? SessionType { get; set; }
+
     public DateTime RecordedAt { get; set; } = DateTime.UtcNow;
 
     public string? Notes { get; set; }
@@ -35,4 +42,7 @@ public class RunningSession : EntityBase
 
     [NotMapped]
     public string CarreraOficialNombre => Carrera?.Name ?? "(Sin carrera)";
+
+    [NotMapped]
+    public string SessionTypeLabel => RunningSessionTypeLabels.GetOrUnassigned(SessionType);
 }

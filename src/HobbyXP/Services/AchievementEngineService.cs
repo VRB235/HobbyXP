@@ -156,8 +156,9 @@ public sealed class AchievementEngineService : IAchievementEngineService
             .CountAsync(r => r.IsCompleted, cancellationToken),
         MedalMilestoneTrack.RunningSessions => await db.RunningSessions
             .CountAsync(cancellationToken),
-        MedalMilestoneTrack.RunningKilometers => (int)await db.RunningSessions
-            .SumAsync(s => s.DistanceKm, cancellationToken),
+        // SQLite/EF no traduce Sum sobre decimal; agregar como double y redondear.
+        MedalMilestoneTrack.RunningKilometers => (int)Math.Round(
+            await db.RunningSessions.SumAsync(s => (double)s.DistanceKm, cancellationToken)),
         MedalMilestoneTrack.GymWorkouts => await db.GymWorkouts
             .CountAsync(cancellationToken),
         MedalMilestoneTrack.ProgressiveOverloadPrs => await db.GymWorkouts

@@ -3,6 +3,7 @@ using System;
 using HobbyXP.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace HobbyXP.Data.Migrations
 {
     [DbContext(typeof(HobbyXpDbContext))]
-    partial class HobbyXpDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260731153008_AddExerciseMuscleGroup")]
+    partial class AddExerciseMuscleGroup
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "8.0.11");
@@ -1405,10 +1408,6 @@ namespace HobbyXP.Data.Migrations
                     b.Property<DateTime>("RecordedAt")
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("SessionType")
-                        .HasMaxLength(32)
-                        .HasColumnType("TEXT");
-
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("TEXT");
 
@@ -1420,8 +1419,6 @@ namespace HobbyXP.Data.Migrations
                     b.HasIndex("CarreraId");
 
                     b.HasIndex("RecordedAt");
-
-                    b.HasIndex("SessionType");
 
                     b.ToTable("RunningSessions", (string)null);
                 });

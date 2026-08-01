@@ -24,6 +24,10 @@ internal sealed class RunningSessionConfiguration : IEntityTypeConfiguration<Run
         builder.Property(r => r.CarreraId)
             .IsRequired(false);
 
+        builder.Property(r => r.SessionType)
+            .HasConversion<string>()
+            .HasMaxLength(32);
+
         builder.Property(r => r.Notes)
             .HasMaxLength(500);
 
@@ -35,5 +39,6 @@ internal sealed class RunningSessionConfiguration : IEntityTypeConfiguration<Run
 
         builder.HasIndex(r => r.RecordedAt);
         builder.HasIndex(r => r.CarreraId);
+        builder.HasIndex(r => r.SessionType);
     }
 }
