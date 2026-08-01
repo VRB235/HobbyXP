@@ -19,6 +19,11 @@ public interface IGymService
         MuscleGroup? muscleGroup,
         CancellationToken cancellationToken = default);
 
+    Task<Exercise?> UpdateExerciseNameAsync(
+        int exerciseId,
+        string name,
+        CancellationToken cancellationToken = default);
+
     Task<OperationResult<GymWorkout>> SaveWorkoutAsync(
         IReadOnlyList<GymWorkoutEntryDraft> entries,
         string? notes = null,

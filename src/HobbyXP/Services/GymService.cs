@@ -87,6 +87,35 @@ public sealed class GymService : IGymService
         return exercise;
     }
 
+    public async Task<Exercise?> UpdateExerciseNameAsync(
+        int exerciseId,
+        string name,
+        CancellationToken cancellationToken = default)
+    {
+        var normalized = name.Trim();
+        if (string.IsNullOrWhiteSpace(normalized))
+            throw new ArgumentException("El nombre del ejercicio es obligatorio.", nameof(name));
+        if (normalized.Length > 150)
+            throw new ArgumentException("El nombre del ejercicio no puede superar 150 caracteres.", nameof(name));
+
+        await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var exercise = await db.Exercises.FirstOrDefaultAsync(e => e.Id == exerciseId, cancellationToken);
+        if (exercise is null)
+            return null;
+
+        if (string.Equals(exercise.Name, normalized, StringComparison.Ordinal))
+            return exercise;
+
+        var nameTaken = await db.Exercises
+            .AnyAsync(e => e.Id != exerciseId && e.Name == normalized, cancellationToken);
+        if (nameTaken)
+            throw new InvalidOperationException($"Ya existe un ejercicio llamado '{normalized}'.");
+
+        exercise.Name = normalized;
+        await db.SaveChangesAsync(cancellationToken);
+        return exercise;
+    }
+
     public async Task<OperationResult<GymWorkout>> SaveWorkoutAsync(
         IReadOnlyList<GymWorkoutEntryDraft> entries,
         string? notes = null,

@@ -24,6 +24,7 @@ public sealed class GymViewModel : AchievementAwareViewModel
     private MuscleGroupOption _newMuscleGroupOption;
     private MuscleGroupOption _exerciseFilterOption;
     private Exercise? _selectedCatalogExercise;
+    private string _editExerciseName = string.Empty;
     private MuscleGroupOption _editMuscleGroupOption;
     private MuscleGroupOption _historyMuscleGroupFilterOption;
     private bool _isCatalogExpanded;
@@ -76,6 +77,9 @@ public sealed class GymViewModel : AchievementAwareViewModel
         UpdateCatalogMuscleGroupCommand = new AsyncRelayCommand(
             UpdateCatalogMuscleGroupAsync,
             CanUpdateCatalogMuscleGroup);
+        RenameCatalogExerciseCommand = new AsyncRelayCommand(
+            RenameCatalogExerciseAsync,
+            CanRenameCatalogExercise);
         ClearHistoryDateFilterCommand = new RelayCommand(ClearHistoryDateFilter);
         DeleteWorkoutCommand = new AsyncRelayCommand(p => DeleteWorkoutAsync(p));
 
@@ -124,9 +128,21 @@ public sealed class GymViewModel : AchievementAwareViewModel
             if (!SetProperty(ref _selectedCatalogExercise, value))
                 return;
 
+            EditExerciseName = value?.Name ?? string.Empty;
             EditMuscleGroupOption = MuscleGroupCatalogOptions.First(o =>
                 !o.MatchesUnassignedOnly && o.Value == value?.MuscleGroup);
             UpdateCatalogMuscleGroupCommand.RaiseCanExecuteChanged();
+            RenameCatalogExerciseCommand.RaiseCanExecuteChanged();
+        }
+    }
+
+    public string EditExerciseName
+    {
+        get => _editExerciseName;
+        set
+        {
+            if (SetProperty(ref _editExerciseName, value))
+                RenameCatalogExerciseCommand.RaiseCanExecuteChanged();
         }
     }
 
@@ -229,6 +245,8 @@ public sealed class GymViewModel : AchievementAwareViewModel
     public AsyncRelayCommand CreateExerciseCommand { get; }
 
     public AsyncRelayCommand UpdateCatalogMuscleGroupCommand { get; }
+
+    public AsyncRelayCommand RenameCatalogExerciseCommand { get; }
 
     public RelayCommand ClearHistoryDateFilterCommand { get; }
 
@@ -410,6 +428,11 @@ public sealed class GymViewModel : AchievementAwareViewModel
         SelectedCatalogExercise is not null &&
         EditMuscleGroupOption.Value != SelectedCatalogExercise.MuscleGroup;
 
+    private bool CanRenameCatalogExercise() =>
+        SelectedCatalogExercise is not null &&
+        !string.IsNullOrWhiteSpace(EditExerciseName) &&
+        !string.Equals(EditExerciseName.Trim(), SelectedCatalogExercise.Name, StringComparison.Ordinal);
+
     private void SyncRowExercise(GymEntryRowViewModel row)
     {
         var exercise = Exercises.FirstOrDefault(e => e.Id == row.SelectedExerciseId);
@@ -472,6 +495,44 @@ public sealed class GymViewModel : AchievementAwareViewModel
             UpdateCatalogMuscleGroupCommand.RaiseCanExecuteChanged();
             StatusMessage = $"Grupo de '{updated.Name}' → {updated.MuscleGroupLabel}.";
         }, "Actualizando grupo muscular...");
+    }
+
+    private async Task RenameCatalogExerciseAsync()
+    {
+        if (SelectedCatalogExercise is null || !CanRenameCatalogExercise())
+            return;
+
+        var previousName = SelectedCatalogExercise.Name;
+
+        await RunBusyAsync(async () =>
+        {
+            var updated = await _gymService.UpdateExerciseNameAsync(
+                SelectedCatalogExercise.Id,
+                EditExerciseName);
+
+            if (updated is null)
+                return;
+
+            SelectedCatalogExercise.Name = updated.Name;
+            EditExerciseName = updated.Name;
+            SyncExerciseNameInHistory(updated.Id, updated.Name);
+            RebuildFilteredExercises();
+            CatalogExercisesView.Refresh();
+            OnPropertyChanged(nameof(SelectedCatalogExercise));
+            RenameCatalogExerciseCommand.RaiseCanExecuteChanged();
+            StatusMessage = $"Ejercicio renombrado: '{previousName}' → '{updated.Name}'.";
+        }, "Renombrando ejercicio...");
+    }
+
+    private void SyncExerciseNameInHistory(int exerciseId, string name)
+    {
+        foreach (var entry in _allWorkouts.SelectMany(w => w.Entries))
+        {
+            if (entry.ExerciseId == exerciseId && entry.Exercise is not null)
+                entry.Exercise.Name = name;
+        }
+
+        ApplyHistoryFilter();
     }
 
     private async Task SaveWorkoutAsync()
