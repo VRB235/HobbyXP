@@ -143,14 +143,14 @@ src/HobbyXP/
 
 ### Perfil y progresión
 
-- **`PlayerProfile`**: `CurrentLevel`, `TotalXp` (progresión global), `SpendableXp` (saldo canjeable), `SpendableLedgerInitialized`, `BaseXpPerLevel`, `DisplayName`, `AvatarPath`.
+- **`PlayerProfile`**: `CurrentLevel`, `TotalXp` (progresión global), `SpendableXp` (saldo canjeable), `SpendableLedgerInitialized`, `SpendableProgressBaselineApplied`, `BaseXpPerLevel`, `DisplayName`, `AvatarPath`.
 - **`XpTransaction`**: historial de movimientos de XP.
 - **`Milestone`**: hitos narrativos mostrados en dashboard.
 
 ### Físico
 
-- **Running:** `RunningSession`, `OfficialRace` (carreras con bonus XP al completar).
-- **Gym:** `GymWorkout`, `GymWorkoutEntry`, `Exercise` (incluye detección de sobrecarga progresiva → medalla).
+- **Running:** `RunningSession` (fecha editable al registrar → `RecordedAt`), `OfficialRace` (carreras con bonus XP al completar).
+- **Gym:** `GymWorkout` (fecha editable → `WorkoutDate`), `GymWorkoutEntry`, `Exercise` (incluye detección de sobrecarga progresiva → medalla).
 
 ### Entretenimiento
 
@@ -202,7 +202,7 @@ Ejemplo con `BaseXpPerLevel = 1000`: nivel 1→2 cuesta 1000, 2→3 cuesta 2000,
 
 **Pools:** cada hobby (Running, Gym, OfficialRace, Puzzle, Media, VideoGame, Book, Course) tiene `HobbyProgress` independiente. Las actividades suman al pool del hobby **y** al `SpendableXp`. Al subir de nivel un hobby, el **global** (`PlayerProfile.TotalXp`) recibe `BaseXpPerLevel × nivelesGanados` (`AchievementActionType.HobbyLevelUp`) **y** esa misma cantidad también se acredita a `SpendableXp`. Los canjes de premios descuentan **solo** de `SpendableXp` (no bajan el nivel global).
 
-Al arrancar: `EnsureHobbyProgressRowsAsync` + `EnsureHobbyXpBackfillAsync` (migración histórica), `EnsureGeometricLevelScaleAsync` y `EnsureSpendableLedgerAsync` (one-shot: mueve XP de progresión hobbies+global a `SpendableXp` y reinicia niveles a 1). Cambiar `BaseXpPerLevel` en Configuración recalcula el nivel **global**.
+Al arrancar: `EnsureHobbyProgressRowsAsync` + `EnsureHobbyXpBackfillAsync` (migración histórica **solo si el ledger de saldo aún no está activo**), `EnsureGeometricLevelScaleAsync` y `EnsureSpendableLedgerAsync` (one-shot: mueve XP de progresión hobbies+global a `SpendableXp`, reinicia niveles a 1 y marca baseline; si el backfill había vuelto a llenar hobbies, repara progresión sin tocar el saldo). Cambiar `BaseXpPerLevel` en Configuración recalcula el nivel **global**.
 
 `XpLevelCalculator` opera sobre perfil y hobbies; acota el porcentaje 0–100.
 

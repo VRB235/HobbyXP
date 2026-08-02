@@ -313,10 +313,10 @@ UNION ALL SELECT 'Courses', COUNT(*) FROM Courses;
 |-------|---------|
 | **Prioridad** | Alta |
 | **Precondiciones** | Anotar `SpendableXp` y XP del hobby Running (`HobbyProgresses`). |
-| **Datos** | Fecha: hoy; Distancia: `5.0` km |
-| **Pasos** | 1. Actividades Físicas → Running.<br>2. Registrar sesión.<br>3. Revisar historial, banner del hobby y saldo del sidebar. |
-| **UI** | Nueva fila en historial; mensaje de XP (+50 XP por 5 km × 10); saldo canjeable +50; progresión global sin cambios si no hubo level-up de hobby. |
-| **BD** | `RunningSessions`: 1 fila con `DistanceKm = 5`.<br>`HobbyProgresses` (Running): +50 XP.<br>`PlayerProfiles.SpendableXp` = inicial + 50.<br>`XpTransactions`: movimiento positivo ~50 (`IsGlobal=0`). |
+| **Datos** | Fecha: editable (default hoy; probar también una fecha pasada); Distancia: `5.0` km |
+| **Pasos** | 1. Actividades Físicas → Running.<br>2. Elegir fecha si no es hoy.<br>3. Registrar sesión.<br>4. Revisar historial, banner del hobby y saldo del sidebar. |
+| **UI** | Nueva fila en historial con la fecha elegida; mensaje de XP (+50 XP por 5 km × 10); saldo canjeable +50; progresión global sin cambios si no hubo level-up de hobby. |
+| **BD** | `RunningSessions`: 1 fila con `DistanceKm = 5` y `RecordedAt` = fecha elegida (UTC día local).<br>`HobbyProgresses` (Running): +50 XP.<br>`PlayerProfiles.SpendableXp` = inicial + 50.<br>`XpTransactions`: movimiento positivo ~50 (`IsGlobal=0`). |
 
 ---
 
@@ -365,10 +365,10 @@ UNION ALL SELECT 'Courses', COUNT(*) FROM Courses;
 |-------|---------|
 | **Prioridad** | Alta |
 | **Precondiciones** | Pestaña Gym en Actividades Físicas. |
-| **Datos** | Fecha: hoy; Ejercicio: `Press banca`; Peso: `60` kg; Reps: `10` |
-| **Pasos** | 1. Agregar ejercicio a la sesión.<br>2. Guardar entrenamiento. |
-| **UI** | Entrenamiento en historial; +25 XP base por sesión. |
-| **BD** | `GymWorkouts` + `GymWorkoutEntries` creados. |
+| **Datos** | Fecha: editable (default hoy; probar también una fecha pasada); Ejercicio: `Press banca`; Peso: `60` kg; Reps: `10` |
+| **Pasos** | 1. Elegir fecha del entrenamiento.<br>2. Agregar ejercicio a la sesión.<br>3. Guardar entrenamiento. |
+| **UI** | Entrenamiento en historial con la fecha elegida; +25 XP base por sesión. |
+| **BD** | `GymWorkouts` con `WorkoutDate` = fecha elegida (UTC día local) + `GymWorkoutEntries` creados. |
 
 ---
 
@@ -649,7 +649,7 @@ UNION ALL SELECT 'Courses', COUNT(*) FROM Courses;
 | **Precondiciones** | BD previa a `AddSpendableXpLedger` con XP en hobbies y/o global (`SpendableLedgerInitialized = 0`). Anotar sumas. |
 | **Pasos** | 1. Arrancar la app (aplica migración + `EnsureSpendableLedgerAsync`).<br>2. Revisar sidebar (nivel 1, saldo) y banners de hobby.<br>3. Cerrar y volver a abrir. |
 | **UI** | Todos los hobbies y el global en nivel 1 / 0 XP de progresión; «Saldo: N» = suma previa de hobbies + global. |
-| **BD** | `SpendableXp` = suma anotada; `SpendableLedgerInitialized = 1`; `HobbyProgresses.TotalXp = 0`, `CurrentLevel = 1`; global `TotalXp = 0`, `CurrentLevel = 1`. Segundo arranque: mismos valores (no vuelve a sumar). |
+| **BD** | `SpendableXp` = suma anotada; `SpendableLedgerInitialized = 1`; `SpendableProgressBaselineApplied = 1`; `HobbyProgresses.TotalXp = 0`, `CurrentLevel = 1`; global `TotalXp = 0`, `CurrentLevel = 1`. Segundo arranque: mismos valores (no vuelve a sumar ni a reconstruir desde `XpTransactions`). |
 
 ---
 
