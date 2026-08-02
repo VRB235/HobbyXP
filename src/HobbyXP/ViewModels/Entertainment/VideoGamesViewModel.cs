@@ -18,6 +18,8 @@ public sealed class VideoGamesViewModel : AchievementAwareViewModel
     private VideoGamePlatform _platform = VideoGamePlatform.Pc;
     private int _initialCompletion;
     private DateTime? _startedDate = DateTime.Today;
+    private string _searchText = string.Empty;
+    private EnumFilterOption<VideoGamePlatform> _platformFilterOption;
     private DateTime? _filterFromDate;
     private DateTime? _filterToDate;
     private List<VideoGame> _allInProgress = [];
@@ -37,9 +39,13 @@ public sealed class VideoGamesViewModel : AchievementAwareViewModel
         HobbyXp = new HobbyProgressPresenter(xpService, MilestoneSourceType.VideoGame);
         InProgressRows = new ObservableCollection<VideoGameProgressRowViewModel>();
         PlatinumGames = new ObservableCollection<VideoGame>();
+        PlatformFilterOptions = EnumFilterOption<VideoGamePlatform>.Create(
+            "Todas las plataformas",
+            EntertainmentDisplayLabels.GetVideoGamePlatform);
+        _platformFilterOption = PlatformFilterOptions[0];
 
         RegisterCommand = new AsyncRelayCommand(RegisterAsync, CanRegister);
-        ClearDateFilterCommand = new RelayCommand(ClearDateFilter);
+        ClearDateFilterCommand = new RelayCommand(ClearHistoryFilters);
         DeleteGameCommand = new AsyncRelayCommand(p => DeleteGameAsync(p));
         RefreshRegisterValidation();
     }
@@ -51,6 +57,8 @@ public sealed class VideoGamesViewModel : AchievementAwareViewModel
     public ObservableCollection<VideoGame> PlatinumGames { get; }
 
     public Array Platforms => Enum.GetValues(typeof(VideoGamePlatform));
+
+    public IReadOnlyList<EnumFilterOption<VideoGamePlatform>> PlatformFilterOptions { get; }
 
     public string Title
     {
@@ -81,6 +89,26 @@ public sealed class VideoGamesViewModel : AchievementAwareViewModel
         {
             if (SetProperty(ref _startedDate, value))
                 RefreshRegisterValidation();
+        }
+    }
+
+    public string SearchText
+    {
+        get => _searchText;
+        set
+        {
+            if (SetProperty(ref _searchText, value))
+                ApplyFilter();
+        }
+    }
+
+    public EnumFilterOption<VideoGamePlatform> PlatformFilterOption
+    {
+        get => _platformFilterOption;
+        set
+        {
+            if (SetProperty(ref _platformFilterOption, value))
+                ApplyFilter();
         }
     }
 
@@ -123,23 +151,37 @@ public sealed class VideoGamesViewModel : AchievementAwareViewModel
     private void ApplyFilter()
     {
         InProgressRows.Clear();
-        foreach (var game in _allInProgress.Where(g => MatchesGameDate(g.StartedAt, FilterFromDate, FilterToDate)))
+        foreach (var game in _allInProgress.Where(MatchesInProgressFilters))
             InProgressRows.Add(new VideoGameProgressRowViewModel(game, ApplyProgressAsync));
 
         PlatinumGames.Clear();
-        foreach (var game in _allPlatinum.Where(g => MatchesGameDate(g.PlatinumUnlockedAt ?? g.StartedAt, FilterFromDate, FilterToDate)))
+        foreach (var game in _allPlatinum.Where(MatchesPlatinumFilters))
             PlatinumGames.Add(game);
     }
+
+    private bool MatchesInProgressFilters(VideoGame game) =>
+        TextSearchFilter.Matches(game.Title, SearchText) &&
+        PlatformFilterOption.Matches(game.Platform) &&
+        MatchesGameDate(game.StartedAt, FilterFromDate, FilterToDate);
+
+    private bool MatchesPlatinumFilters(VideoGame game) =>
+        TextSearchFilter.Matches(game.Title, SearchText) &&
+        PlatformFilterOption.Matches(game.Platform) &&
+        MatchesGameDate(game.PlatinumUnlockedAt ?? game.StartedAt, FilterFromDate, FilterToDate);
 
     private static bool MatchesGameDate(DateTime? value, DateTime? from, DateTime? to) =>
         value.HasValue
             ? DateRangeFilter.Matches(value.Value, from, to)
             : !from.HasValue && !to.HasValue;
 
-    private void ClearDateFilter()
+    private void ClearHistoryFilters()
     {
+        _searchText = string.Empty;
+        _platformFilterOption = PlatformFilterOptions[0];
         _filterFromDate = null;
         _filterToDate = null;
+        OnPropertyChanged(nameof(SearchText));
+        OnPropertyChanged(nameof(PlatformFilterOption));
         OnPropertyChanged(nameof(FilterFromDate));
         OnPropertyChanged(nameof(FilterToDate));
         ApplyFilter();

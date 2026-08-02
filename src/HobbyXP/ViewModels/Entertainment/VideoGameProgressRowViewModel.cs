@@ -26,6 +26,8 @@ public sealed class VideoGameProgressRowViewModel : ViewModelBase
 
     public VideoGamePlatform Platform => Game.Platform;
 
+    public string PlatformLabel => Game.PlatformLabel;
+
     public DateTime? StartedAt => Game.StartedAt;
 
     public int XpEarned => Game.XpEarned;

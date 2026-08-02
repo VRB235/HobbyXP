@@ -406,7 +406,7 @@ UNION ALL SELECT 'Courses', COUNT(*) FROM Courses;
 | **Prioridad** | Media |
 | **Datos** | Nombre: `Castillo`; Piezas: `1000`; marcar completado |
 | **Pasos** | 1. Entretenimiento → Rompecabezas.<br>2. Registrar y marcar completado.<br>3. Opcional: adjuntar foto. |
-| **UI** | +50 XP; entrada en listado. |
+| **UI** | +50 XP; fila en historial tabular (ordenable). |
 | **BD** | `Puzzles`: 1 fila con `Name`, `PieceCount`, `XpEarned = 50`. |
 
 ---
@@ -420,6 +420,17 @@ UNION ALL SELECT 'Courses', COUNT(*) FROM Courses;
 | **Pasos** | 1. Eliminar desde listado.<br>2. Confirmar. |
 | **UI** | Registro eliminado; XP revertido. |
 | **BD** | Sin fila en `Puzzles`. |
+
+---
+
+### CP-PUZ-003 — Filtrar y ordenar historial de rompecabezas
+
+| Campo | Detalle |
+|-------|---------|
+| **Prioridad** | Media |
+| **Precondiciones** | Varios puzzles con distintas categorías y fechas. |
+| **Pasos** | 1. Filtrar por texto, categoría y rango de fechas.<br>2. Pulsar cabeceras (Nombre, Piezas, Categoría, Fecha, XP).<br>3. Limpiar filtros. |
+| **UI** | El listado se reduce según filtros; cabeceras muestran ▲/▼; Limpiar restaura todo. |
 
 ---
 
@@ -446,6 +457,17 @@ UNION ALL SELECT 'Courses', COUNT(*) FROM Courses;
 | **Pasos** | 1. Eliminar desde historial.<br>2. Confirmar. |
 | **UI** | Entrada removida; XP revertido. |
 | **BD** | Sin fila en `MediaEntries`. |
+
+---
+
+### CP-MED-003 — Filtrar y ordenar historial de media
+
+| Campo | Detalle |
+|-------|---------|
+| **Prioridad** | Media |
+| **Precondiciones** | Varias películas/series en distintas fechas. |
+| **Pasos** | 1. Filtrar por título, tipo y fechas.<br>2. Ordenar por cabeceras.<br>3. Limpiar. |
+| **UI** | Listado coherente con filtros; ▲/▼ en cabeceras. |
 
 ---
 
@@ -480,10 +502,21 @@ UNION ALL SELECT 'Courses', COUNT(*) FROM Courses;
 | Campo | Detalle |
 |-------|---------|
 | **Prioridad** | Media |
-| **Precondiciones** | Juego en historial. |
+| **Precondiciones** | Juego en progreso o platinado. |
 | **Pasos** | 1. Eliminar.<br>2. Confirmar. |
-| **UI** | Juego removido; XP revertido. |
+| **UI** | Removido; XP revertido. |
 | **BD** | Sin fila en `VideoGames`. |
+
+---
+
+### CP-VG-004 — Filtrar historial y ordenar platinados
+
+| Campo | Detalle |
+|-------|---------|
+| **Prioridad** | Media |
+| **Precondiciones** | Varios juegos en progreso y platinados. |
+| **Pasos** | 1. Filtrar por título, plataforma y fechas.<br>2. Ordenar tabla de platinados por cabeceras.<br>3. Limpiar. |
+| **UI** | Ambas secciones respetan filtros; platinados ordenables con ▲/▼. |
 
 ---
 

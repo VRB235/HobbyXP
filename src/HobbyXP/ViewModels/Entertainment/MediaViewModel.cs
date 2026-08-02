@@ -17,6 +17,8 @@ public sealed class MediaViewModel : AchievementAwareViewModel
     private string _title = string.Empty;
     private MediaType _mediaType = MediaType.Movie;
     private DateTime? _completedDate = DateTime.Today;
+    private string _searchText = string.Empty;
+    private EnumFilterOption<MediaType> _mediaTypeFilterOption;
     private DateTime? _filterFromDate;
     private DateTime? _filterToDate;
     private int _yearlyMovies;
@@ -37,8 +39,12 @@ public sealed class MediaViewModel : AchievementAwareViewModel
         _profileRefreshMessenger = profileRefreshMessenger;
         HobbyXp = new HobbyProgressPresenter(xpService, MilestoneSourceType.Media);
         History = new ObservableCollection<MediaEntry>();
+        MediaTypeFilterOptions = EnumFilterOption<MediaType>.Create(
+            "Todos los tipos",
+            EntertainmentDisplayLabels.GetMediaType);
+        _mediaTypeFilterOption = MediaTypeFilterOptions[0];
         RegisterCommand = new AsyncRelayCommand(RegisterAsync, CanRegister);
-        ClearDateFilterCommand = new RelayCommand(ClearDateFilter);
+        ClearDateFilterCommand = new RelayCommand(ClearHistoryFilters);
         DeleteEntryCommand = new AsyncRelayCommand(p => DeleteEntryAsync(p));
         RefreshRegisterValidation();
     }
@@ -48,6 +54,8 @@ public sealed class MediaViewModel : AchievementAwareViewModel
     public ObservableCollection<MediaEntry> History { get; }
 
     public Array MediaTypes => Enum.GetValues(typeof(MediaType));
+
+    public IReadOnlyList<EnumFilterOption<MediaType>> MediaTypeFilterOptions { get; }
 
     public string Title
     {
@@ -72,6 +80,26 @@ public sealed class MediaViewModel : AchievementAwareViewModel
         {
             if (SetProperty(ref _completedDate, value))
                 RefreshRegisterValidation();
+        }
+    }
+
+    public string SearchText
+    {
+        get => _searchText;
+        set
+        {
+            if (SetProperty(ref _searchText, value))
+                ApplyFilter();
+        }
+    }
+
+    public EnumFilterOption<MediaType> MediaTypeFilterOption
+    {
+        get => _mediaTypeFilterOption;
+        set
+        {
+            if (SetProperty(ref _mediaTypeFilterOption, value))
+                ApplyFilter();
         }
     }
 
@@ -130,14 +158,23 @@ public sealed class MediaViewModel : AchievementAwareViewModel
     private void ApplyFilter()
     {
         History.Clear();
-        foreach (var entry in _allHistory.Where(e => DateRangeFilter.Matches(e.CompletedAt, FilterFromDate, FilterToDate)))
+        foreach (var entry in _allHistory.Where(MatchesFilters))
             History.Add(entry);
     }
 
-    private void ClearDateFilter()
+    private bool MatchesFilters(MediaEntry entry) =>
+        TextSearchFilter.Matches(entry.Title, SearchText) &&
+        MediaTypeFilterOption.Matches(entry.MediaType) &&
+        DateRangeFilter.Matches(entry.CompletedAt, FilterFromDate, FilterToDate);
+
+    private void ClearHistoryFilters()
     {
+        _searchText = string.Empty;
+        _mediaTypeFilterOption = MediaTypeFilterOptions[0];
         _filterFromDate = null;
         _filterToDate = null;
+        OnPropertyChanged(nameof(SearchText));
+        OnPropertyChanged(nameof(MediaTypeFilterOption));
         OnPropertyChanged(nameof(FilterFromDate));
         OnPropertyChanged(nameof(FilterToDate));
         ApplyFilter();

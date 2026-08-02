@@ -222,7 +222,7 @@ Al arrancar: `EnsureHobbyProgressRowsAsync` + `EnsureHobbyXpBackfillAsync` (migr
 |---------|------|------------------|
 | Dashboard | `DashboardView` | Hero XP, gráficos, sugerencias para subir de nivel, hitos |
 | Físico | `PhysicalActivitiesView` | Running (sesiones + **alta de carreras oficiales** + completar carrera), Gimnasio |
-| Entretenimiento | `EntertainmentView` | Rompecabezas, Media, Videojuegos |
+| Entretenimiento | `EntertainmentView` | Rompecabezas, Media, Videojuegos (historial con búsqueda/filtros y ordenación por columnas; platinados en `ListView`) |
 | Crecimiento | `PersonalGrowthView` | Libros, Cursos |
 | Logros | `AchievementsView` | Vitrina, Reglas, Tienda premios |
 | Configuración | `SettingsView` | XP base por nivel, exportar BD, restablecer datos |

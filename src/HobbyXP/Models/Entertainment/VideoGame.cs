@@ -1,3 +1,4 @@
+using HobbyXP.Helpers;
 using HobbyXP.Models.Common;
 using HobbyXP.Models.Enums;
 
@@ -11,6 +12,9 @@ public class VideoGame : EntityBase
     public string Title { get; set; } = string.Empty;
 
     public VideoGamePlatform Platform { get; set; }
+
+    /// <summary>Etiqueta legible para UI.</summary>
+    public string PlatformLabel => EntertainmentDisplayLabels.GetVideoGamePlatform(Platform);
 
     /// <summary>
     /// Porcentaje de completitud entre 0 y 100.
