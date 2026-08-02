@@ -25,6 +25,7 @@ public sealed class VideoGamesViewModel : AchievementAwareViewModel
 
     public VideoGamesViewModel(
         IVideoGameService videoGameService,
+        IXpService xpService,
         IMessageDialogService messageDialogService,
         IProfileRefreshMessenger profileRefreshMessenger,
         IAchievementMessenger achievementMessenger)
@@ -33,6 +34,7 @@ public sealed class VideoGamesViewModel : AchievementAwareViewModel
         _videoGameService = videoGameService;
         _messageDialogService = messageDialogService;
         _profileRefreshMessenger = profileRefreshMessenger;
+        HobbyXp = new HobbyProgressPresenter(xpService, MilestoneSourceType.VideoGame);
         InProgressRows = new ObservableCollection<VideoGameProgressRowViewModel>();
         PlatinumGames = new ObservableCollection<VideoGame>();
 
@@ -41,6 +43,8 @@ public sealed class VideoGamesViewModel : AchievementAwareViewModel
         DeleteGameCommand = new AsyncRelayCommand(p => DeleteGameAsync(p));
         RefreshRegisterValidation();
     }
+
+    public HobbyProgressPresenter HobbyXp { get; }
 
     public ObservableCollection<VideoGameProgressRowViewModel> InProgressRows { get; }
 
@@ -110,6 +114,7 @@ public sealed class VideoGamesViewModel : AchievementAwareViewModel
 
     private async Task ReloadGamesAsync()
     {
+        await HobbyXp.RefreshAsync();
         _allInProgress = (await _videoGameService.GetInProgressAsync()).ToList();
         _allPlatinum = (await _videoGameService.GetPlatinumAsync()).ToList();
         ApplyFilter();

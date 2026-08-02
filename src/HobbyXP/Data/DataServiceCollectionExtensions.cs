@@ -22,5 +22,9 @@ public static class DataServiceCollectionExtensions
         var dbContext = scope.ServiceProvider.GetRequiredService<HobbyXpDbContext>();
         await dbContext.Database.MigrateAsync(cancellationToken);
         await HobbyXpDatabaseInitializer.EnsurePlayerProfileAsync(dbContext, cancellationToken);
+        await HobbyXpDatabaseInitializer.EnsureGeometricLevelScaleAsync(dbContext, cancellationToken);
+        await HobbyXpDatabaseInitializer.EnsureHobbyProgressRowsAsync(dbContext, cancellationToken);
+        await HobbyXpDatabaseInitializer.EnsureHobbyXpBackfillAsync(dbContext, cancellationToken);
+        await HobbyXpDatabaseInitializer.EnsureSpendableLedgerAsync(dbContext, cancellationToken);
     }
 }

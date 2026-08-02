@@ -1,4 +1,5 @@
 using HobbyXP.Data;
+using HobbyXP.Helpers;
 using HobbyXP.Models.Enums;
 using HobbyXP.Models.Physical;
 using HobbyXP.Services.Abstractions;
@@ -124,11 +125,13 @@ public sealed class RunningService : IRunningService
 
         if (xpOutcome.LeveledUp && xpOutcome.NewLevel.HasValue)
         {
+            var title = HobbyLevelTitles.GetTitle(MilestoneSourceType.Running, xpOutcome.NewLevel.Value);
             events.Add(new AchievementEvent(
-                $"¡Nivel {xpOutcome.NewLevel.Value}!",
-                "Subiste de nivel por tu actividad de running.",
-                0,
-                MilestoneSourceType.System));
+                $"¡{title}!",
+                $"Running alcanzó Nv. {xpOutcome.NewLevel.Value} · {title}.",
+                xpOutcome.GlobalBonusAwarded,
+                MilestoneSourceType.Running,
+                RequiresCelebration: true));
         }
 
         events.AddRange(await _achievementEngine.TryAwardMilestonesForTrackAsync(

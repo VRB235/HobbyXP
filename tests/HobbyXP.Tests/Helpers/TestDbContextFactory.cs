@@ -28,6 +28,8 @@ public sealed class TestDbContextFactory : IDbContextFactory<HobbyXpDbContext>, 
             {
                 CurrentLevel = 1,
                 TotalXp = 0,
+                SpendableXp = 0,
+                SpendableLedgerInitialized = true,
                 BaseXpPerLevel = 1000
             });
             db.SaveChanges();

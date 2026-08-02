@@ -77,7 +77,7 @@ public sealed class RewardShopViewModel : AchievementAwareViewModel
         }
     }
 
-    public string BalanceText => $"Saldo disponible: {AvailableXp:N0} XP";
+    public string BalanceText => $"Saldo canjeable: {AvailableXp:N0} XP";
 
     public Reward? SelectedReward
     {
@@ -110,7 +110,7 @@ public sealed class RewardShopViewModel : AchievementAwareViewModel
     protected override async Task LoadCoreAsync()
     {
         var profile = await _playerProfileService.GetProfileAsync();
-        AvailableXp = profile.TotalXp;
+        AvailableXp = profile.SpendableXp;
 
         var rewards = await _rewardService.GetAllAsync();
         Rewards.Clear();
@@ -168,7 +168,7 @@ public sealed class RewardShopViewModel : AchievementAwareViewModel
 
             SelectedReward = result.Value;
             var profile = await _playerProfileService.GetProfileAsync();
-            AvailableXp = profile.TotalXp;
+            AvailableXp = profile.SpendableXp;
 
             StatusMessage = $"Premio canjeado: {result.Value.Name}";
         }, "Canjeando premio...");

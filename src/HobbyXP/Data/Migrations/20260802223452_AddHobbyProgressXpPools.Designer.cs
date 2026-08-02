@@ -3,6 +3,7 @@ using System;
 using HobbyXP.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace HobbyXP.Data.Migrations
 {
     [DbContext(typeof(HobbyXpDbContext))]
-    partial class HobbyXpDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260802223452_AddHobbyProgressXpPools")]
+    partial class AddHobbyProgressXpPools
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "8.0.11");
@@ -931,16 +934,6 @@ namespace HobbyXP.Data.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("TEXT")
                         .HasDefaultValue("Aventurero");
-
-                    b.Property<bool>("SpendableLedgerInitialized")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER")
-                        .HasDefaultValue(false);
-
-                    b.Property<int>("SpendableXp")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER")
-                        .HasDefaultValue(0);
 
                     b.Property<int>("TotalXp")
                         .HasColumnType("INTEGER");

@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using HobbyXP.Helpers;
+using HobbyXP.Models.Enums;
 using HobbyXP.Models.PersonalGrowth;
 using HobbyXP.Services.Abstractions;
 using HobbyXP.Services.Messaging;
@@ -22,18 +23,22 @@ public sealed class BooksViewModel : AchievementAwareViewModel
 
     public BooksViewModel(
         IBookService bookService,
+        IXpService xpService,
         IProfileRefreshMessenger profileRefreshMessenger,
         IAchievementMessenger achievementMessenger)
         : base(achievementMessenger)
     {
         _bookService = bookService;
         _profileRefreshMessenger = profileRefreshMessenger;
+        HobbyXp = new HobbyProgressPresenter(xpService, MilestoneSourceType.Book);
         ReadingRows = new ObservableCollection<BookReadingRowViewModel>();
         CompletedBooks = new ObservableCollection<Book>();
         RegisterCommand = new AsyncRelayCommand(RegisterAsync, CanRegister);
         ClearCompletedDateFilterCommand = new RelayCommand(ClearCompletedDateFilter);
         RefreshRegisterValidation();
     }
+
+    public HobbyProgressPresenter HobbyXp { get; }
 
     public ObservableCollection<BookReadingRowViewModel> ReadingRows { get; }
 
@@ -97,6 +102,7 @@ public sealed class BooksViewModel : AchievementAwareViewModel
 
     private async Task ReloadAsync()
     {
+        await HobbyXp.RefreshAsync();
         _allReading = (await _bookService.GetReadingAsync()).ToList();
         _allCompleted = (await _bookService.GetCompletedAsync()).ToList();
         ApplyFilter();

@@ -28,6 +28,7 @@
                                    Visibility="{Binding ErrorMessage, Converter={StaticResource NullToVisibility}}" />
                     </StackPanel>
                     <StackPanel>
+                        <controls:HobbyXpBanner DataContext="{Binding HobbyXp}" />
                         <Expander Header="Nueva sesión"
                                   IsExpanded="{Binding IsNewSessionExpanded, Mode=TwoWay}">
                             <StackPanel>
@@ -71,6 +72,7 @@
                             </StackPanel>
                         </Expander>
 
+                        <controls:HobbyXpBanner DataContext="{Binding OfficialRaceXp}" />
                         <Expander Header="Nueva carrera oficial"
                                   IsExpanded="{Binding IsNewRaceExpanded, Mode=TwoWay}">
                             <StackPanel>
@@ -315,6 +317,7 @@
                                    Visibility="{Binding ErrorMessage, Converter={StaticResource NullToVisibility}}" />
                     </StackPanel>
                     <StackPanel>
+                        <controls:HobbyXpBanner DataContext="{Binding HobbyXp}" />
                         <Expander Header="Catálogo de ejercicios"
                                   IsExpanded="{Binding IsCatalogExpanded, Mode=TwoWay}">
                             <StackPanel>

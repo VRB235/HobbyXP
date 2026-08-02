@@ -26,6 +26,7 @@ public sealed class MediaViewModel : AchievementAwareViewModel
 
     public MediaViewModel(
         IMediaService mediaService,
+        IXpService xpService,
         IMessageDialogService messageDialogService,
         IProfileRefreshMessenger profileRefreshMessenger,
         IAchievementMessenger achievementMessenger)
@@ -34,12 +35,15 @@ public sealed class MediaViewModel : AchievementAwareViewModel
         _mediaService = mediaService;
         _messageDialogService = messageDialogService;
         _profileRefreshMessenger = profileRefreshMessenger;
+        HobbyXp = new HobbyProgressPresenter(xpService, MilestoneSourceType.Media);
         History = new ObservableCollection<MediaEntry>();
         RegisterCommand = new AsyncRelayCommand(RegisterAsync, CanRegister);
         ClearDateFilterCommand = new RelayCommand(ClearDateFilter);
         DeleteEntryCommand = new AsyncRelayCommand(p => DeleteEntryAsync(p));
         RefreshRegisterValidation();
     }
+
+    public HobbyProgressPresenter HobbyXp { get; }
 
     public ObservableCollection<MediaEntry> History { get; }
 
@@ -117,6 +121,7 @@ public sealed class MediaViewModel : AchievementAwareViewModel
 
     protected override async Task LoadCoreAsync()
     {
+        await HobbyXp.RefreshAsync();
         _allHistory = (await _mediaService.GetHistoryAsync()).ToList();
         ApplyFilter();
         await RefreshCountersAsync();
@@ -171,6 +176,7 @@ public sealed class MediaViewModel : AchievementAwareViewModel
             var completedAt = DateTimeHelper.ToUtcFromLocalDate(CompletedDate ?? DateTime.Today);
             var result = await _mediaService.RegisterCompletedAsync(Title, MediaType, completedAt);
             PublishAchievements(result.Events);
+            await HobbyXp.RefreshAsync();
 
             _allHistory.Insert(0, result.Value);
             ApplyFilter();
@@ -201,6 +207,7 @@ public sealed class MediaViewModel : AchievementAwareViewModel
             _allHistory.RemoveAll(e => e.Id == entry.Id);
             ApplyFilter();
             await RefreshCountersAsync();
+            await HobbyXp.RefreshAsync();
             _profileRefreshMessenger.RequestRefresh();
             StatusMessage = $"«{entry.Title}» eliminado del historial.";
         }, "Eliminando obra...");

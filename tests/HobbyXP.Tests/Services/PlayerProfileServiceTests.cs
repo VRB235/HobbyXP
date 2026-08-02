@@ -57,7 +57,7 @@ public sealed class PlayerProfileServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task UpdateBaseXpPerLevelAsync_RecalculatesLevelAndNotifies()
+    public async Task UpdateBaseXpPerLevelAsync_RecalculatesLevelFromTotalXpAndNotifies()
     {
         await using (var db = _factory.CreateDbContext())
         {
@@ -72,6 +72,7 @@ public sealed class PlayerProfileServiceTests : IDisposable
 
         Assert.Equal(2000, updatedProfile.BaseXpPerLevel);
         Assert.Equal(2, updatedProfile.CurrentLevel);
+        Assert.Equal(2500, updatedProfile.TotalXp);
         Assert.Equal(1, _refreshMessenger.RefreshRequestCount);
     }
 

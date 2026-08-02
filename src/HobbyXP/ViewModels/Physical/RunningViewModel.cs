@@ -46,6 +46,7 @@ public sealed class RunningViewModel : AchievementAwareViewModel
 
     public RunningViewModel(
         IRunningService runningService,
+        IXpService xpService,
         IMessageDialogService messageDialogService,
         IProfileRefreshMessenger profileRefreshMessenger,
         IAchievementMessenger achievementMessenger)
@@ -54,6 +55,8 @@ public sealed class RunningViewModel : AchievementAwareViewModel
         _runningService = runningService;
         _messageDialogService = messageDialogService;
         _profileRefreshMessenger = profileRefreshMessenger;
+        HobbyXp = new HobbyProgressPresenter(xpService, MilestoneSourceType.Running);
+        OfficialRaceXp = new HobbyProgressPresenter(xpService, MilestoneSourceType.OfficialRace);
         Sessions = new ObservableCollection<RunningSession>();
         OfficialRaces = new ObservableCollection<OfficialRace>();
         RaceOptions = new ObservableCollection<RaceOption> { RaceOption.None };
@@ -76,6 +79,10 @@ public sealed class RunningViewModel : AchievementAwareViewModel
         RefreshSessionValidation();
         RefreshRaceValidation();
     }
+
+    public HobbyProgressPresenter HobbyXp { get; }
+
+    public HobbyProgressPresenter OfficialRaceXp { get; }
 
     public string? SessionValidationMessage
     {
@@ -313,6 +320,9 @@ public sealed class RunningViewModel : AchievementAwareViewModel
 
     protected override async Task LoadCoreAsync()
     {
+        await HobbyXp.RefreshAsync();
+        await OfficialRaceXp.RefreshAsync();
+
         _allSessions = (await _runningService.GetSessionsAsync()).ToList();
         ApplySessionsFilter();
 
@@ -565,6 +575,7 @@ public sealed class RunningViewModel : AchievementAwareViewModel
                 SelectedSessionTypeOption.Value ?? RunningSessionType.Regenerativa,
                 raceId);
             PublishAchievements(result.Events);
+            await HobbyXp.RefreshAsync();
             _allSessions.Insert(0, result.Value);
 
             // Evitar que un filtro previo oculte la fila recién guardada.
@@ -597,6 +608,7 @@ public sealed class RunningViewModel : AchievementAwareViewModel
         {
             var result = await _runningService.CompleteOfficialRaceAsync(SelectedRace.Id);
             PublishAchievements(result.Events);
+            await OfficialRaceXp.RefreshAsync();
 
             UpdateOfficialRace(result.Value);
             SelectedRace = OfficialRaces.FirstOrDefault(r => r.Id == result.Value.Id);
@@ -632,6 +644,7 @@ public sealed class RunningViewModel : AchievementAwareViewModel
 
             _allSessions.RemoveAll(s => s.Id == session.Id);
             ApplySessionsFilter();
+            await HobbyXp.RefreshAsync();
             _profileRefreshMessenger.RequestRefresh();
             StatusMessage = "Sesión eliminada del historial.";
         }, "Eliminando sesión...");
@@ -658,6 +671,7 @@ public sealed class RunningViewModel : AchievementAwareViewModel
             SyncRaceOptions();
             SelectedRace = OfficialRaces.FirstOrDefault();
             SelectedRaceOption = RaceOptions.FirstOrDefault();
+            await OfficialRaceXp.RefreshAsync();
             _profileRefreshMessenger.RequestRefresh();
             StatusMessage = $"Carrera «{race.Name}» eliminada del historial.";
         }, "Eliminando carrera...");

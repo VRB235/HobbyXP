@@ -12,7 +12,17 @@ public class PlayerProfile : EntityBase
     public int TotalXp { get; set; }
 
     /// <summary>
-    /// XP base requerida para alcanzar el siguiente nivel (escala configurable).
+    /// Saldo canjeable en la tienda de premios (independiente del XP de progresión/nivel).
+    /// </summary>
+    public int SpendableXp { get; set; }
+
+    /// <summary>
+    /// True cuando ya se separó el ledger (progresión vs saldo) y se aplicó el reset one-shot si aplicaba.
+    /// </summary>
+    public bool SpendableLedgerInitialized { get; set; }
+
+    /// <summary>
+    /// XP del tramo 1→2. Cada nivel siguiente cuesta el doble (escala geométrica configurable).
     /// </summary>
     public int BaseXpPerLevel { get; set; } = 1000;
 
@@ -27,4 +37,6 @@ public class PlayerProfile : EntityBase
     public string? AvatarPath { get; set; }
 
     public ICollection<XpTransaction> Transactions { get; set; } = [];
+
+    public ICollection<HobbyProgress> HobbyProgresses { get; set; } = [];
 }

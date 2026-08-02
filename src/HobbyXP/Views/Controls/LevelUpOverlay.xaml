@@ -150,6 +150,15 @@
                 </TextBlock.Effect>
             </TextBlock>
 
+            <TextBlock Text="{Binding CelebrationLevelTitle}"
+                       Style="{StaticResource DisplayHeroText}"
+                       FontSize="22"
+                       Foreground="{StaticResource AccentGoldBrush}"
+                       HorizontalAlignment="Center"
+                       TextAlignment="Center"
+                       TextWrapping="Wrap"
+                       Margin="0,0,0,12" />
+
             <TextBlock Text="{Binding CelebrationTotalXp, StringFormat=XP total: {0:N0}}"
                        Foreground="{StaticResource AccentCyanBrush}"
                        FontSize="18"

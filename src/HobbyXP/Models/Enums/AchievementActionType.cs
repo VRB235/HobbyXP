@@ -17,5 +17,7 @@ public enum AchievementActionType
     BookCompleted = 9,
     CourseCompleted = 10,
     RewardRedeemed = 11,
-    CourseSessionCompleted = 12
+    CourseSessionCompleted = 12,
+    /// <summary>Bonus al XP global al subir de nivel un hobby.</summary>
+    HobbyLevelUp = 13
 }

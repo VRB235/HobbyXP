@@ -17,6 +17,7 @@ public class HobbyXpDbContext : DbContext
 
     public DbSet<PlayerProfile> PlayerProfiles => Set<PlayerProfile>();
     public DbSet<XpTransaction> XpTransactions => Set<XpTransaction>();
+    public DbSet<HobbyProgress> HobbyProgresses => Set<HobbyProgress>();
     public DbSet<Milestone> Milestones => Set<Milestone>();
 
     public DbSet<OfficialRace> OfficialRaces => Set<OfficialRace>();

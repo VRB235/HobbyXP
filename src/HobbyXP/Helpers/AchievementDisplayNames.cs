@@ -20,6 +20,7 @@ public static class AchievementDisplayNames
         AchievementActionType.CourseCompleted => "Curso terminado",
         AchievementActionType.RewardRedeemed => "Premio canjeado",
         AchievementActionType.CourseSessionCompleted => "Curso — sesión completada",
+        AchievementActionType.HobbyLevelUp => "Bonus global — nivel de hobby",
         _ => actionType.ToString()
     };
 

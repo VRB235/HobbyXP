@@ -15,6 +15,7 @@
             <TabItem Header="Rompecabezas">
                 <ScrollViewer x:Name="PuzzlesScrollViewer" DataContext="{Binding Puzzles}">
                     <StackPanel Margin="8">
+                        <controls:HobbyXpBanner DataContext="{Binding HobbyXp}" />
                         <Grid Margin="0,0,0,4">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="160" />
@@ -176,7 +177,9 @@
             </TabItem>
 
             <TabItem Header="Series y Películas">
-                <Grid DataContext="{Binding Media}" Margin="8">
+                <DockPanel DataContext="{Binding Media}" Margin="8">
+                    <controls:HobbyXpBanner DockPanel.Dock="Top" DataContext="{Binding HobbyXp}" />
+                    <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
@@ -272,11 +275,13 @@
                         </Grid>
                     </GroupBox>
                 </Grid>
+                </DockPanel>
             </TabItem>
 
             <TabItem Header="Videojuegos">
                 <ScrollViewer x:Name="VideoGamesScrollViewer" DataContext="{Binding VideoGames}">
                     <StackPanel Margin="8">
+                        <controls:HobbyXpBanner DataContext="{Binding HobbyXp}" />
                         <StackPanel Margin="0,0,0,12">
                             <Grid Margin="0,0,0,4">
                                 <Grid.ColumnDefinitions>

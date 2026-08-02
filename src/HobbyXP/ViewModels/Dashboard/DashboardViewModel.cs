@@ -23,6 +23,7 @@ public sealed class DashboardViewModel : LoadableViewModelBase
 
     private readonly IDashboardService _dashboardService;
     private readonly IPlayerProfileService _playerProfileService;
+    private readonly IXpService _xpService;
     private int _currentLevel = 1;
     private int _totalXp;
     private int _xpIntoCurrentLevel;
@@ -42,18 +43,22 @@ public sealed class DashboardViewModel : LoadableViewModelBase
     public DashboardViewModel(
         IDashboardService dashboardService,
         IPlayerProfileService playerProfileService,
+        IXpService xpService,
         IApplicationDataResetMessenger applicationDataResetMessenger)
     {
         _dashboardService = dashboardService;
         _playerProfileService = playerProfileService;
+        _xpService = xpService;
         RecentMilestones = new ObservableCollection<Milestone>();
         SuggestedActivities = new ObservableCollection<LevelUpSuggestion>();
+        HobbyProgressItems = new ObservableCollection<HobbyProgressInfo>();
         RefreshCommand = new AsyncRelayCommand(() => LoadAsync());
         applicationDataResetMessenger.ApplicationDataReset += OnApplicationDataReset;
     }
 
     public ObservableCollection<Milestone> RecentMilestones { get; }
     public ObservableCollection<LevelUpSuggestion> SuggestedActivities { get; }
+    public ObservableCollection<HobbyProgressInfo> HobbyProgressItems { get; }
 
     public int CurrentLevel
     {
@@ -86,12 +91,15 @@ public sealed class DashboardViewModel : LoadableViewModelBase
     }
 
     public string LevelProgressText =>
-        $"Nivel {CurrentLevel} · {XpIntoCurrentLevel}/{XpRequiredForNextLevel} XP · Total: {TotalXp:N0}";
+        $"{GlobalLevelTitles.FormatLevelLabel(CurrentLevel)} · {XpIntoCurrentLevel}/{XpRequiredForNextLevel} XP · Total: {TotalXp:N0}";
 
     public string XpHeroSummary =>
         $"XP: {XpIntoCurrentLevel:N0} / {XpRequiredForNextLevel:N0}  |  {ProgressPercentage:0}%";
 
-    public string LevelHeroTitle => $"{PlayerDisplayName.ToUpperInvariant()} — NIVEL {CurrentLevel}";
+    public string LevelHeroTitle =>
+        $"{PlayerDisplayName.ToUpperInvariant()} — {GlobalLevelTitles.FormatLevelLabel(CurrentLevel).ToUpperInvariant()}";
+
+    public string GlobalLevelTitle => GlobalLevelTitles.GetTitle(CurrentLevel);
 
     public string PlayerDisplayName
     {
@@ -168,6 +176,7 @@ public sealed class DashboardViewModel : LoadableViewModelBase
         BuildWeeklyChart(summary.WeeklyXp);
         BuildDistributionChart(summary.MonthlyHobbyDistribution);
         BuildSuggestions(summary);
+        await LoadHobbyProgressAsync();
 
         RecentMilestones.Clear();
         foreach (var milestone in summary.RecentMilestones)
@@ -176,6 +185,15 @@ public sealed class DashboardViewModel : LoadableViewModelBase
         OnPropertyChanged(nameof(LevelProgressText));
         OnPropertyChanged(nameof(XpHeroSummary));
         OnPropertyChanged(nameof(LevelHeroTitle));
+        OnPropertyChanged(nameof(GlobalLevelTitle));
+    }
+
+    private async Task LoadHobbyProgressAsync()
+    {
+        var items = await _xpService.GetAllHobbyProgressAsync();
+        HobbyProgressItems.Clear();
+        foreach (var item in items)
+            HobbyProgressItems.Add(item);
     }
 
     private void BuildSuggestions(DashboardSummary summary)
@@ -213,6 +231,7 @@ public sealed class DashboardViewModel : LoadableViewModelBase
         XpIntoCurrentLevel = progress.XpIntoCurrentLevel;
         XpRequiredForNextLevel = progress.XpRequiredForNextLevel;
         ProgressPercentage = progress.ProgressPercentage;
+        OnPropertyChanged(nameof(GlobalLevelTitle));
     }
 
     private void BuildWeeklyChart(IReadOnlyList<DailyXpPoint> weeklyXp)

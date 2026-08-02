@@ -39,6 +39,7 @@ public sealed class GymViewModel : AchievementAwareViewModel
 
     public GymViewModel(
         IGymService gymService,
+        IXpService xpService,
         IMessageDialogService messageDialogService,
         IProfileRefreshMessenger profileRefreshMessenger,
         IAchievementMessenger achievementMessenger)
@@ -47,6 +48,7 @@ public sealed class GymViewModel : AchievementAwareViewModel
         _gymService = gymService;
         _messageDialogService = messageDialogService;
         _profileRefreshMessenger = profileRefreshMessenger;
+        HobbyXp = new HobbyProgressPresenter(xpService, MilestoneSourceType.Gym);
 
         MuscleGroupCatalogOptions = MuscleGroupOption.CreateCatalogOptions();
         MuscleGroupFilterOptions = MuscleGroupOption.CreateFilterOptions();
@@ -88,6 +90,8 @@ public sealed class GymViewModel : AchievementAwareViewModel
         RefreshWorkoutValidation();
         RefreshExerciseValidation();
     }
+
+    public HobbyProgressPresenter HobbyXp { get; }
 
     public string? ExerciseValidationMessage
     {
@@ -254,6 +258,8 @@ public sealed class GymViewModel : AchievementAwareViewModel
 
     public async Task LoadDataAsync()
     {
+        await HobbyXp.RefreshAsync();
+
         var exercises = await _gymService.GetExercisesAsync();
         Exercises.Clear();
         foreach (var exercise in exercises)
@@ -548,6 +554,7 @@ public sealed class GymViewModel : AchievementAwareViewModel
             var drafts = Entries.Select(e => e.ToDraft()).ToList();
             var result = await _gymService.SaveWorkoutAsync(drafts);
             PublishAchievements(result.Events);
+            await HobbyXp.RefreshAsync();
 
             Entries.Clear();
             AddRow();
@@ -579,6 +586,7 @@ public sealed class GymViewModel : AchievementAwareViewModel
 
             _allWorkouts.RemoveAll(w => w.Id == workout.Id);
             ApplyHistoryFilter();
+            await HobbyXp.RefreshAsync();
             _profileRefreshMessenger.RequestRefresh();
             StatusMessage = "Entrenamiento eliminado del historial.";
         }, "Eliminando entrenamiento...");

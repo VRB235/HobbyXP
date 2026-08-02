@@ -25,6 +25,7 @@ public sealed class PuzzlesViewModel : AchievementAwareViewModel
 
     public PuzzlesViewModel(
         IPuzzleService puzzleService,
+        IXpService xpService,
         IFileDialogService fileDialogService,
         IMessageDialogService messageDialogService,
         IProfileRefreshMessenger profileRefreshMessenger,
@@ -35,6 +36,7 @@ public sealed class PuzzlesViewModel : AchievementAwareViewModel
         _fileDialogService = fileDialogService;
         _messageDialogService = messageDialogService;
         _profileRefreshMessenger = profileRefreshMessenger;
+        HobbyXp = new HobbyProgressPresenter(xpService, MilestoneSourceType.Puzzle);
         Puzzles = new ObservableCollection<Puzzle>();
         SelectedPhotos = new ObservableCollection<PuzzlePhotoItem>();
         RegisterCommand = new AsyncRelayCommand(RegisterAsync, CanRegister);
@@ -44,6 +46,8 @@ public sealed class PuzzlesViewModel : AchievementAwareViewModel
         DeletePuzzleCommand = new AsyncRelayCommand(p => DeletePuzzleAsync(p));
         RefreshRegisterValidation();
     }
+
+    public HobbyProgressPresenter HobbyXp { get; }
 
     public ObservableCollection<Puzzle> Puzzles { get; }
 
@@ -121,6 +125,7 @@ public sealed class PuzzlesViewModel : AchievementAwareViewModel
 
     protected override async Task LoadCoreAsync()
     {
+        await HobbyXp.RefreshAsync();
         _allPuzzles = (await _puzzleService.GetAllAsync()).ToList();
         ApplyFilter();
     }
@@ -206,6 +211,7 @@ public sealed class PuzzlesViewModel : AchievementAwareViewModel
             var result = await _puzzleService.RegisterCompletedAsync(
                 Name, pieces, Category, photoPaths, completedAt);
             PublishAchievements(result.Events);
+            await HobbyXp.RefreshAsync();
 
             _allPuzzles.Insert(0, result.Value);
             ApplyFilter();
@@ -237,6 +243,7 @@ public sealed class PuzzlesViewModel : AchievementAwareViewModel
 
             _allPuzzles.RemoveAll(p => p.Id == puzzle.Id);
             ApplyFilter();
+            await HobbyXp.RefreshAsync();
             _profileRefreshMessenger.RequestRefresh();
             StatusMessage = $"«{puzzle.Name}» eliminado del historial.";
         }, "Eliminando rompecabezas...");

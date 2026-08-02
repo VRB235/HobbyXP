@@ -41,6 +41,67 @@
                 </Grid>
             </Border>
 
+            <!-- Progreso por hobby -->
+            <Border Style="{StaticResource DarkCard}" Margin="0,0,0,20">
+                <StackPanel>
+                    <TextBlock Text="Progreso por hobby" Style="{StaticResource SectionTitleText}" Margin="0,0,0,4" />
+                    <TextBlock Text="Cada hobby tiene su propio nivel. El nivel global sube al avanzar de nivel en un hobby."
+                               Style="{StaticResource MutedText}" Margin="0,0,0,12" TextWrapping="Wrap" />
+                    <ItemsControl ItemsSource="{Binding HobbyProgressItems}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Background="#1A2233"
+                                        BorderBrush="{StaticResource BorderBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="8"
+                                        Padding="12,10"
+                                        Margin="0,0,0,8">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                        </Grid.RowDefinitions>
+                                        <TextBlock Text="{Binding DisplayName}"
+                                                   Style="{StaticResource SubsectionTitleText}" />
+                                        <TextBlock Grid.Column="1"
+                                                   Foreground="{StaticResource AccentGoldBrush}"
+                                                   FontWeight="SemiBold"
+                                                   TextAlignment="Right"
+                                                   TextWrapping="Wrap"
+                                                   MaxWidth="280">
+                                            <Run Text="Nv. " />
+                                            <Run Text="{Binding Progress.CurrentLevel}" />
+                                            <Run Text=" · " />
+                                            <Run Text="{Binding LevelTitle}" />
+                                        </TextBlock>
+                                        <controls:XpProgressBar Grid.Row="1"
+                                                                Grid.ColumnSpan="2"
+                                                                Value="{Binding Progress.ProgressPercentage}"
+                                                                Height="10"
+                                                                Margin="0,6,0,4" />
+                                        <TextBlock Grid.Row="2"
+                                                   Grid.ColumnSpan="2"
+                                                   Style="{StaticResource MutedText}"
+                                                   FontSize="12">
+                                            <Run Text="{Binding Progress.XpIntoCurrentLevel, StringFormat={}{0:N0}}" />
+                                            <Run Text=" / " />
+                                            <Run Text="{Binding Progress.XpRequiredForNextLevel, StringFormat={}{0:N0}}" />
+                                            <Run Text=" XP · Total: " />
+                                            <Run Text="{Binding Progress.TotalXp, StringFormat={}{0:N0}}" />
+                                        </TextBlock>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
+
             <!-- Gráficos -->
             <Grid Margin="0,0,0,20">
                 <Grid.ColumnDefinitions>

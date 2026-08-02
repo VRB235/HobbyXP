@@ -21,6 +21,12 @@ internal sealed class PlayerProfileConfiguration : IEntityTypeConfiguration<Play
         builder.Property(p => p.BaseXpPerLevel)
             .HasDefaultValue(1000);
 
+        builder.Property(p => p.SpendableXp)
+            .HasDefaultValue(0);
+
+        builder.Property(p => p.SpendableLedgerInitialized)
+            .HasDefaultValue(false);
+
         builder.Property(p => p.DisplayName)
             .HasMaxLength(100)
             .HasDefaultValue("Aventurero");
@@ -45,12 +51,44 @@ internal sealed class XpTransactionConfiguration : IEntityTypeConfiguration<XpTr
             .HasMaxLength(64)
             .IsRequired();
 
+        builder.Property(t => t.SourceType)
+            .HasConversion<string>()
+            .HasMaxLength(32);
+
+        builder.Property(t => t.IsGlobal)
+            .HasDefaultValue(false);
+
         builder.HasOne(t => t.PlayerProfile)
             .WithMany(p => p.Transactions)
             .HasForeignKey(t => t.PlayerProfileId)
             .OnDelete(DeleteBehavior.Cascade);
 
         builder.HasIndex(t => t.EarnedAt);
+        builder.HasIndex(t => t.SourceType);
+    }
+}
+
+internal sealed class HobbyProgressConfiguration : IEntityTypeConfiguration<HobbyProgress>
+{
+    public void Configure(EntityTypeBuilder<HobbyProgress> builder)
+    {
+        builder.ToTable("HobbyProgresses");
+
+        builder.Property(h => h.SourceType)
+            .HasConversion<string>()
+            .HasMaxLength(32)
+            .IsRequired();
+
+        builder.Property(h => h.CurrentLevel)
+            .HasDefaultValue(1);
+
+        builder.HasOne(h => h.PlayerProfile)
+            .WithMany(p => p.HobbyProgresses)
+            .HasForeignKey(h => h.PlayerProfileId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasIndex(h => new { h.PlayerProfileId, h.SourceType })
+            .IsUnique();
     }
 }
 
