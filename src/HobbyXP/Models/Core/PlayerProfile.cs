@@ -22,6 +22,13 @@ public class PlayerProfile : EntityBase
     public bool SpendableLedgerInitialized { get; set; }
 
     /// <summary>
+    /// True cuando la progresión quedó en baseline (nivel 1 / 0 XP) tras el ledger de saldo.
+    /// Evita reaplicar el wipe a awards legítimos posteriores; repara BDs donde el backfill
+    /// histórico volvió a llenar hobbies tras el prestige.
+    /// </summary>
+    public bool SpendableProgressBaselineApplied { get; set; }
+
+    /// <summary>
     /// XP del tramo 1→2. Cada nivel siguiente cuesta el doble (escala geométrica configurable).
     /// </summary>
     public int BaseXpPerLevel { get; set; } = 1000;

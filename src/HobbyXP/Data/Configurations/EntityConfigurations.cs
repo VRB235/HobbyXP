@@ -27,6 +27,9 @@ internal sealed class PlayerProfileConfiguration : IEntityTypeConfiguration<Play
         builder.Property(p => p.SpendableLedgerInitialized)
             .HasDefaultValue(false);
 
+        builder.Property(p => p.SpendableProgressBaselineApplied)
+            .HasDefaultValue(false);
+
         builder.Property(p => p.DisplayName)
             .HasMaxLength(100)
             .HasDefaultValue("Aventurero");

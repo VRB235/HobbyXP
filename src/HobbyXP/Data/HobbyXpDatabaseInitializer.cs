@@ -21,6 +21,7 @@ internal static class HobbyXpDatabaseInitializer
             TotalXp = 0,
             SpendableXp = 0,
             SpendableLedgerInitialized = true,
+            SpendableProgressBaselineApplied = true,
             BaseXpPerLevel = 1000
         });
 
@@ -87,13 +88,19 @@ internal static class HobbyXpDatabaseInitializer
 
     /// <summary>
     /// Migra XP histórico de actividades a pools de hobby y reconstruye el global meta.
-    /// Solo corre si aún no hay XP en hobbies y existen transacciones de actividad.
+    /// Solo corre si el ledger de saldo aún no está activo, no hay XP en hobbies y existen txs de actividad.
+    /// Tras el prestige (<see cref="PlayerProfile.SpendableLedgerInitialized"/>) no debe reconstruir historial.
     /// </summary>
     public static async Task EnsureHobbyXpBackfillAsync(
         HobbyXpDbContext dbContext,
         CancellationToken cancellationToken = default)
     {
         await EnsureHobbyProgressRowsAsync(dbContext, cancellationToken);
+
+        var ledgerReady = await dbContext.PlayerProfiles
+            .AnyAsync(p => p.SpendableLedgerInitialized, cancellationToken);
+        if (ledgerReady)
+            return;
 
         var hasHobbyXp = await dbContext.HobbyProgresses.AnyAsync(h => h.TotalXp > 0, cancellationToken);
         if (hasHobbyXp)
@@ -154,6 +161,8 @@ internal static class HobbyXpDatabaseInitializer
     /// <summary>
     /// One-shot: mueve XP de progresión (hobbies + global) a <see cref="PlayerProfile.SpendableXp"/>
     /// y reinicia niveles a 1. Idempotente vía <see cref="PlayerProfile.SpendableLedgerInitialized"/>.
+    /// Si el ledger ya estaba activo pero el baseline no (p. ej. backfill histórico rellenó de nuevo),
+    /// vuelve a poner progresión en 1/0 sin tocar el saldo.
     /// Debe ejecutarse después del backfill de hobbies.
     /// </summary>
     public static async Task EnsureSpendableLedgerAsync(
@@ -164,7 +173,7 @@ internal static class HobbyXpDatabaseInitializer
 
         var profiles = await dbContext.PlayerProfiles
             .Include(p => p.HobbyProgresses)
-            .Where(p => !p.SpendableLedgerInitialized)
+            .Where(p => !p.SpendableLedgerInitialized || !p.SpendableProgressBaselineApplied)
             .ToListAsync(cancellationToken);
 
         if (profiles.Count == 0)
@@ -172,21 +181,30 @@ internal static class HobbyXpDatabaseInitializer
 
         foreach (var profile in profiles)
         {
-            var hobbyXp = profile.HobbyProgresses.Sum(h => h.TotalXp);
-            profile.SpendableXp = hobbyXp + profile.TotalXp;
-
-            foreach (var hobby in profile.HobbyProgresses)
+            if (!profile.SpendableLedgerInitialized)
             {
-                hobby.TotalXp = 0;
-                hobby.CurrentLevel = 1;
+                var hobbyXp = profile.HobbyProgresses.Sum(h => h.TotalXp);
+                profile.SpendableXp = hobbyXp + profile.TotalXp;
+                profile.SpendableLedgerInitialized = true;
             }
 
-            profile.TotalXp = 0;
-            profile.CurrentLevel = 1;
-            profile.SpendableLedgerInitialized = true;
+            ResetProgressionToBaseline(profile);
+            profile.SpendableProgressBaselineApplied = true;
             profile.UpdatedAt = DateTime.UtcNow;
         }
 
         await dbContext.SaveChangesAsync(cancellationToken);
+    }
+
+    private static void ResetProgressionToBaseline(PlayerProfile profile)
+    {
+        foreach (var hobby in profile.HobbyProgresses)
+        {
+            hobby.TotalXp = 0;
+            hobby.CurrentLevel = 1;
+        }
+
+        profile.TotalXp = 0;
+        profile.CurrentLevel = 1;
     }
 }
