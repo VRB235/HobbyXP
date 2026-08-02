@@ -57,12 +57,13 @@ Para un listado completo de entidades, servicios y controles reutilizables, ver 
 - **Registrar actividad y ganar XP**:
   1. Navegar a la sección (p. ej. Físico → Running, Entretenimiento, Crecimiento, etc.).
   2. Crear/editar la actividad correspondiente (sesión de running, workout, libro leído, curso completado, etc.).
-  3. El servicio de dominio invoca `XpService`, actualiza perfil y puede generar `Milestone` y medallas.
+  3. El servicio de dominio invoca `XpService`, que acredita el **pool del hobby** (barra del módulo) y puede generar `Milestone` y medallas.
   4. Se notifica al usuario mediante barra de mensajes y se actualiza dashboard/XP.
-- **Subir de nivel**:
-  1. Al cruzar el umbral de XP configurado (`BaseXpPerLevel`), `XpService` emite un evento.
-  2. `MainViewModel` muestra `LevelUpOverlay` con nuevo nivel y resumen de progreso.
-  3. Al cerrar el overlay, se refresca el estado visual (sidebar y dashboard).
+- **Subir de nivel (hobby → global)**:
+  1. Al cruzar el umbral geométrico del hobby (`BaseXpPerLevel × (2^(N−1) − 1)`), el hobby sube de nivel.
+  2. El global recibe un bonus meta (`BaseXpPerLevel` por cada nivel de hobby ganado). Si el global también sube, `XpService` emite level-up.
+  3. `MainViewModel` muestra `LevelUpOverlay` para el nivel **global**; el avance de hobby aparece en la barra de logros.
+  4. Al cerrar el overlay, se refresca sidebar y dashboard.
 - **Personalizar perfil**:
   1. Cambiar avatar desde el sidebar usando un cuadro de diálogo de archivo.
   2. Editar nombre de aventurero y guardar cambios.

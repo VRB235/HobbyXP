@@ -75,7 +75,8 @@ Override: variable `HOBBYXP_DATA_DIR`.
 - **`XpService`** como motor central: calcula puntos, otorga XP, recalcula nivel, registra transacciones/hitos, publica level-up.
 - **`AchievementEngineService`**: evalúa y otorga medallas según reglas.
 - **`OperationResult<T>`** y DTOs en `Services/Results/`.
-- **`XpLevelCalculator`** (internal): fórmula de nivel lineal por `BaseXpPerLevel`.
+- **`XpLevelCalculator`** (internal): fórmula geométrica (×2) para perfil global y `HobbyProgress`.
+- Pools por hobby + meta-progresión global (`HobbyLevelUp`).
 - **`ServiceCollectionExtensions.AddHobbyXpServices()`**.
 
 ### Fase 3 — ViewModels y navegación ✅
@@ -142,7 +143,7 @@ src/HobbyXP/
 
 ### Perfil y progresión
 
-- **`PlayerProfile`**: `CurrentLevel`, `TotalXp`, `BaseXpPerLevel`, `DisplayName`, `AvatarPath`.
+- **`PlayerProfile`**: `CurrentLevel`, `TotalXp` (progresión global), `SpendableXp` (saldo canjeable), `SpendableLedgerInitialized`, `BaseXpPerLevel`, `DisplayName`, `AvatarPath`.
 - **`XpTransaction`**: historial de movimientos de XP.
 - **`Milestone`**: hitos narrativos mostrados en dashboard.
 
@@ -192,11 +193,18 @@ src/HobbyXP/
 ### Fórmula de nivel (actual)
 
 ```
-XP umbral nivel N = (N - 1) * BaseXpPerLevel
-Progreso % = XP dentro del nivel actual / BaseXpPerLevel * 100
+Costo del tramo L → L+1 = BaseXpPerLevel × 2^(L − 1)
+XP umbral nivel N       = BaseXpPerLevel × (2^(N − 1) − 1)
+Progreso %              = XP dentro del nivel actual / costo del tramo actual × 100
 ```
 
-`XpLevelCalculator` recalcula nivel al subir/bajar XP y acota el porcentaje 0–100.
+Ejemplo con `BaseXpPerLevel = 1000`: nivel 1→2 cuesta 1000, 2→3 cuesta 2000, 3→4 cuesta 4000, etc.
+
+**Pools:** cada hobby (Running, Gym, OfficialRace, Puzzle, Media, VideoGame, Book, Course) tiene `HobbyProgress` independiente. Las actividades suman al pool del hobby **y** al `SpendableXp`. Al subir de nivel un hobby, el **global** (`PlayerProfile.TotalXp`) recibe `BaseXpPerLevel × nivelesGanados` (`AchievementActionType.HobbyLevelUp`) **y** esa misma cantidad también se acredita a `SpendableXp`. Los canjes de premios descuentan **solo** de `SpendableXp` (no bajan el nivel global).
+
+Al arrancar: `EnsureHobbyProgressRowsAsync` + `EnsureHobbyXpBackfillAsync` (migración histórica), `EnsureGeometricLevelScaleAsync` y `EnsureSpendableLedgerAsync` (one-shot: mueve XP de progresión hobbies+global a `SpendableXp` y reinicia niveles a 1). Cambiar `BaseXpPerLevel` en Configuración recalcula el nivel **global**.
+
+`XpLevelCalculator` opera sobre perfil y hobbies; acota el porcentaje 0–100.
 
 ---
 
@@ -204,7 +212,7 @@ Progreso % = XP dentro del nivel actual / BaseXpPerLevel * 100
 
 ### MainWindow (shell)
 
-- Sidebar: branding, tarjeta de perfil (avatar, nombre editable, nivel, XP, barra `XpProgressBar`), botones avatar/nombre, navegación con indicador verde activo.
+- Sidebar: branding, tarjeta de perfil (avatar, nombre editable, nivel, XP de progresión, saldo canjeable, barra `XpProgressBar`), botones avatar/nombre, navegación con indicador verde activo.
 - Área principal: `GeometricBackground`, barra de último logro, `ContentControl` con ViewModel actual.
 - Overlay global: `LevelUpOverlay` (`Panel.ZIndex=1000`).
 
@@ -410,7 +418,8 @@ dotnet build
 - [x] Puzzle, media, videojuego (% y platino).
 - [x] Libro: páginas y completado.
 - [x] Curso completado.
-- [x] Logros: vitrina, editar regla, editar medalla, canjear premio (deducción XP).
+- [x] Logros: vitrina, editar regla, editar medalla, canjear premio (deducción de `SpendableXp`).
+- [x] Ledger separado: progresión (hobbies/global) vs saldo canjeable; migración one-shot al arrancar.
 
 ---
 

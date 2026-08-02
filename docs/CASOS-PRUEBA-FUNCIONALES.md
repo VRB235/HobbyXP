@@ -57,7 +57,7 @@
 
 ```sql
 -- Perfil
-SELECT Id, DisplayName, AvatarPath, CurrentLevel, TotalXp, BaseXpPerLevel, UpdatedAt
+SELECT Id, DisplayName, AvatarPath, CurrentLevel, TotalXp, SpendableXp, SpendableLedgerInitialized, BaseXpPerLevel, UpdatedAt
 FROM PlayerProfiles;
 
 -- Últimas transacciones de XP
@@ -99,7 +99,7 @@ UNION ALL SELECT 'Courses', COUNT(*) FROM Courses;
 - La aplicación no debe cerrarse con excepción no controlada.
 - Los mensajes de validación deben mostrarse en español, en banner rojo sobre el formulario.
 - Tras guardar una actividad que otorga XP, la barra superior debe mostrar un mensaje de logro/XP.
-- El sidebar y el dashboard deben reflejar el `TotalXp` y nivel actualizados sin reiniciar la app.
+- El sidebar y el dashboard deben reflejar progresión global, saldo canjeable y niveles de hobby actualizados sin reiniciar la app.
 - Al eliminar un registro con XP asociado, debe pedirse confirmación y revertirse el XP correspondiente.
 
 ---
@@ -114,8 +114,8 @@ UNION ALL SELECT 'Courses', COUNT(*) FROM Courses;
 | **Precondiciones** | No existe `%LocalAppData%\HobbyXP-Dev\` (renombrar carpeta si hace falta). |
 | **Datos** | N/A |
 | **Pasos** | 1. Ejecutar la aplicación.<br>2. Esperar carga del dashboard. |
-| **UI** | Ventana principal visible; sidebar con nombre «Aventurero», nivel 1, XP 0; icono de avatar por defecto (⚔). |
-| **BD** | `SELECT COUNT(*) FROM PlayerProfiles;` → **1** fila con `DisplayName='Aventurero'`, `CurrentLevel=1`, `TotalXp=0`, `BaseXpPerLevel=1000`. |
+| **UI** | Ventana principal visible; sidebar con nombre «Aventurero», nivel 1, XP 0, saldo 0; icono de avatar por defecto (⚔). |
+| **BD** | `SELECT COUNT(*) FROM PlayerProfiles;` → **1** fila con `DisplayName='Aventurero'`, `CurrentLevel=1`, `TotalXp=0`, `SpendableXp=0`, `SpendableLedgerInitialized=1`, `BaseXpPerLevel=1000`. |
 | **Archivos** | Carpeta `%LocalAppData%\HobbyXP-Dev\` creada con `hobbyxp.db`. |
 
 ---
@@ -312,11 +312,11 @@ UNION ALL SELECT 'Courses', COUNT(*) FROM Courses;
 | Campo | Detalle |
 |-------|---------|
 | **Prioridad** | Alta |
-| **Precondiciones** | Anotar `TotalXp` inicial del perfil. |
+| **Precondiciones** | Anotar `SpendableXp` y XP del hobby Running (`HobbyProgresses`). |
 | **Datos** | Fecha: hoy; Distancia: `5.0` km |
-| **Pasos** | 1. Actividades Físicas → Running.<br>2. Registrar sesión.<br>3. Revisar historial y barra superior. |
-| **UI** | Nueva fila en historial; mensaje de XP (+50 XP por 5 km × 10). |
-| **BD** | `RunningSessions`: 1 fila con `DistanceKm = 5`.<br>`PlayerProfiles.TotalXp` = inicial + 50.<br>`XpTransactions`: movimiento positivo ~50. |
+| **Pasos** | 1. Actividades Físicas → Running.<br>2. Registrar sesión.<br>3. Revisar historial, banner del hobby y saldo del sidebar. |
+| **UI** | Nueva fila en historial; mensaje de XP (+50 XP por 5 km × 10); saldo canjeable +50; progresión global sin cambios si no hubo level-up de hobby. |
+| **BD** | `RunningSessions`: 1 fila con `DistanceKm = 5`.<br>`HobbyProgresses` (Running): +50 XP.<br>`PlayerProfiles.SpendableXp` = inicial + 50.<br>`XpTransactions`: movimiento positivo ~50 (`IsGlobal=0`). |
 
 ---
 
@@ -338,10 +338,10 @@ UNION ALL SELECT 'Courses', COUNT(*) FROM Courses;
 | Campo | Detalle |
 |-------|---------|
 | **Prioridad** | Alta |
-| **Precondiciones** | CP-RUN-001 ejecutado; anotar XP actual. |
+| **Precondiciones** | CP-RUN-001 ejecutado; anotar `SpendableXp` y XP del hobby Running. |
 | **Pasos** | 1. En historial de sesiones, pulsar eliminar (🗑).<br>2. Confirmar en diálogo. |
-| **UI** | Fila desaparece; XP del sidebar disminuye en la cantidad revertida. |
-| **BD** | Registro ausente en `RunningSessions`.<br>`TotalXp` reducido; transacción de reversión en `XpTransactions`. |
+| **UI** | Fila desaparece; saldo canjeable y barra del hobby disminuyen en la cantidad revertida. |
+| **BD** | Registro ausente en `RunningSessions`.<br>`HobbyProgresses` y `SpendableXp` reducidos; transacción de reversión en `XpTransactions`. |
 
 ---
 
@@ -616,42 +616,54 @@ UNION ALL SELECT 'Courses', COUNT(*) FROM Courses;
 
 ---
 
-### CP-LOG-003 — Canjear premio deduce XP
+### CP-LOG-003 — Canjear premio deduce saldo canjeable
 
 | Campo | Detalle |
 |-------|---------|
 | **Prioridad** | Alta |
-| **Precondiciones** | `TotalXp` ≥ costo del premio (p. ej. ≥ 500). |
+| **Precondiciones** | `SpendableXp` ≥ costo del premio (p. ej. ≥ 500). Anotar también `TotalXp` / `CurrentLevel` globales. |
 | **Datos** | Premio con costo conocido |
-| **Pasos** | 1. Tienda de premios.<br>2. Canjear premio.<br>3. Confirmar. |
-| **UI** | XP disminuye; mensaje de canje. |
-| **BD** | `TotalXp` reducido; transacción negativa en `XpTransactions`. |
+| **Pasos** | 1. Tienda de premios (etiqueta «Saldo canjeable»).<br>2. Canjear premio.<br>3. Confirmar. |
+| **UI** | Saldo canjeable disminuye; nivel/XP de progresión global sin cambios; mensaje de canje. |
+| **BD** | `SpendableXp` reducido; `TotalXp` y `CurrentLevel` intactos; transacción negativa en `XpTransactions`. |
 
 ---
 
-### CP-LOG-004 — Canje rechazado por XP insuficiente
+### CP-LOG-004 — Canje rechazado por saldo insuficiente
 
 | Campo | Detalle |
 |-------|---------|
 | **Prioridad** | Media |
-| **Precondiciones** | `TotalXp` bajo (perfil nuevo o tras reset manual). |
+| **Precondiciones** | `SpendableXp` bajo (perfil nuevo o tras canjes). |
 | **Pasos** | 1. Intentar canjear premio costoso. |
-| **UI** | Mensaje de error; XP sin cambios. |
-| **BD** | `TotalXp` sin cambios. |
+| **UI** | Mensaje de error; saldo sin cambios. |
+| **BD** | `SpendableXp` y `TotalXp` sin cambios. |
+
+---
+
+### CP-LOG-005 — Migración one-shot a saldo canjeable
+
+| Campo | Detalle |
+|-------|---------|
+| **Prioridad** | Alta |
+| **Precondiciones** | BD previa a `AddSpendableXpLedger` con XP en hobbies y/o global (`SpendableLedgerInitialized = 0`). Anotar sumas. |
+| **Pasos** | 1. Arrancar la app (aplica migración + `EnsureSpendableLedgerAsync`).<br>2. Revisar sidebar (nivel 1, saldo) y banners de hobby.<br>3. Cerrar y volver a abrir. |
+| **UI** | Todos los hobbies y el global en nivel 1 / 0 XP de progresión; «Saldo: N» = suma previa de hobbies + global. |
+| **BD** | `SpendableXp` = suma anotada; `SpendableLedgerInitialized = 1`; `HobbyProgresses.TotalXp = 0`, `CurrentLevel = 1`; global `TotalXp = 0`, `CurrentLevel = 1`. Segundo arranque: mismos valores (no vuelve a sumar). |
 
 ---
 
 ## 13. XP, nivel y dashboard
 
-### CP-XP-001 — Subida de nivel muestra overlay
+### CP-XP-001 — Subida de nivel de hobby y bonus global
 
 | Campo | Detalle |
 |-------|---------|
 | **Prioridad** | Alta |
-| **Precondiciones** | `TotalXp` cercano al umbral del siguiente nivel (p. ej. 950/1000 con `BaseXpPerLevel=1000`). |
-| **Pasos** | 1. Registrar actividad que cruce el umbral (+50 XP o más).<br>2. Observar overlay. |
-| **UI** | `LevelUpOverlay` visible con animación/confeti; muestra nuevo nivel; botón «Continuar la aventura» cierra overlay. |
-| **BD** | `CurrentLevel` incrementado en 1. |
+| **Precondiciones** | Hobby Running cerca del umbral 1→2 (p. ej. ~950 XP de hobby con `BaseXpPerLevel=1000`). Anotar `TotalXp` global y `SpendableXp`. |
+| **Pasos** | 1. Registrar sesión de running que cruce el umbral del hobby.<br>2. Observar banner de Running y sidebar/dashboard global. |
+| **UI** | Banner del hobby muestra nivel 2; mensaje de logro de hobby; si el global sube, `LevelUpOverlay` con nuevo nivel global; saldo canjeable sube por la actividad **y** por el bonus meta. |
+| **BD** | `HobbyProgresses` (Running): `CurrentLevel` +1; `PlayerProfiles.TotalXp` += `BaseXpPerLevel`; `SpendableXp` += XP de actividad + bonus meta; txs con `IsGlobal=0` (actividad) y `IsGlobal=1` (`HobbyLevelUp`). |
 
 ---
 
@@ -659,11 +671,11 @@ UNION ALL SELECT 'Courses', COUNT(*) FROM Courses;
 
 | Campo | Detalle |
 |-------|---------|
-| **Prioridad** | Media |
+| **Prioridad** | Alta |
 | **Precondiciones** | Varias actividades registradas en la semana. |
-| **Pasos** | 1. Ir al Dashboard.<br>2. Revisar gráficos y sugerencias. |
-| **UI** | Gráfico de XP semanal y distribución por hobby con datos; sugerencias de «subir de nivel» visibles. |
-| **BD** | `XpTransactions` con fechas recientes alimentan los agregados. |
+| **Pasos** | 1. Tras registrar actividades, abrir Dashboard.<br>2. Revisar hero global, sección «Progreso por hobby», gráfico semanal e hitos. |
+| **UI** | Hero = nivel/XP **global**; lista de barras por hobby; gráfico semanal usa XP de actividades (no bonuses globales); sugerencias de «subir de nivel» visibles. |
+| **BD** | `XpTransactions` con fechas recientes alimentan los agregados; `HobbyProgresses` refleja pools por módulo. |
 
 ---
 
@@ -681,16 +693,16 @@ UNION ALL SELECT 'Courses', COUNT(*) FROM Courses;
 
 ## 14. Configuración
 
-### CP-SET-001 — Cambiar XP base por nivel
+### CP-SET-001 — Cambiar XP base (tramo 1→2)
 
 | Campo | Detalle |
 |-------|---------|
 | **Prioridad** | Alta |
-| **Precondiciones** | Perfil con XP acumulado; sidebar → **Configuración**. |
-| **Datos** | XP base: `500` |
-| **Pasos** | 1. Ingresar 500 en «XP base por nivel».<br>2. Pulsar **Guardar**.<br>3. Revisar sidebar y dashboard. |
-| **UI** | Mensaje de confirmación; barra de progreso recalculada según nuevo umbral. |
-| **BD** | `SELECT BaseXpPerLevel, CurrentLevel FROM PlayerProfiles;` → `BaseXpPerLevel = 500`; nivel recalculado coherente con `TotalXp`. |
+| **Precondiciones** | Perfil con XP acumulado y nivel ≥ 2; sidebar → **Configuración**. |
+| **Datos** | XP base (nivel 1→2): `500` |
+| **Pasos** | 1. Anotar `CurrentLevel` y `TotalXp` actuales.<br>2. Ingresar 500 en «XP base (nivel 1→2)».<br>3. Pulsar **Guardar**.<br>4. Revisar sidebar y dashboard. |
+| **UI** | Mensaje de confirmación; nivel y barra recalculados según el XP total y la nueva base. |
+| **BD** | `SELECT BaseXpPerLevel, CurrentLevel, TotalXp FROM PlayerProfiles;` → `BaseXpPerLevel = 500`; `TotalXp` sin cambios; `CurrentLevel` coherente con la fórmula geométrica (`umbral N = Base × (2^(N−1) − 1)`). |
 
 ---
 
