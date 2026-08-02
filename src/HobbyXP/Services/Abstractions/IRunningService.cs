@@ -16,6 +16,7 @@ public interface IRunningService
         decimal distanceKm,
         TimeSpan duration,
         RunningSessionType sessionType,
+        DateTime recordedAt,
         int? carreraId = null,
         string? notes = null,
         CancellationToken cancellationToken = default);

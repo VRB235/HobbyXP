@@ -1,4 +1,5 @@
 using HobbyXP.Data;
+using HobbyXP.Helpers;
 using HobbyXP.Models.Enums;
 using HobbyXP.Models.Physical;
 using HobbyXP.Services.Abstractions;
@@ -118,6 +119,7 @@ public sealed class GymService : IGymService
 
     public async Task<OperationResult<GymWorkout>> SaveWorkoutAsync(
         IReadOnlyList<GymWorkoutEntryDraft> entries,
+        DateTime workoutDate,
         string? notes = null,
         CancellationToken cancellationToken = default)
     {
@@ -128,7 +130,7 @@ public sealed class GymService : IGymService
 
         var workout = new GymWorkout
         {
-            WorkoutDate = DateTime.UtcNow,
+            WorkoutDate = DateTimeHelper.ToUtcFromLocalDate(workoutDate),
             Notes = notes
         };
 

@@ -32,6 +32,10 @@
                         <Expander Header="Nueva sesión"
                                   IsExpanded="{Binding IsNewSessionExpanded, Mode=TwoWay}">
                             <StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                    <TextBlock Text="Fecha:" VerticalAlignment="Center" Margin="0,0,8,0" />
+                                    <DatePicker SelectedDate="{Binding SessionDate}" Width="140" />
+                                </StackPanel>
                                 <Grid Margin="0,0,0,4">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="Auto" />
@@ -420,6 +424,10 @@
                                   IsExpanded="{Binding IsWorkoutExpanded, Mode=TwoWay}">
                             <StackPanel>
                                 <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                    <TextBlock Text="Fecha:"
+                                               VerticalAlignment="Center"
+                                               Margin="0,0,8,0" />
+                                    <DatePicker SelectedDate="{Binding WorkoutDate}" Width="140" Margin="0,0,16,0" />
                                     <TextBlock Text="Filtrar ejercicios por músculo:"
                                                VerticalAlignment="Center"
                                                Style="{StaticResource MutedText}"

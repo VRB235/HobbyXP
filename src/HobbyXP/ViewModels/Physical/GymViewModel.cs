@@ -34,6 +34,7 @@ public sealed class GymViewModel : AchievementAwareViewModel
     private GymWorkout? _selectedWorkout;
     private DateTime? _historyFromDate;
     private DateTime? _historyToDate;
+    private DateTime? _workoutDate = DateTime.Today;
     private List<GymWorkout> _allWorkouts = [];
     private string? _exerciseValidationMessage;
 
@@ -167,6 +168,16 @@ public sealed class GymViewModel : AchievementAwareViewModel
         {
             if (SetProperty(ref _historyToDate, value))
                 ApplyHistoryFilter();
+        }
+    }
+
+    public DateTime? WorkoutDate
+    {
+        get => _workoutDate;
+        set
+        {
+            if (SetProperty(ref _workoutDate, value))
+                RefreshWorkoutValidation();
         }
     }
 
@@ -389,6 +400,9 @@ public sealed class GymViewModel : AchievementAwareViewModel
 
     private ValidationResult ValidateWorkoutForm()
     {
+        if (!WorkoutDate.HasValue)
+            return ValidationResult.Fail("Indique la fecha del entrenamiento.");
+
         if (Entries.Count == 0)
             return ValidationResult.Fail("Agregue al menos un ejercicio al entrenamiento.");
 
@@ -552,12 +566,19 @@ public sealed class GymViewModel : AchievementAwareViewModel
         await RunBusyAsync(async () =>
         {
             var drafts = Entries.Select(e => e.ToDraft()).ToList();
-            var result = await _gymService.SaveWorkoutAsync(drafts);
+            var result = await _gymService.SaveWorkoutAsync(drafts, WorkoutDate ?? DateTime.Today);
             PublishAchievements(result.Events);
             await HobbyXp.RefreshAsync();
 
             Entries.Clear();
             AddRow();
+            WorkoutDate = DateTime.Today;
+
+            // Evitar que un filtro previo oculte el entrenamiento recién guardado.
+            _historyFromDate = null;
+            _historyToDate = null;
+            OnPropertyChanged(nameof(HistoryFromDate));
+            OnPropertyChanged(nameof(HistoryToDate));
 
             await LoadHistoryAsync();
             SelectedWorkout = History.FirstOrDefault(w => w.Id == result.Value.Id) ?? History.FirstOrDefault();

@@ -26,6 +26,7 @@ public interface IGymService
 
     Task<OperationResult<GymWorkout>> SaveWorkoutAsync(
         IReadOnlyList<GymWorkoutEntryDraft> entries,
+        DateTime workoutDate,
         string? notes = null,
         CancellationToken cancellationToken = default);
 

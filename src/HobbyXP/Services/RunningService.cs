@@ -56,6 +56,7 @@ public sealed class RunningService : IRunningService
         decimal distanceKm,
         TimeSpan duration,
         RunningSessionType sessionType,
+        DateTime recordedAt,
         int? carreraId = null,
         string? notes = null,
         CancellationToken cancellationToken = default)
@@ -86,7 +87,7 @@ public sealed class RunningService : IRunningService
             SessionType = sessionType,
             CarreraId = carreraId,
             Notes = notes,
-            RecordedAt = DateTime.UtcNow
+            RecordedAt = DateTimeHelper.ToUtcFromLocalDate(recordedAt)
         };
 
         db.RunningSessions.Add(session);

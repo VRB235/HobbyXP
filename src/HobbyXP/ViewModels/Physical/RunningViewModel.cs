@@ -18,6 +18,7 @@ public sealed class RunningViewModel : AchievementAwareViewModel
     private string _distanceKm = string.Empty;
     private string _durationMinutes = string.Empty;
     private string _durationSeconds = string.Empty;
+    private DateTime? _sessionDate = DateTime.Today;
     private RaceOption? _selectedRaceOption;
     private OfficialRace? _selectedRace;
     private RacePreparationStats? _selectedRaceStats;
@@ -191,6 +192,16 @@ public sealed class RunningViewModel : AchievementAwareViewModel
         set
         {
             if (SetProperty(ref _durationSeconds, value))
+                RefreshSessionValidation();
+        }
+    }
+
+    public DateTime? SessionDate
+    {
+        get => _sessionDate;
+        set
+        {
+            if (SetProperty(ref _sessionDate, value))
                 RefreshSessionValidation();
         }
     }
@@ -486,6 +497,9 @@ public sealed class RunningViewModel : AchievementAwareViewModel
         if (!seconds.IsValid)
             return seconds;
 
+        if (!SessionDate.HasValue)
+            return ValidationResult.Fail("Indique la fecha de la sesión.");
+
         return min == 0 && sec == 0
             ? ValidationResult.Fail("Indique una duración mayor que cero.")
             : ValidationResult.Ok();
@@ -573,6 +587,7 @@ public sealed class RunningViewModel : AchievementAwareViewModel
                 distance,
                 duration,
                 SelectedSessionTypeOption.Value ?? RunningSessionType.Regenerativa,
+                SessionDate ?? DateTime.Today,
                 raceId);
             PublishAchievements(result.Events);
             await HobbyXp.RefreshAsync();
@@ -590,6 +605,7 @@ public sealed class RunningViewModel : AchievementAwareViewModel
             DistanceKm = string.Empty;
             DurationMinutes = string.Empty;
             DurationSeconds = string.Empty;
+            SessionDate = DateTime.Today;
             SelectedSessionTypeOption = SessionTypeOptions[0];
             SessionValidationMessage = null;
             // El acordeón deja "Nueva sesión" abierta por defecto; abrir el historial
