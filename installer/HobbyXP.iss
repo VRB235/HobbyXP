@@ -3,7 +3,7 @@
 ; 2) Abra este script en Inno Setup Compiler y compile.
 
 #define MyAppName "HobbyXP"
-#define MyAppVersion "1.0.0"
+#define MyAppVersion "1.1.0"
 #define MyAppPublisher "HobbyXP"
 #define MyAppExeName "HobbyXP.exe"
 #define PublishDir "..\artifacts\publish\win-x64"
