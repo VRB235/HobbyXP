@@ -17,6 +17,7 @@ public static class MuscleGroupLabels
         MuscleGroup.Abductores => "Abductores",
         MuscleGroup.Aductores => "Aductores",
         MuscleGroup.Isquiotibiales => "Isquiotibiales",
+        MuscleGroup.Gluteos => "Glúteos",
         _ => group.ToString()
     };
 

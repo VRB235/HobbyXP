@@ -541,6 +541,11 @@
 
                             <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
                                 <Button Content="Agregar ejercicio" Command="{Binding AddRowCommand}" Style="{StaticResource PrimaryButton}" Margin="0,0,8,0" />
+                                <Button Content="Cargar último (referencia)"
+                                        Command="{Binding LoadLastAsReferenceCommand}"
+                                        Style="{StaticResource PrimaryButton}"
+                                        Margin="0,0,8,0"
+                                        ToolTip="Carga el último entrenamiento del músculo filtrado al formulario actual, sin guardar" />
                                 <Button Content="Guardar entrenamiento" Command="{Binding SaveWorkoutCommand}" Style="{StaticResource AccentButton}" />
                             </StackPanel>
                             <controls:FormValidationBanner Message="{Binding ValidationMessage}" Margin="0,8,0,0" />

@@ -41,6 +41,7 @@ public sealed class GymViewModel : AchievementAwareViewModel
     public GymViewModel(
         IGymService gymService,
         IXpService xpService,
+        IWeeklyQuotaService weeklyQuotaService,
         IMessageDialogService messageDialogService,
         IProfileRefreshMessenger profileRefreshMessenger,
         IAchievementMessenger achievementMessenger)
@@ -49,7 +50,7 @@ public sealed class GymViewModel : AchievementAwareViewModel
         _gymService = gymService;
         _messageDialogService = messageDialogService;
         _profileRefreshMessenger = profileRefreshMessenger;
-        HobbyXp = new HobbyProgressPresenter(xpService, MilestoneSourceType.Gym);
+        HobbyXp = new HobbyProgressPresenter(xpService, MilestoneSourceType.Gym, weeklyQuotaService);
 
         MuscleGroupCatalogOptions = MuscleGroupOption.CreateCatalogOptions();
         MuscleGroupFilterOptions = MuscleGroupOption.CreateFilterOptions();
@@ -75,6 +76,7 @@ public sealed class GymViewModel : AchievementAwareViewModel
 
         AddRowCommand = new RelayCommand(AddRow);
         RemoveRowCommand = new RelayCommand(RemoveRow, _ => Entries.Count > 0);
+        LoadLastAsReferenceCommand = new RelayCommand(LoadLastWorkoutAsReference, CanLoadLastAsReference);
         SaveWorkoutCommand = new AsyncRelayCommand(SaveWorkoutAsync, CanSaveWorkout);
         CreateExerciseCommand = new AsyncRelayCommand(CreateExerciseAsync, CanCreateExercise);
         UpdateCatalogMuscleGroupCommand = new AsyncRelayCommand(
@@ -209,7 +211,10 @@ public sealed class GymViewModel : AchievementAwareViewModel
         set
         {
             if (SetProperty(ref _exerciseFilterOption, value))
+            {
                 RebuildFilteredExercises();
+                CommandManager.InvalidateRequerySuggested();
+            }
         }
     }
 
@@ -255,6 +260,8 @@ public sealed class GymViewModel : AchievementAwareViewModel
 
     public RelayCommand RemoveRowCommand { get; }
 
+    public RelayCommand LoadLastAsReferenceCommand { get; }
+
     public AsyncRelayCommand SaveWorkoutCommand { get; }
 
     public AsyncRelayCommand CreateExerciseCommand { get; }
@@ -283,13 +290,26 @@ public sealed class GymViewModel : AchievementAwareViewModel
 
     private void RebuildFilteredExercises()
     {
+        // Preservar selección: al vaciar ItemsSource, WPF pone SelectedValue en null.
+        var preservedIds = Entries.Select(e => e.SelectedExerciseId).ToList();
+        var pinnedIds = preservedIds
+            .Where(id => id.HasValue)
+            .Select(id => id!.Value)
+            .ToHashSet();
+
         FilteredExercises.Clear();
         foreach (var exercise in Exercises
-                     .Where(e => ExerciseFilterOption.Matches(e.MuscleGroup))
+                     .Where(e => ExerciseFilterOption.Matches(e.MuscleGroup) || pinnedIds.Contains(e.Id))
                      .OrderBy(e => e.MuscleGroupSortOrder)
                      .ThenBy(e => e.Name))
         {
             FilteredExercises.Add(exercise);
+        }
+
+        for (var i = 0; i < Entries.Count; i++)
+        {
+            if (preservedIds[i].HasValue && Entries[i].SelectedExerciseId != preservedIds[i])
+                Entries[i].SelectedExerciseId = preservedIds[i];
         }
     }
 
@@ -297,6 +317,63 @@ public sealed class GymViewModel : AchievementAwareViewModel
     {
         _allWorkouts = (await _gymService.GetWorkoutHistoryAsync()).ToList();
         ApplyHistoryFilter();
+        CommandManager.InvalidateRequerySuggested();
+    }
+
+    private bool CanLoadLastAsReference() =>
+        _allWorkouts.Any(w => ExerciseFilterOption.MatchesWorkout(w));
+
+    /// <summary>
+    /// Copia el último entrenamiento del músculo filtrado al formulario actual, sin persistir.
+    /// </summary>
+    private void LoadLastWorkoutAsReference()
+    {
+        var workout = _allWorkouts
+            .Where(w => ExerciseFilterOption.MatchesWorkout(w))
+            .OrderByDescending(w => w.WorkoutDate)
+            .ThenByDescending(w => w.Id)
+            .FirstOrDefault();
+
+        if (workout is null)
+        {
+            StatusMessage = ExerciseFilterOption.Value is null
+                ? "No hay entrenamientos previos para usar como referencia."
+                : $"No hay entrenamientos previos de {ExerciseFilterOption.Label}.";
+            return;
+        }
+
+        Entries.Clear();
+        foreach (var entry in workout.Entries.OrderBy(e => e.SortOrder))
+        {
+            var row = CreateEntryRow(Entries.Count);
+            row.LoadFromHistoryEntry(entry);
+            Entries.Add(row);
+        }
+
+        if (Entries.Count == 0)
+            AddRow();
+
+        RebuildFilteredExercises();
+        RefreshWorkoutValidation();
+        IsWorkoutExpanded = true;
+
+        var muscleHint = ExerciseFilterOption.Value is null
+            ? "todos los grupos"
+            : ExerciseFilterOption.Label;
+        StatusMessage =
+            $"Referencia cargada ({muscleHint}): {workout.WorkoutDate:dd/MM/yyyy} · {workout.Entries.Count} ejercicio(s). No se ha guardado.";
+    }
+
+    private GymEntryRowViewModel CreateEntryRow(int sortOrder)
+    {
+        var row = new GymEntryRowViewModel(sortOrder);
+        row.PropertyChanged += (_, _) => RefreshWorkoutValidation();
+        row.PropertyChanged += (_, args) =>
+        {
+            if (args.PropertyName == nameof(GymEntryRowViewModel.SelectedExerciseId))
+                SyncRowExercise(row);
+        };
+        return row;
     }
 
     private void ApplyHistoryFilter()
@@ -377,17 +454,7 @@ public sealed class GymViewModel : AchievementAwareViewModel
         CommandManager.InvalidateRequerySuggested();
     }
 
-    private void AddRow()
-    {
-        var row = new GymEntryRowViewModel(Entries.Count);
-        row.PropertyChanged += (_, _) => RefreshWorkoutValidation();
-        row.PropertyChanged += (_, args) =>
-        {
-            if (args.PropertyName == nameof(GymEntryRowViewModel.SelectedExerciseId))
-                SyncRowExercise(row);
-        };
-        Entries.Add(row);
-    }
+    private void AddRow() => Entries.Add(CreateEntryRow(Entries.Count));
 
     private void RemoveRow(object? parameter)
     {

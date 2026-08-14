@@ -13,15 +13,18 @@ public sealed class GymService : IGymService
     private readonly IDbContextFactory<HobbyXpDbContext> _dbContextFactory;
     private readonly IXpService _xpService;
     private readonly IAchievementEngineService _achievementEngine;
+    private readonly IWeeklyQuotaService _weeklyQuotaService;
 
     public GymService(
         IDbContextFactory<HobbyXpDbContext> dbContextFactory,
         IXpService xpService,
-        IAchievementEngineService achievementEngine)
+        IAchievementEngineService achievementEngine,
+        IWeeklyQuotaService weeklyQuotaService)
     {
         _dbContextFactory = dbContextFactory;
         _xpService = xpService;
         _achievementEngine = achievementEngine;
+        _weeklyQuotaService = weeklyQuotaService;
     }
 
     public async Task<IReadOnlyList<Exercise>> GetExercisesAsync(CancellationToken cancellationToken = default)
@@ -223,6 +226,8 @@ public sealed class GymService : IGymService
             nameof(GymWorkout),
             workout.Id,
             cancellationToken));
+
+        await _weeklyQuotaService.NotifyActivityAsync(MilestoneSourceType.Gym, workoutDate.Date, cancellationToken);
 
         return OperationResult<GymWorkout>.WithEvents(workout, events.ToArray());
     }

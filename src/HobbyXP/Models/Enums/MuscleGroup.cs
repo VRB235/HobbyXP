@@ -15,5 +15,6 @@ public enum MuscleGroup
     Gemelos = 7,
     Abductores = 8,
     Aductores = 9,
-    Isquiotibiales = 10
+    Isquiotibiales = 10,
+    Gluteos = 11
 }

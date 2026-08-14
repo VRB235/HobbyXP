@@ -90,6 +90,27 @@ public sealed class GymEntryRowViewModel : ViewModelBase
         ExerciseType = exercise.ExerciseType;
     }
 
+    /// <summary>Rellena la fila desde un historial (referencia); no persiste.</summary>
+    public void LoadFromHistoryEntry(GymWorkoutEntry entry)
+    {
+        SelectedExerciseId = entry.ExerciseId;
+        ExerciseType = entry.ExerciseType;
+        Sets = entry.Sets;
+        Repetitions = entry.Repetitions;
+        WeightKg = entry.WeightKg;
+
+        if (entry.Duration is { } duration)
+        {
+            DurationMinutes = (int)duration.TotalMinutes;
+            DurationSeconds = duration.Seconds;
+        }
+        else
+        {
+            DurationMinutes = 0;
+            DurationSeconds = ExerciseType == ExerciseType.TimeBased ? 30 : 0;
+        }
+    }
+
     public GymWorkoutEntryDraft ToDraft()
     {
         TimeSpan? duration = ExerciseType == ExerciseType.TimeBased
