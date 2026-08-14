@@ -15,6 +15,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IDashboardService, DashboardService>();
         services.AddScoped<IRunningService, RunningService>();
         services.AddScoped<IGymService, GymService>();
+        services.AddScoped<IDietService, DietService>();
         services.AddScoped<IPuzzleService, PuzzleService>();
         services.AddScoped<IMediaService, MediaService>();
         services.AddScoped<IVideoGameService, VideoGameService>();

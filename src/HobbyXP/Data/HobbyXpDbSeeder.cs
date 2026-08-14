@@ -149,6 +149,27 @@ internal static class HobbyXpDbSeeder
                 PointsPerUnit = 5m,
                 IsActive = true,
                 CreatedAt = SeedTimestamp
+            },
+            new AchievementRule
+            {
+                Id = 14,
+                ActionType = AchievementActionType.DietMealOnPlan,
+                DisplayName = "Comida en plan",
+                UnitLabel = "comida",
+                PointsPerUnit = 15m,
+                IsActive = true,
+                CreatedAt = SeedTimestamp
+            },
+            new AchievementRule
+            {
+                Id = 15,
+                ActionType = AchievementActionType.DietPerfectDay,
+                DisplayName = "Día perfecto de dieta",
+                UnitLabel = "día",
+                PointsPerUnit = 0m,
+                FlatBonusPoints = 40,
+                IsActive = true,
+                CreatedAt = SeedTimestamp
             });
     }
 

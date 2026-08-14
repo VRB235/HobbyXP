@@ -28,6 +28,7 @@ public static class WeeklyQuotaPenaltyMessages
             MilestoneSourceType.VideoGame => "no registraste progreso",
             MilestoneSourceType.Book => "no registraste lectura",
             MilestoneSourceType.Course => "no registraste sesiones",
+            MilestoneSourceType.Diet => "no alcanzaste 5 días buenos",
             _ => "no registraste progreso"
         };
 }

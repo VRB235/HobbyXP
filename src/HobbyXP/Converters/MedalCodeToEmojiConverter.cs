@@ -30,6 +30,8 @@ public sealed class MedalCodeToEmojiConverter : IValueConverter
             MedalMilestoneTrack.CourseSessions => "📝",
             MedalMilestoneTrack.PuzzlesCompleted => "🧩",
             MedalMilestoneTrack.MediaCompleted => "🎬",
+            MedalMilestoneTrack.DietGoodDays => "🥗",
+            MedalMilestoneTrack.DietPerfectDays => "✨",
             _ => "⭐"
         };
     }

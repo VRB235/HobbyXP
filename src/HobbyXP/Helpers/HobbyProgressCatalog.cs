@@ -13,7 +13,8 @@ public static class HobbyProgressCatalog
         MilestoneSourceType.Media,
         MilestoneSourceType.VideoGame,
         MilestoneSourceType.Book,
-        MilestoneSourceType.Course
+        MilestoneSourceType.Course,
+        MilestoneSourceType.Diet
     ];
 
     public static bool IsTrackedHobby(MilestoneSourceType sourceType) =>
@@ -29,6 +30,7 @@ public static class HobbyProgressCatalog
         MilestoneSourceType.VideoGame => "Videojuegos",
         MilestoneSourceType.Book => "Libros",
         MilestoneSourceType.Course => "Cursos",
+        MilestoneSourceType.Diet => "Dieta",
         _ => sourceType.ToString()
     };
 
@@ -47,6 +49,8 @@ public static class HobbyProgressCatalog
         AchievementActionType.BookCompleted => MilestoneSourceType.Book,
         AchievementActionType.CourseSessionCompleted => MilestoneSourceType.Course,
         AchievementActionType.CourseCompleted => MilestoneSourceType.Course,
+        AchievementActionType.DietMealOnPlan => MilestoneSourceType.Diet,
+        AchievementActionType.DietPerfectDay => MilestoneSourceType.Diet,
         _ => null
     };
 }

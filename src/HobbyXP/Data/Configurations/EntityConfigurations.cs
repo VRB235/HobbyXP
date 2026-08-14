@@ -180,6 +180,40 @@ internal sealed class GymWorkoutConfiguration : IEntityTypeConfiguration<GymWork
     }
 }
 
+internal sealed class DietDayLogConfiguration : IEntityTypeConfiguration<DietDayLog>
+{
+    public void Configure(EntityTypeBuilder<DietDayLog> builder)
+    {
+        builder.ToTable("DietDayLogs");
+
+        builder.Property(d => d.BreakfastStatus)
+            .HasConversion<string>()
+            .HasMaxLength(16)
+            .IsRequired();
+
+        builder.Property(d => d.LunchStatus)
+            .HasConversion<string>()
+            .HasMaxLength(16)
+            .IsRequired();
+
+        builder.Property(d => d.DinnerStatus)
+            .HasConversion<string>()
+            .HasMaxLength(16)
+            .IsRequired();
+
+        builder.Property(d => d.SnackStatus)
+            .HasConversion<string>()
+            .HasMaxLength(16)
+            .IsRequired();
+
+        builder.Property(d => d.Notes)
+            .HasMaxLength(1000);
+
+        builder.HasIndex(d => d.DayDate)
+            .IsUnique();
+    }
+}
+
 internal sealed class PuzzleConfiguration : IEntityTypeConfiguration<Puzzle>
 {
     public void Configure(EntityTypeBuilder<Puzzle> builder)

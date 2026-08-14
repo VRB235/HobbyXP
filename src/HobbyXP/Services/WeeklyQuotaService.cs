@@ -183,6 +183,9 @@ public sealed class WeeklyQuotaService : IWeeklyQuotaService
         if (requiredPrimary <= 0)
             return null;
 
+        if (!await ShouldEvaluateSourceWeekAsync(sourceType, weekStartLocal, cancellationToken))
+            return null;
+
         var weekStartUtc = DateTimeHelper.ToUtcFromLocalDate(weekStartLocal);
         var counts = await CountActivityForSourceAsync(sourceType, weekStartLocal, cancellationToken);
         var met = WeeklyQuotaRules.IsMet(requiredPrimary, counts.Primary, requiredSecondary, counts.Secondary);
@@ -354,6 +357,30 @@ public sealed class WeeklyQuotaService : IWeeklyQuotaService
             $"Restaurado {HobbyProgressCatalog.GetDisplayName(evaluation.SourceType)} (semana {weekLabel}): +{evaluation.HobbyXpRevoked} XP");
     }
 
+    /// <summary>
+    /// Dieta no existía en el tracking global: no se evalúan semanas anteriores al primer log.
+    /// Sin logs, no hay castigo (el hobby aún no empezó).
+    /// </summary>
+    private async Task<bool> ShouldEvaluateSourceWeekAsync(
+        MilestoneSourceType sourceType,
+        DateTime weekStartLocal,
+        CancellationToken cancellationToken)
+    {
+        if (sourceType != MilestoneSourceType.Diet)
+            return true;
+
+        await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var firstDayUtc = await db.DietDayLogs
+            .Select(d => (DateTime?)d.DayDate)
+            .MinAsync(cancellationToken);
+
+        if (firstDayUtc is null)
+            return false;
+
+        var firstWeekStartLocal = WeekDateHelper.GetWeekStartLocal(firstDayUtc.Value.ToLocalTime());
+        return weekStartLocal >= firstWeekStartLocal;
+    }
+
     private async Task<Dictionary<MilestoneSourceType, (int Primary, int Secondary)>> CountActivityAsync(
         DateTime weekStartLocal,
         CancellationToken cancellationToken)
@@ -416,6 +443,14 @@ public sealed class WeeklyQuotaService : IWeeklyQuotaService
                 await db.CourseSessionLogs
                     .Where(l => l.SessionDate >= startUtc && l.SessionDate < endUtc)
                     .SumAsync(l => l.SessionsDone, cancellationToken),
+                0),
+
+            MilestoneSourceType.Diet => (
+                await db.DietDayLogs.CountAsync(
+                    d => d.DayDate >= startUtc &&
+                         d.DayDate < endUtc &&
+                         d.OnPlanCount >= DietDayRules.GoodDayThreshold,
+                    cancellationToken),
                 0),
 
             _ => (0, 0)

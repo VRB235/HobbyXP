@@ -88,6 +88,7 @@ public sealed class DashboardService : IDashboardService
         MilestoneSourceType.Book => "Libros",
         MilestoneSourceType.Course => "Cursos",
         MilestoneSourceType.OfficialRace => "Carreras oficiales",
+        MilestoneSourceType.Diet => "Dieta",
         MilestoneSourceType.Reward => "Recompensas",
         _ => "Sistema"
     };

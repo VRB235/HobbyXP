@@ -678,6 +678,158 @@
                 </DockPanel>
                 </ScrollViewer>
             </TabItem>
+
+            <TabItem Header="Dieta">
+                <ScrollViewer x:Name="DietScroll"
+                              VerticalScrollBarVisibility="Auto"
+                              HorizontalScrollBarVisibility="Disabled">
+                <DockPanel DataContext="{Binding Diet}" Margin="8"
+                           MinHeight="{Binding ViewportHeight, ElementName=DietScroll}">
+                    <StackPanel DockPanel.Dock="Bottom" Margin="0,4,0,0">
+                        <TextBlock Text="{Binding StatusMessage}"
+                                   Foreground="{StaticResource AccentGreenBrush}" />
+                        <TextBlock Text="{Binding ErrorMessage}"
+                                   Foreground="{StaticResource DangerBrush}"
+                                   Visibility="{Binding ErrorMessage, Converter={StaticResource NullToVisibility}}" />
+                    </StackPanel>
+                    <StackPanel>
+                        <controls:HobbyXpBanner DataContext="{Binding HobbyXp}" />
+                        <Expander Header="Registro del día"
+                                  IsExpanded="{Binding IsTodayExpanded, Mode=TwoWay}">
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                                    <TextBlock Text="Fecha:" VerticalAlignment="Center" Margin="0,0,8,0" />
+                                    <DatePicker SelectedDate="{Binding SelectedDate}"
+                                                Width="140"
+                                                ToolTip="Fecha del día (permite atrasar para disciplina semanal)" />
+                                    <TextBlock Text="{Binding ScoreSummary}"
+                                               VerticalAlignment="Center"
+                                               Margin="16,0,8,0"
+                                               FontWeight="SemiBold"
+                                               Foreground="{StaticResource AccentGoldBrush}" />
+                                    <TextBlock Text="{Binding DaySummary}"
+                                               VerticalAlignment="Center"
+                                               Style="{StaticResource MutedText}" />
+                                </StackPanel>
+
+                                <ItemsControl ItemsSource="{Binding Meals}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Grid Margin="0,0,0,8">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="110" />
+                                                    <ColumnDefinition Width="120" />
+                                                    <ColumnDefinition Width="140" />
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Text="{Binding Label}"
+                                                           VerticalAlignment="Center" />
+                                                <Button Grid.Column="1"
+                                                        Content="En plan"
+                                                        Command="{Binding SetOnPlanCommand}"
+                                                        Margin="0,0,8,0">
+                                                    <Button.Style>
+                                                        <Style TargetType="Button" BasedOn="{StaticResource AccentButton}">
+                                                            <Setter Property="Opacity" Value="0.55" />
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding IsOnPlan}" Value="True">
+                                                                    <Setter Property="Opacity" Value="1" />
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </Button.Style>
+                                                </Button>
+                                                <Button Grid.Column="2"
+                                                        Content="Fuera de plan"
+                                                        Command="{Binding SetOffPlanCommand}">
+                                                    <Button.Style>
+                                                        <Style TargetType="Button" BasedOn="{StaticResource DangerButton}">
+                                                            <Setter Property="Opacity" Value="0.55" />
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding IsOffPlan}" Value="True">
+                                                                    <Setter Property="Opacity" Value="1" />
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </Button.Style>
+                                                </Button>
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+
+                                <Button Content="Guardar día"
+                                        Command="{Binding SaveDayCommand}"
+                                        Style="{StaticResource AccentButton}"
+                                        HorizontalAlignment="Left"
+                                        Margin="0,8,0,0" />
+                                <controls:FormValidationBanner Message="{Binding ValidationMessage}" Margin="0,8,0,0" />
+                            </StackPanel>
+                        </Expander>
+
+                        <Expander Header="Historial de dieta"
+                                  IsExpanded="{Binding IsHistoryExpanded, Mode=TwoWay}">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" MinHeight="360" />
+                                </Grid.RowDefinitions>
+
+                                <Grid Grid.Row="0" Margin="0,0,0,8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="140" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="140" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="Desde:" VerticalAlignment="Center" Margin="0,0,8,0" />
+                                    <DatePicker Grid.Column="1" SelectedDate="{Binding HistoryFromDate}" Margin="0,0,12,0" />
+                                    <TextBlock Grid.Column="2" Text="Hasta:" VerticalAlignment="Center" Margin="0,0,8,0" />
+                                    <DatePicker Grid.Column="3" SelectedDate="{Binding HistoryToDate}" Margin="0,0,12,0" />
+                                    <Button Grid.Column="4"
+                                            Content="Limpiar"
+                                            Command="{Binding ClearHistoryDateFilterCommand}"
+                                            Style="{StaticResource PrimaryButton}" />
+                                </Grid>
+
+                                <ListView Grid.Row="1"
+                                          ItemsSource="{Binding History}"
+                                          SelectedItem="{Binding SelectedLog}"
+                                          MinHeight="360"
+                                          HorizontalAlignment="Stretch"
+                                          VerticalAlignment="Stretch"
+                                          helpers:GridViewStretchHelper.StretchColumns="True"
+                                          helpers:GridViewSortHelper.EnableSort="True">
+                                    <ListView.View>
+                                        <GridView>
+                                            <GridViewColumn Header="Fecha" DisplayMemberBinding="{Binding DayDate, StringFormat={}{0:dd/MM/yyyy}}" Width="90" />
+                                            <GridViewColumn Header="Resultado" DisplayMemberBinding="{Binding ScoreLabel}" Width="80" />
+                                            <GridViewColumn Header="Tipo" DisplayMemberBinding="{Binding DayKindLabel}" Width="160" />
+                                            <GridViewColumn Header="Desayuno" DisplayMemberBinding="{Binding BreakfastLabel}" Width="100" />
+                                            <GridViewColumn Header="Almuerzo" DisplayMemberBinding="{Binding LunchLabel}" Width="100" />
+                                            <GridViewColumn Header="Cena" DisplayMemberBinding="{Binding DinnerLabel}" Width="100" />
+                                            <GridViewColumn Header="Snack" DisplayMemberBinding="{Binding SnackLabel}" Width="100" />
+                                            <GridViewColumn Header="XP" DisplayMemberBinding="{Binding XpEarned}" Width="50" />
+                                            <GridViewColumn Header="" Width="44">
+                                                <GridViewColumn.CellTemplate>
+                                                    <DataTemplate>
+                                                        <Button Content="✕"
+                                                                Style="{StaticResource DangerIconButton}"
+                                                                ToolTip="Eliminar del historial"
+                                                                Command="{Binding DataContext.DeleteDayCommand, RelativeSource={RelativeSource AncestorType=ListView}}"
+                                                                CommandParameter="{Binding}" />
+                                                    </DataTemplate>
+                                                </GridViewColumn.CellTemplate>
+                                            </GridViewColumn>
+                                        </GridView>
+                                    </ListView.View>
+                                </ListView>
+                            </Grid>
+                        </Expander>
+                    </StackPanel>
+                </DockPanel>
+                </ScrollViewer>
+            </TabItem>
         </TabControl>
     </DockPanel>
 </UserControl>

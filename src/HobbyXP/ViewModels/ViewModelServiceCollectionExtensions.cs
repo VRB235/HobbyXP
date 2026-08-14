@@ -22,6 +22,7 @@ public static class ViewModelServiceCollectionExtensions
 
         services.AddScoped<RunningViewModel>();
         services.AddScoped<GymViewModel>();
+        services.AddScoped<DietViewModel>();
         services.AddScoped<PhysicalActivitiesViewModel>();
 
         services.AddScoped<PuzzlesViewModel>();

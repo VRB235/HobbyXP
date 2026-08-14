@@ -97,6 +97,12 @@ internal static class LevelUpSuggestionBuilder
                 "Carrera oficial",
                 xpRemaining,
                 "Marque la carrera como completada."),
+            MilestoneSourceType.Diet => BuildFromRule(
+                rules,
+                AchievementActionType.DietMealOnPlan,
+                "Dieta",
+                xpRemaining,
+                "Marque comidas en plan. Un día perfecto (4/4) suma bono extra."),
             _ => null
         };
 
@@ -264,6 +270,8 @@ internal static class LevelUpSuggestionBuilder
             "carrera" => "carreras",
             "juego" => "juegos",
             "logro" => "logros",
+            "comida" => "comidas",
+            "día" => "días",
             _ => $"{unitLabel}s"
         };
 

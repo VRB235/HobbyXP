@@ -17,6 +17,7 @@
 | `CP-VAL` | Validaciones de formulario |
 | `CP-RUN` | Running |
 | `CP-GYM` | Gimnasio |
+| `CP-DIE` | Dieta |
 | `CP-PUZ` | Rompecabezas |
 | `CP-MED` | Series y películas |
 | `CP-VG` | Videojuegos |
@@ -70,6 +71,7 @@ LIMIT 10;
 SELECT 'RunningSessions' AS Tabla, COUNT(*) AS Total FROM RunningSessions
 UNION ALL SELECT 'OfficialRaces', COUNT(*) FROM OfficialRaces
 UNION ALL SELECT 'GymWorkouts', COUNT(*) FROM GymWorkouts
+UNION ALL SELECT 'DietDayLogs', COUNT(*) FROM DietDayLogs
 UNION ALL SELECT 'Puzzles', COUNT(*) FROM Puzzles
 UNION ALL SELECT 'MediaEntries', COUNT(*) FROM MediaEntries
 UNION ALL SELECT 'VideoGames', COUNT(*) FROM VideoGames
@@ -93,6 +95,8 @@ UNION ALL SELECT 'Courses', COUNT(*) FROM Courses;
 | Libro terminado | +200 XP (bono) |
 | Sesión de curso | 10 XP / sesión |
 | Curso terminado | +100 XP (bono) |
+| Comida en plan | 15 XP / comida |
+| Día perfecto de dieta (4/4) | +40 XP (bono) |
 
 ### 1.6 Criterios de aceptación globales
 
@@ -126,7 +130,7 @@ UNION ALL SELECT 'Courses', COUNT(*) FROM Courses;
 |-------|---------|
 | **Prioridad** | Alta |
 | **Precondiciones** | App abierta. |
-| **Pasos** | 1. Pulsar cada ítem del sidebar: Dashboard, Actividades Físicas, Entretenimiento, Crecimiento Personal, Logros y Premios.<br>2. En secciones con pestañas, alternar entre ellas. |
+| **Pasos** | 1. Pulsar cada ítem del sidebar: Dashboard, Actividades Físicas, Entretenimiento, Crecimiento Personal, Logros y Premios.<br>2. En secciones con pestañas, alternar entre ellas (Running / Gimnasio / Dieta; etc.). |
 | **UI** | Cada sección carga sin error; el contenido cambia según la selección. |
 | **BD** | Sin cambios. |
 
@@ -305,6 +309,19 @@ UNION ALL SELECT 'Courses', COUNT(*) FROM Courses;
 
 ---
 
+### CP-VAL-007 — Dieta: no guardar el día sin comidas marcadas
+
+| Campo | Detalle |
+|-------|---------|
+| **Prioridad** | Media |
+| **Precondiciones** | Actividades Físicas → Dieta. |
+| **Datos** | Las 4 comidas en «—» (sin marcar). |
+| **Pasos** | 1. No pulsar En plan ni Fuera de plan, o pulsar de nuevo para desmarcar.<br>2. Intentar Guardar día. |
+| **UI** | «Marque al menos una comida (En plan o Fuera de plan).» |
+| **BD** | Sin fila nueva en `DietDayLogs`. |
+
+---
+
 ## 5. Running
 
 ### CP-RUN-001 — Registrar sesión de running con XP
@@ -394,6 +411,88 @@ UNION ALL SELECT 'Courses', COUNT(*) FROM Courses;
 | **Pasos** | 1. Eliminar desde historial.<br>2. Confirmar. |
 | **UI** | Entrenamiento removido; XP revertido. |
 | **BD** | Sin fila en `GymWorkouts` (y entradas hijas eliminadas en cascada). |
+
+---
+
+## 6.1 Dieta
+
+Contrato: 4 comidas (Desayuno, Almuerzo, Cena, Snack). Cada una: En plan / Fuera de plan / sin marcar. **Día bueno** = al menos 3 comidas en plan. **Día perfecto** = 4/4. Cuota semanal (lun–dom): **5 días buenos**. Las comidas sin marcar no suman. Un desliz (fuera de plan) no anula el día si quedan ≥3 en plan.
+
+XP de referencia: 15 XP por comida en plan; +40 XP si el día queda 4/4. Fuera de plan = 0 XP, pero sí se persiste.
+
+### CP-DIE-001 — Día bueno con 3 comidas en plan
+
+| Campo | Detalle |
+|-------|---------|
+| **Prioridad** | Alta |
+| **Precondiciones** | Actividades Físicas → pestaña **Dieta**. |
+| **Datos** | Fecha: hoy. Desayuno, Almuerzo y Cena = **En plan**. Snack = sin marcar. |
+| **Pasos** | 1. Abrir Dieta.<br>2. Marcar las 3 comidas indicadas.<br>3. Verificar resumen `3/4 · Día bueno`.<br>4. Guardar día. |
+| **UI** | Historial con fecha de hoy, resultado `3/4`, tipo «Día bueno»; +45 XP; medalla «Primer Plato» la primera vez. Dashboard: cuota Dieta avanza 1/5 días buenos (si es la semana actual). |
+| **BD** | `SELECT DayDate, BreakfastStatus, LunchStatus, DinnerStatus, SnackStatus, OnPlanCount, XpEarned FROM DietDayLogs ORDER BY Id DESC LIMIT 1;` → `OnPlanCount=3`, `SnackStatus='Unlogged'`, `XpEarned=45`. `HobbyProgresses` de `SourceType='Diet'` incrementa 45. |
+
+---
+
+### CP-DIE-002 — Snack fuera de plan no tumba un día bueno
+
+| Campo | Detalle |
+|-------|---------|
+| **Prioridad** | Alta |
+| **Precondiciones** | CP-DIE-001 guardado el mismo día (o repetir 3 comidas en plan). |
+| **Datos** | Snack = **Fuera de plan**. |
+| **Pasos** | 1. En el mismo día, pulsar **Fuera de plan** en Snack.<br>2. Guardar día (upsert, no debe crear otra fila). |
+| **UI** | Sigue `3/4 · Día bueno`; XP permanece 45 (no suma el snack). Historial: 1 sola fila para esa fecha; Snack = «Fuera de plan». |
+| **BD** | `SELECT COUNT(*) FROM DietDayLogs WHERE date(DayDate)=date('ahora-local-en-utc');` → **1**. `OnPlanCount=3`, `SnackStatus='OffPlan'`, `XpEarned=45`. |
+
+---
+
+### CP-DIE-003 — Día perfecto otorga bono
+
+| Campo | Detalle |
+|-------|---------|
+| **Prioridad** | Alta |
+| **Precondiciones** | Pestaña Dieta. Usar una **fecha distinta** a CP-DIE-001 (p. ej. ayer) para no pisar el upsert. |
+| **Datos** | Las 4 comidas = **En plan**. |
+| **Pasos** | 1. Cambiar el DatePicker a ayer.<br>2. Marcar las 4 comidas En plan.<br>3. Guardar. |
+| **UI** | `4/4 · Día perfecto`; +100 XP (60 de comidas + 40 bono); mensaje de día perfecto. |
+| **BD** | `OnPlanCount=4`, `XpEarned=100`. Transacciones: una de `DietMealOnPlan` (60) y una de `DietPerfectDay` (40). |
+
+---
+
+### CP-DIE-004 — Semana con 4 días buenos no cumple la cuota
+
+| Campo | Detalle |
+|-------|---------|
+| **Prioridad** | Alta |
+| **Precondiciones** | Semana lun–dom actual. Saber interpretar `WeeklyQuotaEvaluations` (la cuota de Dieta **no castiga** semanas anteriores al primer `DietDayLogs`; el dashboard de la semana abierta sí cuenta). |
+| **Datos** | 4 fechas de la semana actual, cada una con ≥3 comidas En plan. No registrar un 5.º día bueno. |
+| **Pasos** | 1. Guardar 4 días buenos en la semana (usar DatePicker atrasable).<br>2. Abrir Dashboard y localizar la cuota de **Dieta**. |
+| **UI** | Progreso `4/5 días buenos`; la cuota **no** aparece como cumplida. |
+| **BD** | `SELECT COUNT(*) FROM DietDayLogs WHERE OnPlanCount >= 3 AND DayDate >= <lunes-utc> AND DayDate < <lunes-siguiente-utc>;` → **4**. |
+
+---
+
+### CP-DIE-005 — Guardar sin marcar ninguna comida
+
+| Campo | Detalle |
+|-------|---------|
+| **Prioridad** | Media |
+| **Precondiciones** | Pestaña Dieta; día sin marcas (o pulsar de nuevo En plan/Fuera de plan para dejar «—»). |
+| **Pasos** | 1. Dejar las 4 comidas sin marcar.<br>2. Intentar Guardar día. |
+| **UI** | Banner: «Marque al menos una comida (En plan o Fuera de plan).»; botón deshabilitado o sin efecto. |
+| **BD** | Sin nueva fila en `DietDayLogs` (si el día no existía). |
+
+---
+
+### CP-DIE-006 — Eliminar día de dieta revierte XP
+
+| Campo | Detalle |
+|-------|---------|
+| **Prioridad** | Alta |
+| **Precondiciones** | Al menos un día en el historial de Dieta con XP > 0. Anotar `HobbyProgresses.TotalXp` de Dieta antes. |
+| **Pasos** | 1. En historial, pulsar ✕.<br>2. Confirmar el diálogo. |
+| **UI** | Fila desaparece; XP de Dieta disminuye; saldo canjeable se ajusta. |
+| **BD** | Sin esa fila en `DietDayLogs`. `HobbyProgresses` de Dieta baja el `XpEarned` de ese día. |
 
 ---
 
@@ -783,6 +882,7 @@ UNION ALL SELECT 'Courses', COUNT(*) FROM Courses;
 | Sidebar / Perfil | `PlayerProfiles` | CP-PER-*, CP-VAL (nombre) |
 | Running | `RunningSessions`, `OfficialRaces` | CP-RUN-* |
 | Gym | `GymWorkouts`, `GymWorkoutEntries`, `Exercises` | CP-GYM-* |
+| Dieta | `DietDayLogs` | CP-DIE-* |
 | Rompecabezas | `Puzzles` | CP-PUZ-* |
 | Media | `MediaEntries` | CP-MED-* |
 | Videojuegos | `VideoGames` | CP-VG-* |

@@ -129,6 +129,21 @@ public static class HobbyLevelTitles
                 "Guardián del portafolio",
                 "Sabio del campus",
                 "Leyenda del saber infinito"
+            ],
+            [MilestoneSourceType.Diet] =
+            [
+                "Aprendiz del plato",
+                "Guardián del desayuno",
+                "Centinela del almuerzo",
+                "Herrero de la cena",
+                "Alquimista del snack",
+                "Titán de la adherencia",
+                "Señor del día bueno",
+                "Oráculo del 3 de 4",
+                "Coloso del plan",
+                "Guardián de la semana",
+                "Sabio del menú",
+                "Leyenda del hábito eterno"
             ]
         };
 

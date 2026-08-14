@@ -275,7 +275,8 @@ public sealed class XpServiceTests : IDisposable
     {
         var all = await _sut.GetAllHobbyProgressAsync();
 
-        Assert.Equal(8, all.Count);
+        Assert.Equal(9, all.Count);
         Assert.Contains(all, h => h.SourceType == MilestoneSourceType.Gym);
+        Assert.Contains(all, h => h.SourceType == MilestoneSourceType.Diet);
     }
 }

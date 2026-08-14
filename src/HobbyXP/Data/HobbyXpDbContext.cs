@@ -26,6 +26,7 @@ public class HobbyXpDbContext : DbContext
     public DbSet<Exercise> Exercises => Set<Exercise>();
     public DbSet<GymWorkout> GymWorkouts => Set<GymWorkout>();
     public DbSet<GymWorkoutEntry> GymWorkoutEntries => Set<GymWorkoutEntry>();
+    public DbSet<DietDayLog> DietDayLogs => Set<DietDayLog>();
 
     public DbSet<Puzzle> Puzzles => Set<Puzzle>();
     public DbSet<MediaEntry> MediaEntries => Set<MediaEntry>();

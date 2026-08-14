@@ -44,11 +44,13 @@ public sealed class WeeklyQuotaRulesTests
     }
 
     [Fact]
-    public void Gym_RequiresFiveWorkouts()
+    public void Diet_RequiresFiveGoodDays()
     {
-        var (primary, secondary) = WeeklyQuotaRules.GetRequired(Models.Enums.MilestoneSourceType.Gym);
+        var (primary, secondary) = WeeklyQuotaRules.GetRequired(Models.Enums.MilestoneSourceType.Diet);
         Assert.Equal(5, primary);
         Assert.Equal(0, secondary);
+        Assert.False(WeeklyQuotaRules.IsMet(5, 4, 0, 0));
+        Assert.True(WeeklyQuotaRules.IsMet(5, 5, 0, 0));
     }
 }
 

@@ -68,5 +68,11 @@ public enum MedalCode
 
     PlatinumGames3 = 49,
     PlatinumGames5 = 50,
-    PlatinumGames10 = 51
+    PlatinumGames10 = 51,
+
+    DietGoodDays1 = 52,
+    DietGoodDays10 = 53,
+    DietGoodDays50 = 54,
+    DietPerfectDays7 = 55,
+    DietPerfectDays30 = 56
 }

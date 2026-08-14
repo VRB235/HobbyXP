@@ -11,5 +11,6 @@ public enum MilestoneSourceType
     Course = 6,
     OfficialRace = 7,
     Reward = 8,
-    System = 9
+    System = 9,
+    Diet = 10
 }

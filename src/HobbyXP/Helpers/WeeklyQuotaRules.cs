@@ -16,7 +16,8 @@ public static class WeeklyQuotaRules
         MilestoneSourceType.Media,
         MilestoneSourceType.VideoGame,
         MilestoneSourceType.Book,
-        MilestoneSourceType.Course
+        MilestoneSourceType.Course,
+        MilestoneSourceType.Diet
     ];
 
     public static (int Primary, int Secondary) GetRequired(MilestoneSourceType sourceType) =>
@@ -29,6 +30,7 @@ public static class WeeklyQuotaRules
             MilestoneSourceType.VideoGame => (1, 0),
             MilestoneSourceType.Book => (1, 0),
             MilestoneSourceType.Course => (1, 0),
+            MilestoneSourceType.Diet => (5, 0),
             _ => (0, 0)
         };
 
@@ -42,6 +44,7 @@ public static class WeeklyQuotaRules
             MilestoneSourceType.VideoGame => "avances",
             MilestoneSourceType.Book => "lecturas",
             MilestoneSourceType.Course => "sesiones",
+            MilestoneSourceType.Diet => "días buenos",
             _ => "unidades"
         };
 
