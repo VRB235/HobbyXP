@@ -33,5 +33,23 @@ internal sealed class VideoGameConfiguration : IEntityTypeConfiguration<VideoGam
 
         builder.HasIndex(v => v.Status);
         builder.HasIndex(v => v.CompletionPercentage);
+
+        builder.HasMany(v => v.ProgressLogs)
+            .WithOne(l => l.VideoGame)
+            .HasForeignKey(l => l.VideoGameId)
+            .OnDelete(DeleteBehavior.Cascade);
+    }
+}
+
+internal sealed class VideoGameProgressLogConfiguration : IEntityTypeConfiguration<VideoGameProgressLog>
+{
+    public void Configure(EntityTypeBuilder<VideoGameProgressLog> builder)
+    {
+        builder.ToTable("VideoGameProgressLogs");
+
+        builder.Property(l => l.PercentDelta)
+            .IsRequired();
+
+        builder.HasIndex(l => new { l.VideoGameId, l.ProgressDate });
     }
 }

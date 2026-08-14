@@ -24,6 +24,7 @@ public sealed class DashboardViewModel : LoadableViewModelBase
     private readonly IDashboardService _dashboardService;
     private readonly IPlayerProfileService _playerProfileService;
     private readonly IXpService _xpService;
+    private readonly IWeeklyQuotaService _weeklyQuotaService;
     private int _currentLevel = 1;
     private int _totalXp;
     private int _xpIntoCurrentLevel;
@@ -39,19 +40,26 @@ public sealed class DashboardViewModel : LoadableViewModelBase
     private bool _hasCustomAvatar;
     private string _suggestionsSummary = "Sigue registrando actividades para subir de nivel.";
     private bool _showLevelUpSuggestions;
+    private bool _isDisciplineExpanded;
+    private bool _isHobbyProgressExpanded;
+    private bool _isChartsExpanded;
+    private bool _isSuggestionsExpanded = true;
 
     public DashboardViewModel(
         IDashboardService dashboardService,
         IPlayerProfileService playerProfileService,
         IXpService xpService,
+        IWeeklyQuotaService weeklyQuotaService,
         IApplicationDataResetMessenger applicationDataResetMessenger)
     {
         _dashboardService = dashboardService;
         _playerProfileService = playerProfileService;
         _xpService = xpService;
+        _weeklyQuotaService = weeklyQuotaService;
         RecentMilestones = new ObservableCollection<Milestone>();
         SuggestedActivities = new ObservableCollection<LevelUpSuggestion>();
         HobbyProgressItems = new ObservableCollection<HobbyProgressInfo>();
+        WeeklyQuotaItems = new ObservableCollection<WeeklyQuotaProgress>();
         RefreshCommand = new AsyncRelayCommand(() => LoadAsync());
         applicationDataResetMessenger.ApplicationDataReset += OnApplicationDataReset;
     }
@@ -59,6 +67,7 @@ public sealed class DashboardViewModel : LoadableViewModelBase
     public ObservableCollection<Milestone> RecentMilestones { get; }
     public ObservableCollection<LevelUpSuggestion> SuggestedActivities { get; }
     public ObservableCollection<HobbyProgressInfo> HobbyProgressItems { get; }
+    public ObservableCollection<WeeklyQuotaProgress> WeeklyQuotaItems { get; }
 
     public int CurrentLevel
     {
@@ -163,6 +172,30 @@ public sealed class DashboardViewModel : LoadableViewModelBase
         private set => SetProperty(ref _showLevelUpSuggestions, value);
     }
 
+    public bool IsDisciplineExpanded
+    {
+        get => _isDisciplineExpanded;
+        set => SetProperty(ref _isDisciplineExpanded, value);
+    }
+
+    public bool IsHobbyProgressExpanded
+    {
+        get => _isHobbyProgressExpanded;
+        set => SetProperty(ref _isHobbyProgressExpanded, value);
+    }
+
+    public bool IsChartsExpanded
+    {
+        get => _isChartsExpanded;
+        set => SetProperty(ref _isChartsExpanded, value);
+    }
+
+    public bool IsSuggestionsExpanded
+    {
+        get => _isSuggestionsExpanded;
+        set => SetProperty(ref _isSuggestionsExpanded, value);
+    }
+
     protected override async Task LoadCoreAsync()
     {
         var profile = await _playerProfileService.GetProfileAsync();
@@ -177,6 +210,7 @@ public sealed class DashboardViewModel : LoadableViewModelBase
         BuildDistributionChart(summary.MonthlyHobbyDistribution);
         BuildSuggestions(summary);
         await LoadHobbyProgressAsync();
+        await LoadWeeklyQuotasAsync();
 
         RecentMilestones.Clear();
         foreach (var milestone in summary.RecentMilestones)
@@ -194,6 +228,17 @@ public sealed class DashboardViewModel : LoadableViewModelBase
         HobbyProgressItems.Clear();
         foreach (var item in items)
             HobbyProgressItems.Add(item);
+    }
+
+    private async Task LoadWeeklyQuotasAsync()
+    {
+        var items = await _weeklyQuotaService.GetCurrentWeekProgressAsync();
+        WeeklyQuotaItems.Clear();
+        foreach (var item in items)
+            WeeklyQuotaItems.Add(item);
+
+        if (items.Any(i => i.HasActivePenalty))
+            IsDisciplineExpanded = true;
     }
 
     private void BuildSuggestions(DashboardSummary summary)

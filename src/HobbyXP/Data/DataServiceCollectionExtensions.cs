@@ -1,3 +1,4 @@
+using HobbyXP.Services.Abstractions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -26,5 +27,8 @@ public static class DataServiceCollectionExtensions
         await HobbyXpDatabaseInitializer.EnsureHobbyProgressRowsAsync(dbContext, cancellationToken);
         await HobbyXpDatabaseInitializer.EnsureHobbyXpBackfillAsync(dbContext, cancellationToken);
         await HobbyXpDatabaseInitializer.EnsureSpendableLedgerAsync(dbContext, cancellationToken);
+
+        var weeklyQuota = scope.ServiceProvider.GetRequiredService<IWeeklyQuotaService>();
+        await weeklyQuota.EvaluateClosedWeeksAsync(cancellationToken);
     }
 }

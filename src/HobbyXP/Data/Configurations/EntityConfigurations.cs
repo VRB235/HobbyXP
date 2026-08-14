@@ -36,6 +36,9 @@ internal sealed class PlayerProfileConfiguration : IEntityTypeConfiguration<Play
 
         builder.Property(p => p.AvatarPath)
             .HasMaxLength(500);
+
+        builder.Property(p => p.WeeklyQuotaTrackingStartedAtUtc)
+            .IsRequired(false);
     }
 }
 
@@ -91,6 +94,27 @@ internal sealed class HobbyProgressConfiguration : IEntityTypeConfiguration<Hobb
             .OnDelete(DeleteBehavior.Cascade);
 
         builder.HasIndex(h => new { h.PlayerProfileId, h.SourceType })
+            .IsUnique();
+    }
+}
+
+internal sealed class WeeklyQuotaEvaluationConfiguration : IEntityTypeConfiguration<WeeklyQuotaEvaluation>
+{
+    public void Configure(EntityTypeBuilder<WeeklyQuotaEvaluation> builder)
+    {
+        builder.ToTable("WeeklyQuotaEvaluations");
+
+        builder.Property(e => e.SourceType)
+            .HasConversion<string>()
+            .HasMaxLength(32)
+            .IsRequired();
+
+        builder.Property(e => e.Status)
+            .HasConversion<string>()
+            .HasMaxLength(16)
+            .IsRequired();
+
+        builder.HasIndex(e => new { e.SourceType, e.WeekStartUtc })
             .IsUnique();
     }
 }
@@ -196,6 +220,47 @@ internal sealed class MediaEntryConfiguration : IEntityTypeConfiguration<MediaEn
     }
 }
 
+internal sealed class MediaSeriesConfiguration : IEntityTypeConfiguration<MediaSeries>
+{
+    public void Configure(EntityTypeBuilder<MediaSeries> builder)
+    {
+        builder.ToTable("MediaSeries");
+
+        builder.Property(s => s.Title)
+            .HasMaxLength(300)
+            .IsRequired();
+
+        builder.Property(s => s.Status)
+            .HasConversion<string>()
+            .HasMaxLength(16)
+            .IsRequired();
+
+        builder.ToTable(t => t.HasCheckConstraint(
+            "CK_MediaSeries_ChaptersWatched",
+            "[ChaptersWatched] >= 0 AND [ChaptersWatched] <= [TotalChapters]"));
+
+        builder.HasIndex(s => s.Status);
+
+        builder.HasMany(s => s.ChapterLogs)
+            .WithOne(l => l.MediaSeries)
+            .HasForeignKey(l => l.MediaSeriesId)
+            .OnDelete(DeleteBehavior.Cascade);
+    }
+}
+
+internal sealed class MediaSeriesChapterLogConfiguration : IEntityTypeConfiguration<MediaSeriesChapterLog>
+{
+    public void Configure(EntityTypeBuilder<MediaSeriesChapterLog> builder)
+    {
+        builder.ToTable("MediaSeriesChapterLogs");
+
+        builder.Property(l => l.ChaptersDone)
+            .IsRequired();
+
+        builder.HasIndex(l => new { l.MediaSeriesId, l.WatchDate });
+    }
+}
+
 internal sealed class BookConfiguration : IEntityTypeConfiguration<Book>
 {
     public void Configure(EntityTypeBuilder<Book> builder)
@@ -220,6 +285,24 @@ internal sealed class BookConfiguration : IEntityTypeConfiguration<Book>
             "[PagesRead] >= 0 AND [PagesRead] <= [TotalPages]"));
 
         builder.HasIndex(b => b.Status);
+
+        builder.HasMany(b => b.ReadingLogs)
+            .WithOne(l => l.Book)
+            .HasForeignKey(l => l.BookId)
+            .OnDelete(DeleteBehavior.Cascade);
+    }
+}
+
+internal sealed class BookReadingLogConfiguration : IEntityTypeConfiguration<BookReadingLog>
+{
+    public void Configure(EntityTypeBuilder<BookReadingLog> builder)
+    {
+        builder.ToTable("BookReadingLogs");
+
+        builder.Property(l => l.PagesDone)
+            .IsRequired();
+
+        builder.HasIndex(l => new { l.BookId, l.ReadDate });
     }
 }
 

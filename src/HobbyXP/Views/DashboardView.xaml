@@ -41,10 +41,73 @@
                 </Grid>
             </Border>
 
-            <!-- Progreso por hobby -->
-            <Border Style="{StaticResource DarkCard}" Margin="0,0,0,20">
+            <!-- Disciplina semanal -->
+            <Expander Header="Disciplina semanal (lunes–domingo)"
+                      IsExpanded="{Binding IsDisciplineExpanded, Mode=TwoWay}"
+                      Margin="0,0,0,12">
                 <StackPanel>
-                    <TextBlock Text="Progreso por hobby" Style="{StaticResource SectionTitleText}" Margin="0,0,0,4" />
+                    <TextBlock Text="Si no cumple la cuota al cerrar la semana, baja 1 nivel del hobby. Al abrir la app se revisan hasta 26 semanas desde que activó la disciplina; si luego registra actividad atrasada de esa semana, se restaura el XP."
+                               Style="{StaticResource MutedText}" Margin="0,0,0,12" TextWrapping="Wrap" />
+                    <ItemsControl ItemsSource="{Binding WeeklyQuotaItems}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Background="#1A2233"
+                                        BorderBrush="{StaticResource BorderBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="8"
+                                        Padding="12,10"
+                                        Margin="0,0,0,8">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel>
+                                            <TextBlock Text="{Binding DisplayName}" Style="{StaticResource SubsectionTitleText}" />
+                                            <TextBlock Text="{Binding RequirementLabel}" Style="{StaticResource MutedText}" FontSize="12" />
+                                            <TextBlock Text="{Binding ProgressText}" Margin="0,4,0,0" FontSize="13" />
+                                            <TextBlock Text="{Binding ActivePenaltyReminder}"
+                                                       Margin="0,6,0,0"
+                                                       FontSize="12"
+                                                       FontWeight="SemiBold"
+                                                       Foreground="#FFB39A"
+                                                       TextWrapping="Wrap"
+                                                       Visibility="{Binding HasActivePenalty, Converter={StaticResource BoolToVisibilityConverter}}" />
+                                        </StackPanel>
+                                        <TextBlock Grid.Column="1"
+                                                   VerticalAlignment="Top"
+                                                   FontWeight="SemiBold"
+                                                   Margin="8,0,0,0">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Text" Value="En curso" />
+                                                    <Setter Property="Foreground" Value="{StaticResource AccentCyanBrush}" />
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsMet}" Value="True">
+                                                            <Setter Property="Text" Value="Cumplida" />
+                                                            <Setter Property="Foreground" Value="{StaticResource AccentGreenBrush}" />
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding HasActivePenalty}" Value="True">
+                                                            <Setter Property="Text" Value="Castigo" />
+                                                            <Setter Property="Foreground" Value="#FF8A65" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Expander>
+
+            <!-- Progreso por hobby -->
+            <Expander Header="Progreso por hobby"
+                      IsExpanded="{Binding IsHobbyProgressExpanded, Mode=TwoWay}"
+                      Margin="0,0,0,12">
+                <StackPanel>
                     <TextBlock Text="Cada hobby tiene su propio nivel. El nivel global sube al avanzar de nivel en un hobby."
                                Style="{StaticResource MutedText}" Margin="0,0,0,12" TextWrapping="Wrap" />
                     <ItemsControl ItemsSource="{Binding HobbyProgressItems}">
@@ -100,18 +163,20 @@
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
                 </StackPanel>
-            </Border>
+            </Expander>
 
             <!-- Gráficos -->
-            <Grid Margin="0,0,0,20">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="*" />
-                </Grid.ColumnDefinitions>
+            <Expander Header="Estadísticas (XP semanal y distribución)"
+                      IsExpanded="{Binding IsChartsExpanded, Mode=TwoWay}"
+                      Margin="0,0,0,12">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
 
-                <Border Grid.Column="0" Style="{StaticResource DarkCard}" Margin="0,0,10,0">
-                    <StackPanel>
-                        <TextBlock Text="Rendimiento semanal" Style="{StaticResource SectionTitleText}" Margin="0,0,0,4" />
+                    <StackPanel Grid.Column="0" Margin="0,0,10,0">
+                        <TextBlock Text="Rendimiento semanal" Style="{StaticResource SubsectionTitleText}" Margin="0,0,0,4" />
                         <TextBlock Text="XP ganada en los últimos 7 días" Style="{StaticResource MutedText}" Margin="0,0,0,12" />
                         <lvc:CartesianChart Series="{Binding WeeklyXpSeries}"
                                             XAxes="{Binding WeeklyXpXAxes}"
@@ -121,11 +186,9 @@
                                             TooltipPosition="Top"
                                             Height="240" />
                     </StackPanel>
-                </Border>
 
-                <Border Grid.Column="1" Style="{StaticResource DarkCard}" Margin="10,0,0,0">
-                    <StackPanel>
-                        <TextBlock Text="Distribución de hobbies" Style="{StaticResource SectionTitleText}" Margin="0,0,0,4" />
+                    <StackPanel Grid.Column="1" Margin="10,0,0,0">
+                        <TextBlock Text="Distribución de hobbies" Style="{StaticResource SubsectionTitleText}" Margin="0,0,0,4" />
                         <TextBlock Text="Registros del mes actual por categoría" Style="{StaticResource MutedText}" Margin="0,0,0,12" />
                         <Grid Height="240">
                             <lvc:PieChart Series="{Binding HobbyDistributionSeries}"
@@ -141,14 +204,15 @@
                                        Visibility="{Binding HasHobbyDistribution, Converter={StaticResource InverseBoolToVisibilityConverter}}" />
                         </Grid>
                     </StackPanel>
-                </Border>
-            </Grid>
+                </Grid>
+            </Expander>
 
             <!-- Sugerencias para subir de nivel -->
-            <Border Style="{StaticResource DarkCard}" Margin="0,0,0,20"
-                    Visibility="{Binding ShowLevelUpSuggestions, Converter={StaticResource BoolToVisibilityConverter}}">
+            <Expander Header="Sugerencias para subir de nivel"
+                      IsExpanded="{Binding IsSuggestionsExpanded, Mode=TwoWay}"
+                      Margin="0,0,0,12"
+                      Visibility="{Binding ShowLevelUpSuggestions, Converter={StaticResource BoolToVisibilityConverter}}">
                 <StackPanel>
-                    <TextBlock Text="Sugerencias para subir de nivel" Style="{StaticResource SectionTitleText}" Margin="0,0,0,4" />
                     <TextBlock Text="{Binding SuggestionsSummary}" Style="{StaticResource MutedText}" Margin="0,0,0,12" TextWrapping="Wrap" />
                     <ItemsControl ItemsSource="{Binding SuggestedActivities}">
                         <ItemsControl.ItemTemplate>
@@ -173,7 +237,7 @@
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
                 </StackPanel>
-            </Border>
+            </Expander>
 
             <!-- Hitos -->
             <StackPanel Orientation="Horizontal" Margin="0,0,0,12">

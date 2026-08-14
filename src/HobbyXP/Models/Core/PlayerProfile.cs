@@ -43,6 +43,12 @@ public class PlayerProfile : EntityBase
     /// </summary>
     public string? AvatarPath { get; set; }
 
+    /// <summary>
+    /// Lunes UTC desde el cual aplica la disciplina semanal (null = aún no inicializado).
+    /// Evita castigar semanas anteriores a la activación de la feature.
+    /// </summary>
+    public DateTime? WeeklyQuotaTrackingStartedAtUtc { get; set; }
+
     public ICollection<XpTransaction> Transactions { get; set; } = [];
 
     public ICollection<HobbyProgress> HobbyProgresses { get; set; } = [];

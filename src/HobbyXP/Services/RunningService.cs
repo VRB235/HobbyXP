@@ -13,15 +13,18 @@ public sealed class RunningService : IRunningService
     private readonly IDbContextFactory<HobbyXpDbContext> _dbContextFactory;
     private readonly IXpService _xpService;
     private readonly IAchievementEngineService _achievementEngine;
+    private readonly IWeeklyQuotaService _weeklyQuotaService;
 
     public RunningService(
         IDbContextFactory<HobbyXpDbContext> dbContextFactory,
         IXpService xpService,
-        IAchievementEngineService achievementEngine)
+        IAchievementEngineService achievementEngine,
+        IWeeklyQuotaService weeklyQuotaService)
     {
         _dbContextFactory = dbContextFactory;
         _xpService = xpService;
         _achievementEngine = achievementEngine;
+        _weeklyQuotaService = weeklyQuotaService;
     }
 
     public async Task<IReadOnlyList<RunningSession>> GetSessionsAsync(CancellationToken cancellationToken = default)
@@ -148,6 +151,8 @@ public sealed class RunningService : IRunningService
             nameof(RunningSession),
             session.Id,
             cancellationToken));
+
+        await _weeklyQuotaService.NotifyActivityAsync(MilestoneSourceType.Running, recordedAt.Date, cancellationToken);
 
         return OperationResult<RunningSession>.WithEvents(session, events.ToArray());
     }

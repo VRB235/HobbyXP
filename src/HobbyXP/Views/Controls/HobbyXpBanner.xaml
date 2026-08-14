@@ -17,6 +17,7 @@
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
 
             <TextBlock Grid.Column="0"
@@ -40,6 +41,22 @@
                        Text="{Binding ProgressText}"
                        Style="{StaticResource MutedText}"
                        FontSize="12" />
+
+            <Border Grid.Row="3"
+                    Grid.ColumnSpan="2"
+                    Margin="0,8,0,0"
+                    Padding="8,6"
+                    CornerRadius="6"
+                    Background="#332018"
+                    BorderBrush="#C45C3A"
+                    BorderThickness="1"
+                    Visibility="{Binding HasPenaltyReminder, Converter={StaticResource BoolToVisibilityConverter}}">
+                <TextBlock Text="{Binding PenaltyReminder}"
+                           Foreground="#FFB39A"
+                           FontSize="12"
+                           FontWeight="SemiBold"
+                           TextWrapping="Wrap" />
+            </Border>
         </Grid>
     </Border>
 </UserControl>

@@ -19,6 +19,7 @@ public class HobbyXpDbContext : DbContext
     public DbSet<XpTransaction> XpTransactions => Set<XpTransaction>();
     public DbSet<HobbyProgress> HobbyProgresses => Set<HobbyProgress>();
     public DbSet<Milestone> Milestones => Set<Milestone>();
+    public DbSet<WeeklyQuotaEvaluation> WeeklyQuotaEvaluations => Set<WeeklyQuotaEvaluation>();
 
     public DbSet<OfficialRace> OfficialRaces => Set<OfficialRace>();
     public DbSet<RunningSession> RunningSessions => Set<RunningSession>();
@@ -28,9 +29,13 @@ public class HobbyXpDbContext : DbContext
 
     public DbSet<Puzzle> Puzzles => Set<Puzzle>();
     public DbSet<MediaEntry> MediaEntries => Set<MediaEntry>();
+    public DbSet<MediaSeries> MediaSeries => Set<MediaSeries>();
+    public DbSet<MediaSeriesChapterLog> MediaSeriesChapterLogs => Set<MediaSeriesChapterLog>();
     public DbSet<VideoGame> VideoGames => Set<VideoGame>();
+    public DbSet<VideoGameProgressLog> VideoGameProgressLogs => Set<VideoGameProgressLog>();
 
     public DbSet<Book> Books => Set<Book>();
+    public DbSet<BookReadingLog> BookReadingLogs => Set<BookReadingLog>();
     public DbSet<Course> Courses => Set<Course>();
     public DbSet<CourseSessionLog> CourseSessionLogs => Set<CourseSessionLog>();
 

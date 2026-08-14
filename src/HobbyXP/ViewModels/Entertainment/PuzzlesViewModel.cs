@@ -28,6 +28,7 @@ public sealed class PuzzlesViewModel : AchievementAwareViewModel
     public PuzzlesViewModel(
         IPuzzleService puzzleService,
         IXpService xpService,
+        IWeeklyQuotaService weeklyQuotaService,
         IFileDialogService fileDialogService,
         IMessageDialogService messageDialogService,
         IProfileRefreshMessenger profileRefreshMessenger,
@@ -38,7 +39,7 @@ public sealed class PuzzlesViewModel : AchievementAwareViewModel
         _fileDialogService = fileDialogService;
         _messageDialogService = messageDialogService;
         _profileRefreshMessenger = profileRefreshMessenger;
-        HobbyXp = new HobbyProgressPresenter(xpService, MilestoneSourceType.Puzzle);
+        HobbyXp = new HobbyProgressPresenter(xpService, MilestoneSourceType.Puzzle, weeklyQuotaService);
         Puzzles = new ObservableCollection<Puzzle>();
         SelectedPhotos = new ObservableCollection<PuzzlePhotoItem>();
         CategoryFilterOptions = EnumFilterOption<PuzzleCategory>.Create(

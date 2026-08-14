@@ -52,6 +52,26 @@ public interface IXpService
         string description,
         CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Quita el XP justo necesario para bajar un nivel del hobby (y el meta global asociado).
+    /// </summary>
+    Task<HobbyLevelPenaltyOutcome> ApplyHobbyLevelDownPenaltyAsync(
+        MilestoneSourceType milestoneSource,
+        string description,
+        int? sourceEntityId = null,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Devuelve XP de hobby/global previamente revocado por castigo semanal.
+    /// </summary>
+    Task RestoreHobbyLevelPenaltyAsync(
+        MilestoneSourceType milestoneSource,
+        int hobbyXpToRestore,
+        int globalXpToRestore,
+        string description,
+        int? sourceEntityId = null,
+        CancellationToken cancellationToken = default);
+
     Task<IReadOnlyList<DailyXpPoint>> GetDailyXpForLastDaysAsync(
         int days,
         CancellationToken cancellationToken = default);

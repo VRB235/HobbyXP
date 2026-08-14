@@ -28,6 +28,7 @@ public sealed class VideoGamesViewModel : AchievementAwareViewModel
     public VideoGamesViewModel(
         IVideoGameService videoGameService,
         IXpService xpService,
+        IWeeklyQuotaService weeklyQuotaService,
         IMessageDialogService messageDialogService,
         IProfileRefreshMessenger profileRefreshMessenger,
         IAchievementMessenger achievementMessenger)
@@ -36,7 +37,7 @@ public sealed class VideoGamesViewModel : AchievementAwareViewModel
         _videoGameService = videoGameService;
         _messageDialogService = messageDialogService;
         _profileRefreshMessenger = profileRefreshMessenger;
-        HobbyXp = new HobbyProgressPresenter(xpService, MilestoneSourceType.VideoGame);
+        HobbyXp = new HobbyProgressPresenter(xpService, MilestoneSourceType.VideoGame, weeklyQuotaService);
         InProgressRows = new ObservableCollection<VideoGameProgressRowViewModel>();
         PlatinumGames = new ObservableCollection<VideoGame>();
         PlatformFilterOptions = EnumFilterOption<VideoGamePlatform>.Create(
@@ -187,11 +188,11 @@ public sealed class VideoGamesViewModel : AchievementAwareViewModel
         ApplyFilter();
     }
 
-    private async Task ApplyProgressAsync(VideoGame game, int targetCompletion)
+    private async Task ApplyProgressAsync(VideoGame game, int targetCompletion, DateTime progressDate)
     {
         await RunBusyAsync(async () =>
         {
-            var result = await _videoGameService.UpdateCompletionAsync(game.Id, targetCompletion);
+            var result = await _videoGameService.UpdateCompletionAsync(game.Id, targetCompletion, progressDate);
             PublishAchievements(result.Events);
             await ReloadGamesAsync();
             _profileRefreshMessenger.RequestRefresh();

@@ -13,15 +13,18 @@ public sealed class CourseService : ICourseService
     private readonly IDbContextFactory<HobbyXpDbContext> _dbContextFactory;
     private readonly IXpService _xpService;
     private readonly IAchievementEngineService _achievementEngine;
+    private readonly IWeeklyQuotaService _weeklyQuotaService;
 
     public CourseService(
         IDbContextFactory<HobbyXpDbContext> dbContextFactory,
         IXpService xpService,
-        IAchievementEngineService achievementEngine)
+        IAchievementEngineService achievementEngine,
+        IWeeklyQuotaService weeklyQuotaService)
     {
         _dbContextFactory = dbContextFactory;
         _xpService = xpService;
         _achievementEngine = achievementEngine;
+        _weeklyQuotaService = weeklyQuotaService;
     }
 
     public async Task<IReadOnlyList<Course>> GetInProgressAsync(CancellationToken cancellationToken = default)
@@ -171,6 +174,8 @@ public sealed class CourseService : ICourseService
                 course.Id,
                 cancellationToken));
         }
+
+        await _weeklyQuotaService.NotifyActivityAsync(MilestoneSourceType.Course, sessionDate.Date, cancellationToken);
 
         return OperationResult<Course>.WithEvents(course, events.ToArray());
     }

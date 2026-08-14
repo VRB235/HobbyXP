@@ -22,6 +22,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ICourseService, CourseService>();
         services.AddScoped<IMedalService, MedalService>();
         services.AddScoped<IRewardService, RewardService>();
+        services.AddScoped<IWeeklyQuotaService, WeeklyQuotaService>();
 
         services.AddSingleton<IFileDialogService, FileDialogService>();
         services.AddSingleton<IMessageDialogService, MessageDialogService>();

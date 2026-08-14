@@ -30,4 +30,6 @@ public class VideoGame : EntityBase
     public int XpEarned { get; set; }
 
     public int PlatinumBonusXp { get; set; }
+
+    public ICollection<VideoGameProgressLog> ProgressLogs { get; set; } = [];
 }

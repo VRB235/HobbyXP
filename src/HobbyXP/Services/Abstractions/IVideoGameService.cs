@@ -20,6 +20,7 @@ public interface IVideoGameService
     Task<OperationResult<VideoGame>> UpdateCompletionAsync(
         int videoGameId,
         int newCompletionPercentage,
+        DateTime? progressDate = null,
         CancellationToken cancellationToken = default);
 
     Task<OperationResult<VideoGame>> IncrementCompletionAsync(

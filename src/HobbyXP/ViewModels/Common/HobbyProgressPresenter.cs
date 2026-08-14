@@ -11,6 +11,7 @@ namespace HobbyXP.ViewModels.Common;
 public sealed class HobbyProgressPresenter : ViewModelBase
 {
     private readonly IXpService _xpService;
+    private readonly IWeeklyQuotaService? _weeklyQuotaService;
     private readonly MilestoneSourceType _sourceType;
     private string _title;
     private int _currentLevel = 1;
@@ -18,10 +19,15 @@ public sealed class HobbyProgressPresenter : ViewModelBase
     private int _xpIntoCurrentLevel;
     private int _xpRequiredForNextLevel = 1;
     private double _progressPercentage;
+    private string? _penaltyReminder;
 
-    public HobbyProgressPresenter(IXpService xpService, MilestoneSourceType sourceType)
+    public HobbyProgressPresenter(
+        IXpService xpService,
+        MilestoneSourceType sourceType,
+        IWeeklyQuotaService? weeklyQuotaService = null)
     {
         _xpService = xpService;
+        _weeklyQuotaService = weeklyQuotaService;
         _sourceType = sourceType;
         _title = HobbyProgressCatalog.GetDisplayName(sourceType);
     }
@@ -64,6 +70,18 @@ public sealed class HobbyProgressPresenter : ViewModelBase
         private set => SetProperty(ref _progressPercentage, value);
     }
 
+    public string? PenaltyReminder
+    {
+        get => _penaltyReminder;
+        private set
+        {
+            if (SetProperty(ref _penaltyReminder, value))
+                OnPropertyChanged(nameof(HasPenaltyReminder));
+        }
+    }
+
+    public bool HasPenaltyReminder => !string.IsNullOrWhiteSpace(PenaltyReminder);
+
     public string LevelText => HobbyLevelTitles.FormatLevelLabel(_sourceType, CurrentLevel);
 
     public string LevelTitle => HobbyLevelTitles.GetTitle(_sourceType, CurrentLevel);
@@ -80,6 +98,19 @@ public sealed class HobbyProgressPresenter : ViewModelBase
         XpIntoCurrentLevel = progress.XpIntoCurrentLevel;
         XpRequiredForNextLevel = progress.XpRequiredForNextLevel;
         ProgressPercentage = progress.ProgressPercentage;
+
+        if (_weeklyQuotaService is not null)
+        {
+            var reminders = await _weeklyQuotaService.GetActivePenaltyRemindersAsync(_sourceType, cancellationToken);
+            PenaltyReminder = reminders.Count == 0
+                ? null
+                : string.Join(Environment.NewLine, reminders);
+        }
+        else
+        {
+            PenaltyReminder = null;
+        }
+
         OnPropertyChanged(nameof(LevelText));
         OnPropertyChanged(nameof(LevelTitle));
         OnPropertyChanged(nameof(ProgressText));

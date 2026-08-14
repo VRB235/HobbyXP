@@ -48,6 +48,7 @@ public sealed class RunningViewModel : AchievementAwareViewModel
     public RunningViewModel(
         IRunningService runningService,
         IXpService xpService,
+        IWeeklyQuotaService weeklyQuotaService,
         IMessageDialogService messageDialogService,
         IProfileRefreshMessenger profileRefreshMessenger,
         IAchievementMessenger achievementMessenger)
@@ -56,7 +57,7 @@ public sealed class RunningViewModel : AchievementAwareViewModel
         _runningService = runningService;
         _messageDialogService = messageDialogService;
         _profileRefreshMessenger = profileRefreshMessenger;
-        HobbyXp = new HobbyProgressPresenter(xpService, MilestoneSourceType.Running);
+        HobbyXp = new HobbyProgressPresenter(xpService, MilestoneSourceType.Running, weeklyQuotaService);
         OfficialRaceXp = new HobbyProgressPresenter(xpService, MilestoneSourceType.OfficialRace);
         Sessions = new ObservableCollection<RunningSession>();
         OfficialRaces = new ObservableCollection<OfficialRace>();

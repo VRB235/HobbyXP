@@ -13,15 +13,18 @@ public sealed class PuzzleService : IPuzzleService
     private readonly IDbContextFactory<HobbyXpDbContext> _dbContextFactory;
     private readonly IXpService _xpService;
     private readonly IAchievementEngineService _achievementEngine;
+    private readonly IWeeklyQuotaService _weeklyQuotaService;
 
     public PuzzleService(
         IDbContextFactory<HobbyXpDbContext> dbContextFactory,
         IXpService xpService,
-        IAchievementEngineService achievementEngine)
+        IAchievementEngineService achievementEngine,
+        IWeeklyQuotaService weeklyQuotaService)
     {
         _dbContextFactory = dbContextFactory;
         _xpService = xpService;
         _achievementEngine = achievementEngine;
+        _weeklyQuotaService = weeklyQuotaService;
     }
 
     public async Task<IReadOnlyList<Puzzle>> GetAllAsync(CancellationToken cancellationToken = default)
@@ -98,6 +101,9 @@ public sealed class PuzzleService : IPuzzleService
             cancellationToken);
 
         events.AddRange(medalEvents);
+
+        var activityLocal = (completedAt ?? DateTime.UtcNow).ToLocalTime().Date;
+        await _weeklyQuotaService.NotifyActivityAsync(MilestoneSourceType.Puzzle, activityLocal, cancellationToken);
 
         return OperationResult<Puzzle>.WithEvents(puzzle, events.ToArray());
     }
