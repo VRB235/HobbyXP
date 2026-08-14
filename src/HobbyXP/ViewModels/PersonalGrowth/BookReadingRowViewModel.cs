@@ -6,20 +6,33 @@ namespace HobbyXP.ViewModels.PersonalGrowth;
 
 public sealed class BookReadingRowViewModel : ViewModelBase
 {
-    private readonly Func<Book, int, Task> _applyAsync;
+    private readonly Func<Book, int, DateTime, Task> _applyAsync;
+    private readonly Func<Book, string, string, Task> _updateMetadataAsync;
     private int _targetPagesRead;
+    private DateTime? _readingDate = DateTime.Today;
+    private string _editTitle;
+    private string _editAuthor;
     private string? _validationMessage;
+    private string? _metadataValidationMessage;
 
-    public BookReadingRowViewModel(Book book, Func<Book, int, Task> applyAsync)
+    public BookReadingRowViewModel(
+        Book book,
+        Func<Book, int, DateTime, Task> applyAsync,
+        Func<Book, string, string, Task> updateMetadataAsync)
     {
         Book = book;
         _applyAsync = applyAsync;
+        _updateMetadataAsync = updateMetadataAsync;
         _targetPagesRead = book.PagesRead;
+        _editTitle = book.Title;
+        _editAuthor = book.Author;
 
         ApplyPagesCommand = new AsyncRelayCommand(ApplyPagesAsync, CanApplyPages);
         BumpPagesCommand = new RelayCommand(BumpPages);
         SetCompleteCommand = new RelayCommand(SetComplete);
+        SaveMetadataCommand = new AsyncRelayCommand(SaveMetadataAsync, CanSaveMetadata);
         RefreshValidation();
+        RefreshMetadataValidation();
     }
 
     public Book Book { get; }
@@ -27,6 +40,36 @@ public sealed class BookReadingRowViewModel : ViewModelBase
     public string Title => Book.Title;
 
     public string Author => Book.Author;
+
+    public string EditTitle
+    {
+        get => _editTitle;
+        set
+        {
+            if (SetProperty(ref _editTitle, value))
+                RefreshMetadataValidation();
+        }
+    }
+
+    public string EditAuthor
+    {
+        get => _editAuthor;
+        set
+        {
+            if (SetProperty(ref _editAuthor, value))
+                RefreshMetadataValidation();
+        }
+    }
+
+    public DateTime? ReadingDate
+    {
+        get => _readingDate;
+        set
+        {
+            if (SetProperty(ref _readingDate, value))
+                RefreshValidation();
+        }
+    }
 
     public int TotalPages => Book.TotalPages;
 
@@ -42,7 +85,12 @@ public sealed class BookReadingRowViewModel : ViewModelBase
         private set => SetProperty(ref _validationMessage, value);
     }
 
-    /// <summary>Progreso actual (0–100) para barra y slider con máximo literal.</summary>
+    public string? MetadataValidationMessage
+    {
+        get => _metadataValidationMessage;
+        private set => SetProperty(ref _metadataValidationMessage, value);
+    }
+
     public double ProgressPercent => ToPercent(CurrentPagesRead);
 
     public double TargetPercent
@@ -77,6 +125,10 @@ public sealed class BookReadingRowViewModel : ViewModelBase
 
     public bool HasPendingChange => TargetPagesRead > CurrentPagesRead;
 
+    public bool HasPendingMetadataChange =>
+        !string.Equals(EditTitle.Trim(), Book.Title, StringComparison.Ordinal) ||
+        !string.Equals(EditAuthor.Trim(), Book.Author, StringComparison.Ordinal);
+
     public string ProgressSummary => HasPendingChange
         ? $"Actual: {CurrentPagesRead}/{TotalPages} → Nuevo: {TargetPagesRead}/{TotalPages}"
         : $"Progreso actual: {CurrentPagesRead}/{TotalPages} páginas";
@@ -87,6 +139,8 @@ public sealed class BookReadingRowViewModel : ViewModelBase
 
     public RelayCommand SetCompleteCommand { get; }
 
+    public AsyncRelayCommand SaveMetadataCommand { get; }
+
     private double ToPercent(int pages) =>
         TotalPages > 0 ? (double)pages / TotalPages * 100d : 0d;
 
@@ -94,6 +148,9 @@ public sealed class BookReadingRowViewModel : ViewModelBase
     {
         if (TotalPages <= 0)
             return ValidationResult.Fail("El libro no tiene páginas totales definidas.");
+
+        if (!ReadingDate.HasValue)
+            return ValidationResult.Fail("Indique la fecha de la lectura.");
 
         if (TargetPagesRead < CurrentPagesRead)
             return ValidationResult.Fail("Las páginas leídas no pueden ser menores al progreso actual.");
@@ -105,6 +162,11 @@ public sealed class BookReadingRowViewModel : ViewModelBase
             "páginas");
     }
 
+    private ValidationResult ValidateMetadataForm() =>
+        FormValidation.FirstFailure(
+            FormValidation.RequireText(EditTitle, "el título"),
+            FormValidation.RequireText(EditAuthor, "el autor"));
+
     private void RefreshValidation()
     {
         var result = ValidateForm();
@@ -112,7 +174,17 @@ public sealed class BookReadingRowViewModel : ViewModelBase
         ApplyPagesCommand.RaiseCanExecuteChanged();
     }
 
+    private void RefreshMetadataValidation()
+    {
+        var result = ValidateMetadataForm();
+        MetadataValidationMessage = result.IsValid ? null : result.Message;
+        OnPropertyChanged(nameof(HasPendingMetadataChange));
+        SaveMetadataCommand.RaiseCanExecuteChanged();
+    }
+
     private bool CanApplyPages() => HasPendingChange && ValidateForm().IsValid;
+
+    private bool CanSaveMetadata() => HasPendingMetadataChange && ValidateMetadataForm().IsValid;
 
     private void BumpPages(object? parameter)
     {
@@ -130,7 +202,7 @@ public sealed class BookReadingRowViewModel : ViewModelBase
 
     private async Task ApplyPagesAsync()
     {
-        if (!ValidateForm().IsValid)
+        if (!ValidateForm().IsValid || !ReadingDate.HasValue)
         {
             RefreshValidation();
             return;
@@ -139,7 +211,26 @@ public sealed class BookReadingRowViewModel : ViewModelBase
         if (!HasPendingChange)
             return;
 
-        await _applyAsync(Book, TargetPagesRead);
+        await _applyAsync(Book, TargetPagesRead, ReadingDate.Value);
         ValidationMessage = null;
+    }
+
+    private async Task SaveMetadataAsync()
+    {
+        if (!ValidateMetadataForm().IsValid)
+        {
+            RefreshMetadataValidation();
+            return;
+        }
+
+        if (!HasPendingMetadataChange)
+            return;
+
+        await _updateMetadataAsync(Book, EditTitle.Trim(), EditAuthor.Trim());
+        OnPropertyChanged(nameof(Title));
+        OnPropertyChanged(nameof(Author));
+        OnPropertyChanged(nameof(HasPendingMetadataChange));
+        SaveMetadataCommand.RaiseCanExecuteChanged();
+        MetadataValidationMessage = null;
     }
 }

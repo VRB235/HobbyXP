@@ -25,6 +25,8 @@ public static class MedalIconPaths
         MedalMilestoneTrack.CourseSessions => $"{Root}/course-sessions.png",
         MedalMilestoneTrack.PuzzlesCompleted => $"{Root}/puzzle.png",
         MedalMilestoneTrack.MediaCompleted => $"{Root}/media.png",
+        MedalMilestoneTrack.DietGoodDays => $"{Root}/gym-workout.png",
+        MedalMilestoneTrack.DietPerfectDays => $"{Root}/progressive-overload.png",
         _ => $"{Root}/official-race.png"
     };
 

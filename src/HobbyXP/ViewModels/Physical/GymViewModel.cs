@@ -1,5 +1,7 @@
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
+using System.ComponentModel;
+using System.Windows.Data;
 using System.Windows.Input;
 using HobbyXP.Helpers;
 using HobbyXP.Models.Enums;
@@ -16,16 +18,30 @@ public sealed class GymViewModel : AchievementAwareViewModel
     private readonly IGymService _gymService;
     private readonly IMessageDialogService _messageDialogService;
     private readonly IProfileRefreshMessenger _profileRefreshMessenger;
+    private readonly CollectionViewSource _catalogExercisesViewSource = new();
     private string _newExerciseName = string.Empty;
-    private ExerciseType _newExerciseType = ExerciseType.TraditionalWeight;
+    private ExerciseTypeOption _newExerciseTypeOption;
+    private MuscleGroupOption _newMuscleGroupOption;
+    private MuscleGroupOption _exerciseFilterOption;
+    private Exercise? _selectedCatalogExercise;
+    private string _editExerciseName = string.Empty;
+    private MuscleGroupOption _editMuscleGroupOption;
+    private MuscleGroupOption _historyMuscleGroupFilterOption;
+    private bool _isCatalogExpanded;
+    private bool _isWorkoutExpanded = true;
+    private bool _isHistoryExpanded;
+    private bool _suppressSectionAccordion;
     private GymWorkout? _selectedWorkout;
     private DateTime? _historyFromDate;
     private DateTime? _historyToDate;
+    private DateTime? _workoutDate = DateTime.Today;
     private List<GymWorkout> _allWorkouts = [];
     private string? _exerciseValidationMessage;
 
     public GymViewModel(
         IGymService gymService,
+        IXpService xpService,
+        IWeeklyQuotaService weeklyQuotaService,
         IMessageDialogService messageDialogService,
         IProfileRefreshMessenger profileRefreshMessenger,
         IAchievementMessenger achievementMessenger)
@@ -34,14 +50,41 @@ public sealed class GymViewModel : AchievementAwareViewModel
         _gymService = gymService;
         _messageDialogService = messageDialogService;
         _profileRefreshMessenger = profileRefreshMessenger;
+        HobbyXp = new HobbyProgressPresenter(xpService, MilestoneSourceType.Gym, weeklyQuotaService);
+
+        MuscleGroupCatalogOptions = MuscleGroupOption.CreateCatalogOptions();
+        MuscleGroupFilterOptions = MuscleGroupOption.CreateFilterOptions();
+        ExerciseTypeOptions = ExerciseTypeOption.All;
+        _newMuscleGroupOption = MuscleGroupCatalogOptions[0];
+        _exerciseFilterOption = MuscleGroupFilterOptions[0];
+        _editMuscleGroupOption = MuscleGroupCatalogOptions[0];
+        _historyMuscleGroupFilterOption = MuscleGroupFilterOptions[0];
+        _newExerciseTypeOption = ExerciseTypeOptions[0];
+
         Exercises = new ObservableCollection<Exercise>();
+        FilteredExercises = new ObservableCollection<Exercise>();
         Entries = new ObservableCollection<GymEntryRowViewModel>();
         History = new ObservableCollection<GymWorkout>();
 
+        _catalogExercisesViewSource.Source = Exercises;
+        _catalogExercisesViewSource.SortDescriptions.Add(
+            new SortDescription(nameof(Exercise.MuscleGroupSortOrder), ListSortDirection.Ascending));
+        _catalogExercisesViewSource.SortDescriptions.Add(
+            new SortDescription(nameof(Exercise.Name), ListSortDirection.Ascending));
+        _catalogExercisesViewSource.GroupDescriptions.Add(
+            new PropertyGroupDescription(nameof(Exercise.MuscleGroupLabel)));
+
         AddRowCommand = new RelayCommand(AddRow);
         RemoveRowCommand = new RelayCommand(RemoveRow, _ => Entries.Count > 0);
+        LoadLastAsReferenceCommand = new RelayCommand(LoadLastWorkoutAsReference, CanLoadLastAsReference);
         SaveWorkoutCommand = new AsyncRelayCommand(SaveWorkoutAsync, CanSaveWorkout);
         CreateExerciseCommand = new AsyncRelayCommand(CreateExerciseAsync, CanCreateExercise);
+        UpdateCatalogMuscleGroupCommand = new AsyncRelayCommand(
+            UpdateCatalogMuscleGroupAsync,
+            CanUpdateCatalogMuscleGroup);
+        RenameCatalogExerciseCommand = new AsyncRelayCommand(
+            RenameCatalogExerciseAsync,
+            CanRenameCatalogExercise);
         ClearHistoryDateFilterCommand = new RelayCommand(ClearHistoryDateFilter);
         DeleteWorkoutCommand = new AsyncRelayCommand(p => DeleteWorkoutAsync(p));
 
@@ -51,6 +94,8 @@ public sealed class GymViewModel : AchievementAwareViewModel
         RefreshExerciseValidation();
     }
 
+    public HobbyProgressPresenter HobbyXp { get; }
+
     public string? ExerciseValidationMessage
     {
         get => _exerciseValidationMessage;
@@ -59,14 +104,53 @@ public sealed class GymViewModel : AchievementAwareViewModel
 
     public ObservableCollection<Exercise> Exercises { get; }
 
+    /// <summary>
+    /// Lista plana filtrada para el ComboBox de entrenamiento (evita bug de ICollectionView agrupada).
+    /// </summary>
+    public ObservableCollection<Exercise> FilteredExercises { get; }
+
+    public ICollectionView CatalogExercisesView => _catalogExercisesViewSource.View;
+
     public ObservableCollection<GymEntryRowViewModel> Entries { get; }
 
     public ObservableCollection<GymWorkout> History { get; }
+
+    public IReadOnlyList<MuscleGroupOption> MuscleGroupCatalogOptions { get; }
+
+    public IReadOnlyList<MuscleGroupOption> MuscleGroupFilterOptions { get; }
+
+    public IReadOnlyList<ExerciseTypeOption> ExerciseTypeOptions { get; }
 
     public GymWorkout? SelectedWorkout
     {
         get => _selectedWorkout;
         set => SetProperty(ref _selectedWorkout, value);
+    }
+
+    public Exercise? SelectedCatalogExercise
+    {
+        get => _selectedCatalogExercise;
+        set
+        {
+            if (!SetProperty(ref _selectedCatalogExercise, value))
+                return;
+
+            EditExerciseName = value?.Name ?? string.Empty;
+            EditMuscleGroupOption = MuscleGroupCatalogOptions.First(o =>
+                !o.MatchesUnassignedOnly && o.Value == value?.MuscleGroup);
+            UpdateCatalogMuscleGroupCommand.RaiseCanExecuteChanged();
+            RenameCatalogExerciseCommand.RaiseCanExecuteChanged();
+        }
+    }
+
+    public string EditExerciseName
+    {
+        get => _editExerciseName;
+        set
+        {
+            if (SetProperty(ref _editExerciseName, value))
+                RenameCatalogExerciseCommand.RaiseCanExecuteChanged();
+        }
     }
 
     public DateTime? HistoryFromDate
@@ -89,7 +173,15 @@ public sealed class GymViewModel : AchievementAwareViewModel
         }
     }
 
-    public Array ExerciseTypes => Enum.GetValues(typeof(ExerciseType));
+    public DateTime? WorkoutDate
+    {
+        get => _workoutDate;
+        set
+        {
+            if (SetProperty(ref _workoutDate, value))
+                RefreshWorkoutValidation();
+        }
+    }
 
     public string NewExerciseName
     {
@@ -101,19 +193,82 @@ public sealed class GymViewModel : AchievementAwareViewModel
         }
     }
 
-    public ExerciseType NewExerciseType
+    public ExerciseTypeOption NewExerciseTypeOption
     {
-        get => _newExerciseType;
-        set => SetProperty(ref _newExerciseType, value);
+        get => _newExerciseTypeOption;
+        set => SetProperty(ref _newExerciseTypeOption, value);
+    }
+
+    public MuscleGroupOption NewMuscleGroupOption
+    {
+        get => _newMuscleGroupOption;
+        set => SetProperty(ref _newMuscleGroupOption, value);
+    }
+
+    public MuscleGroupOption ExerciseFilterOption
+    {
+        get => _exerciseFilterOption;
+        set
+        {
+            if (SetProperty(ref _exerciseFilterOption, value))
+            {
+                RebuildFilteredExercises();
+                CommandManager.InvalidateRequerySuggested();
+            }
+        }
+    }
+
+    public MuscleGroupOption HistoryMuscleGroupFilterOption
+    {
+        get => _historyMuscleGroupFilterOption;
+        set
+        {
+            if (SetProperty(ref _historyMuscleGroupFilterOption, value))
+                ApplyHistoryFilter();
+        }
+    }
+
+    public bool IsCatalogExpanded
+    {
+        get => _isCatalogExpanded;
+        set => SetSectionExpanded(GymSection.Catalog, value, ref _isCatalogExpanded, nameof(IsCatalogExpanded));
+    }
+
+    public bool IsWorkoutExpanded
+    {
+        get => _isWorkoutExpanded;
+        set => SetSectionExpanded(GymSection.Workout, value, ref _isWorkoutExpanded, nameof(IsWorkoutExpanded));
+    }
+
+    public bool IsHistoryExpanded
+    {
+        get => _isHistoryExpanded;
+        set => SetSectionExpanded(GymSection.History, value, ref _isHistoryExpanded, nameof(IsHistoryExpanded));
+    }
+
+    public MuscleGroupOption EditMuscleGroupOption
+    {
+        get => _editMuscleGroupOption;
+        set
+        {
+            if (SetProperty(ref _editMuscleGroupOption, value))
+                UpdateCatalogMuscleGroupCommand.RaiseCanExecuteChanged();
+        }
     }
 
     public RelayCommand AddRowCommand { get; }
 
     public RelayCommand RemoveRowCommand { get; }
 
+    public RelayCommand LoadLastAsReferenceCommand { get; }
+
     public AsyncRelayCommand SaveWorkoutCommand { get; }
 
     public AsyncRelayCommand CreateExerciseCommand { get; }
+
+    public AsyncRelayCommand UpdateCatalogMuscleGroupCommand { get; }
+
+    public AsyncRelayCommand RenameCatalogExerciseCommand { get; }
 
     public RelayCommand ClearHistoryDateFilterCommand { get; }
 
@@ -121,18 +276,104 @@ public sealed class GymViewModel : AchievementAwareViewModel
 
     public async Task LoadDataAsync()
     {
+        await HobbyXp.RefreshAsync();
+
         var exercises = await _gymService.GetExercisesAsync();
         Exercises.Clear();
         foreach (var exercise in exercises)
             Exercises.Add(exercise);
 
+        RebuildFilteredExercises();
+        CatalogExercisesView.Refresh();
         await LoadHistoryAsync();
+    }
+
+    private void RebuildFilteredExercises()
+    {
+        // Preservar selección: al vaciar ItemsSource, WPF pone SelectedValue en null.
+        var preservedIds = Entries.Select(e => e.SelectedExerciseId).ToList();
+        var pinnedIds = preservedIds
+            .Where(id => id.HasValue)
+            .Select(id => id!.Value)
+            .ToHashSet();
+
+        FilteredExercises.Clear();
+        foreach (var exercise in Exercises
+                     .Where(e => ExerciseFilterOption.Matches(e.MuscleGroup) || pinnedIds.Contains(e.Id))
+                     .OrderBy(e => e.MuscleGroupSortOrder)
+                     .ThenBy(e => e.Name))
+        {
+            FilteredExercises.Add(exercise);
+        }
+
+        for (var i = 0; i < Entries.Count; i++)
+        {
+            if (preservedIds[i].HasValue && Entries[i].SelectedExerciseId != preservedIds[i])
+                Entries[i].SelectedExerciseId = preservedIds[i];
+        }
     }
 
     private async Task LoadHistoryAsync()
     {
         _allWorkouts = (await _gymService.GetWorkoutHistoryAsync()).ToList();
         ApplyHistoryFilter();
+        CommandManager.InvalidateRequerySuggested();
+    }
+
+    private bool CanLoadLastAsReference() =>
+        _allWorkouts.Any(w => ExerciseFilterOption.MatchesWorkout(w));
+
+    /// <summary>
+    /// Copia el último entrenamiento del músculo filtrado al formulario actual, sin persistir.
+    /// </summary>
+    private void LoadLastWorkoutAsReference()
+    {
+        var workout = _allWorkouts
+            .Where(w => ExerciseFilterOption.MatchesWorkout(w))
+            .OrderByDescending(w => w.WorkoutDate)
+            .ThenByDescending(w => w.Id)
+            .FirstOrDefault();
+
+        if (workout is null)
+        {
+            StatusMessage = ExerciseFilterOption.Value is null
+                ? "No hay entrenamientos previos para usar como referencia."
+                : $"No hay entrenamientos previos de {ExerciseFilterOption.Label}.";
+            return;
+        }
+
+        Entries.Clear();
+        foreach (var entry in workout.Entries.OrderBy(e => e.SortOrder))
+        {
+            var row = CreateEntryRow(Entries.Count);
+            row.LoadFromHistoryEntry(entry);
+            Entries.Add(row);
+        }
+
+        if (Entries.Count == 0)
+            AddRow();
+
+        RebuildFilteredExercises();
+        RefreshWorkoutValidation();
+        IsWorkoutExpanded = true;
+
+        var muscleHint = ExerciseFilterOption.Value is null
+            ? "todos los grupos"
+            : ExerciseFilterOption.Label;
+        StatusMessage =
+            $"Referencia cargada ({muscleHint}): {workout.WorkoutDate:dd/MM/yyyy} · {workout.Entries.Count} ejercicio(s). No se ha guardado.";
+    }
+
+    private GymEntryRowViewModel CreateEntryRow(int sortOrder)
+    {
+        var row = new GymEntryRowViewModel(sortOrder);
+        row.PropertyChanged += (_, _) => RefreshWorkoutValidation();
+        row.PropertyChanged += (_, args) =>
+        {
+            if (args.PropertyName == nameof(GymEntryRowViewModel.SelectedExerciseId))
+                SyncRowExercise(row);
+        };
+        return row;
     }
 
     private void ApplyHistoryFilter()
@@ -140,7 +381,7 @@ public sealed class GymViewModel : AchievementAwareViewModel
         var selectedId = SelectedWorkout?.Id;
 
         History.Clear();
-        foreach (var workout in _allWorkouts.Where(w => DateRangeFilter.Matches(w.WorkoutDate, HistoryFromDate, HistoryToDate)))
+        foreach (var workout in _allWorkouts.Where(MatchesHistoryFilters))
             History.Add(workout);
 
         SelectedWorkout = selectedId.HasValue
@@ -148,13 +389,61 @@ public sealed class GymViewModel : AchievementAwareViewModel
             : History.FirstOrDefault();
     }
 
+    private bool MatchesHistoryFilters(GymWorkout workout) =>
+        DateRangeFilter.Matches(workout.WorkoutDate, HistoryFromDate, HistoryToDate) &&
+        HistoryMuscleGroupFilterOption.MatchesWorkout(workout);
+
     private void ClearHistoryDateFilter()
     {
         _historyFromDate = null;
         _historyToDate = null;
+        _historyMuscleGroupFilterOption = MuscleGroupFilterOptions[0];
         OnPropertyChanged(nameof(HistoryFromDate));
         OnPropertyChanged(nameof(HistoryToDate));
+        OnPropertyChanged(nameof(HistoryMuscleGroupFilterOption));
         ApplyHistoryFilter();
+    }
+
+    private void SetSectionExpanded(GymSection section, bool isExpanded, ref bool field, string propertyName)
+    {
+        if (!SetProperty(ref field, isExpanded, propertyName) || _suppressSectionAccordion)
+            return;
+
+        if (!isExpanded)
+            return;
+
+        _suppressSectionAccordion = true;
+        try
+        {
+            if (section != GymSection.Catalog && _isCatalogExpanded)
+            {
+                _isCatalogExpanded = false;
+                OnPropertyChanged(nameof(IsCatalogExpanded));
+            }
+
+            if (section != GymSection.Workout && _isWorkoutExpanded)
+            {
+                _isWorkoutExpanded = false;
+                OnPropertyChanged(nameof(IsWorkoutExpanded));
+            }
+
+            if (section != GymSection.History && _isHistoryExpanded)
+            {
+                _isHistoryExpanded = false;
+                OnPropertyChanged(nameof(IsHistoryExpanded));
+            }
+        }
+        finally
+        {
+            _suppressSectionAccordion = false;
+        }
+    }
+
+    private enum GymSection
+    {
+        Catalog,
+        Workout,
+        History
     }
 
     protected override Task LoadCoreAsync() => LoadDataAsync();
@@ -165,17 +454,7 @@ public sealed class GymViewModel : AchievementAwareViewModel
         CommandManager.InvalidateRequerySuggested();
     }
 
-    private void AddRow()
-    {
-        var row = new GymEntryRowViewModel(Entries.Count);
-        row.PropertyChanged += (_, _) => RefreshWorkoutValidation();
-        row.PropertyChanged += (_, args) =>
-        {
-            if (args.PropertyName == nameof(GymEntryRowViewModel.SelectedExerciseId))
-                SyncRowExercise(row);
-        };
-        Entries.Add(row);
-    }
+    private void AddRow() => Entries.Add(CreateEntryRow(Entries.Count));
 
     private void RemoveRow(object? parameter)
     {
@@ -188,6 +467,9 @@ public sealed class GymViewModel : AchievementAwareViewModel
 
     private ValidationResult ValidateWorkoutForm()
     {
+        if (!WorkoutDate.HasValue)
+            return ValidationResult.Fail("Indique la fecha del entrenamiento.");
+
         if (Entries.Count == 0)
             return ValidationResult.Fail("Agregue al menos un ejercicio al entrenamiento.");
 
@@ -229,6 +511,15 @@ public sealed class GymViewModel : AchievementAwareViewModel
 
     private bool CanSaveWorkout() => ValidateWorkoutForm().IsValid;
 
+    private bool CanUpdateCatalogMuscleGroup() =>
+        SelectedCatalogExercise is not null &&
+        EditMuscleGroupOption.Value != SelectedCatalogExercise.MuscleGroup;
+
+    private bool CanRenameCatalogExercise() =>
+        SelectedCatalogExercise is not null &&
+        !string.IsNullOrWhiteSpace(EditExerciseName) &&
+        !string.Equals(EditExerciseName.Trim(), SelectedCatalogExercise.Name, StringComparison.Ordinal);
+
     private void SyncRowExercise(GymEntryRowViewModel row)
     {
         var exercise = Exercises.FirstOrDefault(e => e.Id == row.SelectedExerciseId);
@@ -246,14 +537,89 @@ public sealed class GymViewModel : AchievementAwareViewModel
 
         await RunBusyAsync(async () =>
         {
-            var exercise = await _gymService.CreateOrGetExerciseAsync(NewExerciseName, NewExerciseType);
-            if (!Exercises.Any(e => e.Id == exercise.Id))
-                Exercises.Add(exercise);
+            var exercise = await _gymService.CreateOrGetExerciseAsync(
+                NewExerciseName,
+                NewExerciseTypeOption.Value,
+                NewMuscleGroupOption.Value);
 
+            var existing = Exercises.FirstOrDefault(e => e.Id == exercise.Id);
+            if (existing is null)
+            {
+                Exercises.Add(exercise);
+            }
+            else
+            {
+                existing.MuscleGroup = exercise.MuscleGroup;
+            }
+
+            RebuildFilteredExercises();
+            CatalogExercisesView.Refresh();
             NewExerciseName = string.Empty;
+            NewMuscleGroupOption = MuscleGroupCatalogOptions[0];
             ExerciseValidationMessage = null;
-            StatusMessage = $"Ejercicio '{exercise.Name}' disponible.";
+            StatusMessage = $"Ejercicio '{exercise.Name}' disponible ({exercise.MuscleGroupLabel}).";
         }, "Creando ejercicio...");
+    }
+
+    private async Task UpdateCatalogMuscleGroupAsync()
+    {
+        if (SelectedCatalogExercise is null)
+            return;
+
+        await RunBusyAsync(async () =>
+        {
+            var updated = await _gymService.UpdateExerciseMuscleGroupAsync(
+                SelectedCatalogExercise.Id,
+                EditMuscleGroupOption.Value);
+
+            if (updated is null)
+                return;
+
+            SelectedCatalogExercise.MuscleGroup = updated.MuscleGroup;
+            RebuildFilteredExercises();
+            CatalogExercisesView.Refresh();
+            OnPropertyChanged(nameof(SelectedCatalogExercise));
+            UpdateCatalogMuscleGroupCommand.RaiseCanExecuteChanged();
+            StatusMessage = $"Grupo de '{updated.Name}' → {updated.MuscleGroupLabel}.";
+        }, "Actualizando grupo muscular...");
+    }
+
+    private async Task RenameCatalogExerciseAsync()
+    {
+        if (SelectedCatalogExercise is null || !CanRenameCatalogExercise())
+            return;
+
+        var previousName = SelectedCatalogExercise.Name;
+
+        await RunBusyAsync(async () =>
+        {
+            var updated = await _gymService.UpdateExerciseNameAsync(
+                SelectedCatalogExercise.Id,
+                EditExerciseName);
+
+            if (updated is null)
+                return;
+
+            SelectedCatalogExercise.Name = updated.Name;
+            EditExerciseName = updated.Name;
+            SyncExerciseNameInHistory(updated.Id, updated.Name);
+            RebuildFilteredExercises();
+            CatalogExercisesView.Refresh();
+            OnPropertyChanged(nameof(SelectedCatalogExercise));
+            RenameCatalogExerciseCommand.RaiseCanExecuteChanged();
+            StatusMessage = $"Ejercicio renombrado: '{previousName}' → '{updated.Name}'.";
+        }, "Renombrando ejercicio...");
+    }
+
+    private void SyncExerciseNameInHistory(int exerciseId, string name)
+    {
+        foreach (var entry in _allWorkouts.SelectMany(w => w.Entries))
+        {
+            if (entry.ExerciseId == exerciseId && entry.Exercise is not null)
+                entry.Exercise.Name = name;
+        }
+
+        ApplyHistoryFilter();
     }
 
     private async Task SaveWorkoutAsync()
@@ -267,16 +633,25 @@ public sealed class GymViewModel : AchievementAwareViewModel
         await RunBusyAsync(async () =>
         {
             var drafts = Entries.Select(e => e.ToDraft()).ToList();
-            var result = await _gymService.SaveWorkoutAsync(drafts);
+            var result = await _gymService.SaveWorkoutAsync(drafts, WorkoutDate ?? DateTime.Today);
             PublishAchievements(result.Events);
+            await HobbyXp.RefreshAsync();
 
             Entries.Clear();
             AddRow();
+            WorkoutDate = DateTime.Today;
+
+            // Evitar que un filtro previo oculte el entrenamiento recién guardado.
+            _historyFromDate = null;
+            _historyToDate = null;
+            OnPropertyChanged(nameof(HistoryFromDate));
+            OnPropertyChanged(nameof(HistoryToDate));
 
             await LoadHistoryAsync();
             SelectedWorkout = History.FirstOrDefault(w => w.Id == result.Value.Id) ?? History.FirstOrDefault();
 
             ClearValidation();
+            IsHistoryExpanded = true;
             var overload = result.Value.TriggeredProgressiveOverload ? " · ¡Sobrecarga progresiva!" : string.Empty;
             StatusMessage = $"Entrenamiento guardado · +{result.Value.XpEarned} XP{overload}";
         }, "Guardando entrenamiento...");
@@ -299,6 +674,7 @@ public sealed class GymViewModel : AchievementAwareViewModel
 
             _allWorkouts.RemoveAll(w => w.Id == workout.Id);
             ApplyHistoryFilter();
+            await HobbyXp.RefreshAsync();
             _profileRefreshMessenger.RequestRefresh();
             StatusMessage = "Entrenamiento eliminado del historial.";
         }, "Eliminando entrenamiento...");

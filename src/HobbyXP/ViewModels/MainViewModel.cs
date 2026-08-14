@@ -25,6 +25,7 @@ public sealed class MainViewModel : ViewModelBase
     private string? _latestAchievementMessage;
     private int _playerLevel = 1;
     private int _playerTotalXp;
+    private int _playerSpendableXp;
     private double _playerProgressPercentage;
     private string _displayName = "Aventurero";
     private string? _displayNameValidationMessage;
@@ -109,6 +110,12 @@ public sealed class MainViewModel : ViewModelBase
         private set => SetProperty(ref _playerTotalXp, value);
     }
 
+    public int PlayerSpendableXp
+    {
+        get => _playerSpendableXp;
+        private set => SetProperty(ref _playerSpendableXp, value);
+    }
+
     public double PlayerProgressPercentage
     {
         get => _playerProgressPercentage;
@@ -155,7 +162,11 @@ public sealed class MainViewModel : ViewModelBase
     public int CelebrationLevel
     {
         get => _celebrationLevel;
-        private set => SetProperty(ref _celebrationLevel, value);
+        private set
+        {
+            if (SetProperty(ref _celebrationLevel, value))
+                OnPropertyChanged(nameof(CelebrationLevelTitle));
+        }
     }
 
     public int CelebrationTotalXp
@@ -164,11 +175,15 @@ public sealed class MainViewModel : ViewModelBase
         private set => SetProperty(ref _celebrationTotalXp, value);
     }
 
+    public string CelebrationLevelTitle => GlobalLevelTitles.GetTitle(CelebrationLevel);
+
     public string SidebarProfileTitle => DisplayName;
 
-    public string SidebarLevelText => $"Nivel {PlayerLevel}";
+    public string SidebarLevelText => GlobalLevelTitles.FormatLevelLabel(PlayerLevel);
 
-    public string SidebarXpSummary => $"{PlayerTotalXp:N0} XP acumulados";
+    public string SidebarXpSummary => $"{PlayerTotalXp:N0} XP de progresión";
+
+    public string SidebarSpendableSummary => $"Saldo: {PlayerSpendableXp:N0}";
 
     public AsyncRelayCommand NavigateCommand { get; }
 
@@ -191,6 +206,7 @@ public sealed class MainViewModel : ViewModelBase
 
         PlayerLevel = progress.CurrentLevel;
         PlayerTotalXp = progress.TotalXp;
+        PlayerSpendableXp = profile.SpendableXp;
         PlayerProgressPercentage = progress.ProgressPercentage;
         DisplayName = profile.DisplayName;
         RefreshDisplayNameValidation();
@@ -199,6 +215,7 @@ public sealed class MainViewModel : ViewModelBase
         OnPropertyChanged(nameof(SidebarProfileTitle));
         OnPropertyChanged(nameof(SidebarLevelText));
         OnPropertyChanged(nameof(SidebarXpSummary));
+        OnPropertyChanged(nameof(SidebarSpendableSummary));
 
         await RefreshDashboardAsync();
     }
@@ -283,7 +300,8 @@ public sealed class MainViewModel : ViewModelBase
         CelebrationLevel = info.NewLevel;
         CelebrationTotalXp = info.TotalXp;
         IsLevelUpVisible = true;
-        LatestAchievementMessage = $"🎉 ¡Subiste al nivel {info.NewLevel}!";
+        LatestAchievementMessage =
+            $"🎉 ¡{GlobalLevelTitles.FormatLevelLabel(info.NewLevel)}!";
         await RefreshProfileAsync();
     }
 

@@ -15,8 +15,16 @@ public partial class MainWindow : Window
         _scope = serviceProvider.CreateScope();
         DataContext = _scope.ServiceProvider.GetRequiredService<MainViewModel>();
         InitializeComponent();
+        ApplyDevelopmentChrome();
         ApplyWindowIcon();
         Loaded += OnLoaded;
+    }
+
+    private void ApplyDevelopmentChrome()
+    {
+#if DEBUG
+        Title = "HobbyXP [DEV] — Habit Tracking RPG";
+#endif
     }
 
     private void ApplyWindowIcon()

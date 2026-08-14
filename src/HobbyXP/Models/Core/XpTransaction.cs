@@ -23,6 +23,16 @@ public class XpTransaction : EntityBase
 
     public int? SourceEntityId { get; set; }
 
+    /// <summary>
+    /// Hobby asociado (null en txs legacy o sin módulo).
+    /// </summary>
+    public MilestoneSourceType? SourceType { get; set; }
+
+    /// <summary>
+    /// True si el monto afecta el pool global (bonus meta / canjes); false = pool del hobby.
+    /// </summary>
+    public bool IsGlobal { get; set; }
+
     public DateTime EarnedAt { get; set; } = DateTime.UtcNow;
 
     public PlayerProfile PlayerProfile { get; set; } = null!;

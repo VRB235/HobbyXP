@@ -1,6 +1,8 @@
 ## HobbyXP
 
-Aplicativo de escritorio **WPF (.NET 8)** para gamificar hobbies personales (running, gimnasio, entretenimiento, libros/cursos) con sistema de **XP, niveles, medallas y premios**.
+Aplicativo de escritorio **WPF (.NET 8)** para gamificar hobbies personales (running, gimnasio, **dieta**, entretenimiento, libros/cursos) con sistema de **XP, niveles, medallas, premios y disciplina semanal**.
+
+**Versión actual: 1.2.0** (producción: rama `main`, tag [`v1.2.0`](https://github.com/VRB235/HobbyXP/releases/tag/v1.2.0)).
 
 - **Plataforma**: Windows 10/11, `net8.0-windows10.0.19041`.
 - **Arquitectura**: MVVM con inyección de dependencias (`Microsoft.Extensions.Hosting`).
@@ -17,7 +19,7 @@ El `README.md` se mantiene como **vista ejecutiva y técnica resumida** del esta
 - **Capas**:
   - Views (XAML) + controles (`MainWindow`, `DashboardView`, `PhysicalActivitiesView`, etc.).
   - ViewModels por sección (`MainViewModel` + hijos con `LoadAsync()`).
-  - Servicios de dominio (XP, running, gym, entretenimiento, libros/cursos, logros, premios, dashboard).
+  - Servicios de dominio (XP, running, gym, **dieta**, entretenimiento, libros/cursos, logros, premios, dashboard, **cuota semanal**).
   - Capa de datos (`HobbyXpDbContext`, configuraciones EF, migraciones, seeder, inicializador).
   - Modelos de dominio (perfil, actividades, logros, recompensas, enums).
 - **Patrones clave**:
@@ -35,14 +37,23 @@ El `README.md` se mantiene como **vista ejecutiva y técnica resumida** del esta
   - Nombre de aventurero editable.
   - Avatar configurable a partir de imagen local.
 - **Gamificación**:
-  - Registro de actividades por dominio (running, gym, puzzles, media, videojuegos, libros, cursos).
+  - Registro de actividades por dominio (running, gym, **dieta**, puzzles, media/series, videojuegos, libros, cursos).
+  - **Pools de XP por hobby** + nivel global meta (`HobbyLevelUp`); títulos alegóricos por nivel (`HobbyLevelTitles`).
+  - **Saldo canjeable** (`SpendableXp`) independiente del XP de progresión; tienda de premios.
+  - **Disciplina semanal** (lun–dom): cuota por hobby; incumplimiento baja un nivel del hobby; actividad atrasada puede restaurar el castigo.
+  - Gimnasio: ejercicios con **grupo muscular** opcional (Pecho, Tríceps, Bíceps, Hombros, Core, Espalda, Cuádriceps, Gemelos, Glúteos, Abductores, Aductores, Isquiotibiales); catálogo agrupado, filtro al armar el entrenamiento, **preservar ejercicios al filtrar**, carga de referencia del último entreno y asignación a ejercicios legacy.
+  - **Dieta**: adherencia por 4 comidas (En plan / Fuera de plan); día bueno ≥ 3/4; cuota 5 días buenos/semana.
   - Otorgamiento y deducción de XP mediante `XpService` y registro de transacciones/hitos.
   - Motor de medallas `AchievementEngineService` basado en reglas (`AchievementActionType`).
   - Sistema de recompensas (`Reward`) canjeables por XP.
 - **Interfaz**:
   - Sidebar con perfil, navegación lateral y estado de XP/nivel.
-  - Dashboard con gráficos de XP (semanal y por hobby), sugerencias de actividades para subir de nivel y lista de hitos recientes.
+  - Dashboard con gráficos de XP (semanal y por hobby), **cuotas semanales compactas**, sugerencias de actividades para subir de nivel y lista de hitos recientes.
   - Overlay de celebración al subir de nivel (`LevelUpOverlay`).
+  - Tablas de historial (running, gimnasio, **dieta**, media, libros, cursos, logros) con **ordenación por columna** (clic en cabecera Asc/Desc; helper `GridViewSortHelper`).
+  - Historiales de actividad física con **altura mínima** para ~10 filas visibles y scroll de página si no caben formularios + tablas.
+  - Fechas atrasables al registrar (running, gym, dieta, lecturas, etc.) para disciplina semanal.
+  - En Debug, título de ventana `HobbyXP [DEV]` para distinguir el entorno de desarrollo.
 
 Para un listado completo de entidades, servicios y controles reutilizables, ver secciones 5–8 de `docs/ESTADO-PROYECTO.md`.
 
@@ -53,12 +64,13 @@ Para un listado completo de entidades, servicios y controles reutilizables, ver 
 - **Registrar actividad y ganar XP**:
   1. Navegar a la sección (p. ej. Físico → Running, Entretenimiento, Crecimiento, etc.).
   2. Crear/editar la actividad correspondiente (sesión de running, workout, libro leído, curso completado, etc.).
-  3. El servicio de dominio invoca `XpService`, actualiza perfil y puede generar `Milestone` y medallas.
+  3. El servicio de dominio invoca `XpService`, que acredita el **pool del hobby** (barra del módulo) y puede generar `Milestone` y medallas.
   4. Se notifica al usuario mediante barra de mensajes y se actualiza dashboard/XP.
-- **Subir de nivel**:
-  1. Al cruzar el umbral de XP configurado (`BaseXpPerLevel`), `XpService` emite un evento.
-  2. `MainViewModel` muestra `LevelUpOverlay` con nuevo nivel y resumen de progreso.
-  3. Al cerrar el overlay, se refresca el estado visual (sidebar y dashboard).
+- **Subir de nivel (hobby → global)**:
+  1. Al cruzar el umbral geométrico del hobby (`BaseXpPerLevel × (2^(N−1) − 1)`), el hobby sube de nivel.
+  2. El global recibe un bonus meta (`BaseXpPerLevel` por cada nivel de hobby ganado). Si el global también sube, `XpService` emite level-up.
+  3. `MainViewModel` muestra `LevelUpOverlay` para el nivel **global**; el avance de hobby aparece en la barra de logros.
+  4. Al cerrar el overlay, se refresca sidebar y dashboard.
 - **Personalizar perfil**:
   1. Cambiar avatar desde el sidebar usando un cuadro de diálogo de archivo.
   2. Editar nombre de aventurero y guardar cambios.
@@ -75,10 +87,40 @@ Estos flujos están descritos con mayor detalle y con pasos para pruebas manuale
   - Puede coexistir con SDK 9/10 instalados; `dotnet` en la raíz del repo usará 8.0.x.
   - Verificar: `dotnet --version` desde la raíz (debe mostrar `8.0.x`).
 
-Base de datos SQLite:
+Base de datos SQLite (ambientes separados):
 
-- Ruta: `%LocalAppData%\HobbyXP\hobbyxp.db`
-- En Windows: `C:\Users\<usuario>\AppData\Local\HobbyXP\hobbyxp.db`
+| Entorno | Carpeta de datos |
+|---------|------------------|
+| **Producción** (exe publicado / Release) | `%LocalAppData%\HobbyXP\` |
+| **Desarrollo** (`dotnet run` / Debug) | `%LocalAppData%\HobbyXP-Dev\` |
+
+Override opcional: variable de entorno `HOBBYXP_DATA_DIR` (nombre bajo LocalAppData o ruta absoluta).
+
+`dotnet run` / F5 **no escribe** sobre la BD del ejecutable de producción. Para sembrar Dev con una copia de Prod (sin modificar Prod):
+
+```powershell
+Copy-Item "$env:LOCALAPPDATA\HobbyXP\*" "$env:LOCALAPPDATA\HobbyXP-Dev\" -Recurse -Force
+```
+
+---
+
+## Mejoras en `develop` respecto a `main` (incluidas en 1.2.0)
+
+| Área | Qué cambió |
+|------|------------|
+| **Ambientes** | Datos Debug en `HobbyXP-Dev`; Release/prod en `HobbyXP`. Override `HOBBYXP_DATA_DIR`. Título `[DEV]` en Debug. |
+| **Tablas físico** | Historiales de running/gimnasio con más alto útil (~10 filas) y scroll de página. |
+| **Ordenación** | Clic en cabeceras de historiales (y catálogos de logros) para ordenar Asc/Desc (`GridViewSortHelper`). |
+| **Gimnasio / músculos** | Grupo muscular (incl. **glúteos**); paneles ☰ colapsables; tipos de ejercicio en español; filtro historial por grupo; ★ de récord; **renombrar** ejercicios; **preservar filas** al filtrar el catálogo; carga de **último entreno** como referencia. |
+| **Running / tipo sesión** | Tipos Regenerativa, Umbral y Tirada larga; columna/filtro; asignar tipo a sesiones legacy. |
+| **Fechas atrasables** | DatePicker en running, gym y demás logs para registrar actividad de días anteriores (disciplina semanal). |
+| **UX post-guardado** | Tras guardar sesión/entreno se abre el historial del acordeón (y se limpian filtros) para ver la fila nueva. |
+| **XP / progresión** | Pool de XP **por hobby**, títulos alegóricos por nivel, bonus global al subir hobby, **saldo canjeable** y baseline tras prestige (sin re-backfill indebido). |
+| **Entretenimiento** | Filtros y ordenación de historiales; **capítulos de series** (`MediaSeries` + logs). |
+| **Libros** | Edición de metadatos del libro en progreso. |
+| **Disciplina semanal** | Cuotas lun–dom por hobby; castigo (baja 1 nivel) / restauración si se registra actividad atrasada; dashboard compacto de cuotas. |
+| **Dieta (1.2.0)** | Tab en Actividades Físicas: 4 comidas En plan / Fuera de plan; día bueno ≥ 3/4; cuota 5 días buenos/semana; upsert del día; medallas de días buenos/perfectos. |
+| **Versión** | 1.1.0 → **1.2.0** (csproj, Inno Setup, manifiesto MSIX). |
 
 ---
 
@@ -103,7 +145,17 @@ Para generar un ZIP portable autocontenido:
 .\scripts\package-portable.ps1
 ```
 
+Salida: `artifacts\HobbyXP-win-x64-Release.zip`. Release GitHub: [`v1.2.0`](https://github.com/VRB235/HobbyXP/releases/tag/v1.2.0).
+
 MSIX e instalador Inno Setup: ver [`docs/DISTRIBUCION.md`](docs/DISTRIBUCION.md).
+
+### Despliegue a producción (obligatorio)
+
+1. Publicar Release (`package-portable.ps1`).
+2. Commit en la rama de trabajo (`develop`).
+3. Actualizar este README con **todo** lo que esa rama tiene y `main` aún no.
+4. Merge a `main` y push de ambas ramas.
+5. Tag anotado `vX.Y.Z` y GitHub Release con el ZIP.
 
 ---
 
@@ -114,8 +166,10 @@ MSIX e instalador Inno Setup: ver [`docs/DISTRIBUCION.md`](docs/DISTRIBUCION.md)
   - Lista de funcionalidades disponibles.
   - Flujos funcionales principales para entender el producto.
   - Requisitos y forma de ejecución.
+  - **Tabla «Mejoras en develop respecto a main»**: cada mejora de UX, ambientes, tablas o comportamiento visible al usuario que aún no esté en `main`.
+- En cada **despliegue a producción**: esa tabla debe cubrir el delta completo de la rama a fusionar, merge a `main`, y el flujo de la sección Distribución.
 - **`docs/ESTADO-PROYECTO.md`**: fuente de verdad detallada (modelo de dominio, servicios, migraciones, decisiones de diseño, checklist de pruebas, pendientes).
 
-Al introducir nuevas pantallas, servicios, flujos o cambios de arquitectura, actualizar **ambos** archivos:
-- Añadir/ajustar el resumen en este `README.md`.
+Al introducir nuevas pantallas, servicios, flujos o cambios de arquitectura **o UX**, actualizar **ambos** archivos:
+- Añadir/ajustar el resumen (y la fila en «Mejoras recientes») en este `README.md`.
 - Registrar el detalle técnico y de pruebas en `docs/ESTADO-PROYECTO.md`.

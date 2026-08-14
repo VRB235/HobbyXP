@@ -59,7 +59,7 @@ public sealed class XpServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task AwardXpAsync_PersistsTransactionAndTotalXp()
+    public async Task AwardXpAsync_CreditsHobbyPoolNotGlobal()
     {
         var outcome = await _sut.AwardXpAsync(
             AchievementActionType.RunningKilometer,
@@ -70,24 +70,35 @@ public sealed class XpServiceTests : IDisposable
         Assert.Equal(30, outcome.AmountAwarded);
         Assert.Equal(30, outcome.NewTotalXp);
         Assert.False(outcome.LeveledUp);
+        Assert.Equal(0, outcome.GlobalBonusAwarded);
 
         await using var db = _factory.CreateDbContext();
         var profile = await db.PlayerProfiles.SingleAsync();
-        Assert.Equal(30, profile.TotalXp);
+        Assert.Equal(0, profile.TotalXp);
+        Assert.Equal(30, profile.SpendableXp);
+
+        var hobby = await db.HobbyProgresses.SingleAsync(h => h.SourceType == MilestoneSourceType.Running);
+        Assert.Equal(30, hobby.TotalXp);
 
         var transaction = await db.XpTransactions.SingleAsync();
         Assert.Equal(30, transaction.Amount);
-        Assert.Equal(AchievementActionType.RunningKilometer, transaction.ActionType);
+        Assert.False(transaction.IsGlobal);
+        Assert.Equal(MilestoneSourceType.Running, transaction.SourceType);
     }
 
     [Fact]
-    public async Task AwardXpAsync_WhenCrossingThreshold_LevelsUpAndPublishes()
+    public async Task AwardXpAsync_WhenHobbyLevelsUp_AwardsGlobalMetaBonus()
     {
         await using (var db = _factory.CreateDbContext())
         {
             var profile = await db.PlayerProfiles.SingleAsync();
-            profile.TotalXp = 980;
-            profile.CurrentLevel = 1;
+            db.HobbyProgresses.Add(new HobbyProgress
+            {
+                PlayerProfileId = profile.Id,
+                SourceType = MilestoneSourceType.OfficialRace,
+                CurrentLevel = 1,
+                TotalXp = 600
+            });
             await db.SaveChangesAsync();
         }
 
@@ -95,18 +106,27 @@ public sealed class XpServiceTests : IDisposable
             AchievementActionType.OfficialRaceCompleted,
             0m,
             "Primera carrera",
-            MilestoneSourceType.Running,
+            MilestoneSourceType.OfficialRace,
             milestoneTitle: "Carrera oficial");
 
         Assert.True(outcome.LeveledUp);
         Assert.Equal(2, outcome.NewLevel);
-        Assert.Equal(1480, outcome.NewTotalXp);
+        Assert.Equal(1100, outcome.NewTotalXp);
+        Assert.Equal(1000, outcome.GlobalBonusAwarded);
+        Assert.True(outcome.GlobalLeveledUp);
+        Assert.Equal(2, outcome.NewGlobalLevel);
         Assert.Single(_levelUpMessenger.Published);
         Assert.Equal(2, _levelUpMessenger.Published[0].NewLevel);
+
+        await using var verifyDb = _factory.CreateDbContext();
+        var global = await verifyDb.PlayerProfiles.SingleAsync();
+        Assert.Equal(1000, global.TotalXp);
+        Assert.Equal(2, global.CurrentLevel);
+        Assert.Equal(1500, global.SpendableXp); // 500 hobby award + 1000 meta bonus
     }
 
     [Fact]
-    public async Task AwardFlatBonusAsync_UsesExplicitBonus()
+    public async Task AwardFlatBonusAsync_UsesExplicitBonusOnHobby()
     {
         var outcome = await _sut.AwardFlatBonusAsync(
             AchievementActionType.BookCompleted,
@@ -116,22 +136,35 @@ public sealed class XpServiceTests : IDisposable
 
         Assert.Equal(75, outcome.AmountAwarded);
         Assert.Equal(75, outcome.NewTotalXp);
+
+        await using var db = _factory.CreateDbContext();
+        var profile = await db.PlayerProfiles.SingleAsync();
+        Assert.Equal(0, profile.TotalXp);
+        Assert.Equal(75, profile.SpendableXp);
+        Assert.Equal(75, (await db.HobbyProgresses.SingleAsync(h => h.SourceType == MilestoneSourceType.Book)).TotalXp);
     }
 
     [Fact]
-    public async Task AwardXpAsync_WithZeroPoints_DoesNotChangeProfile()
+    public async Task AwardXpAsync_WhenZeroPoints_DoesNotPersist()
     {
+        await using (var db = _factory.CreateDbContext())
+        {
+            var rule = await db.AchievementRules.SingleAsync(r => r.ActionType == AchievementActionType.RunningKilometer);
+            rule.IsActive = false;
+            await db.SaveChangesAsync();
+        }
+
         var outcome = await _sut.AwardXpAsync(
             AchievementActionType.RunningKilometer,
-            0m,
-            "Sin distancia",
+            10m,
+            "Sin puntos",
             MilestoneSourceType.Running);
 
         Assert.Equal(0, outcome.AmountAwarded);
         Assert.Equal(0, outcome.NewTotalXp);
 
-        await using var db = _factory.CreateDbContext();
-        Assert.Empty(await db.XpTransactions.ToListAsync());
+        await using var verifyDb = _factory.CreateDbContext();
+        Assert.Empty(await verifyDb.XpTransactions.ToListAsync());
     }
 
     [Fact]
@@ -143,13 +176,14 @@ public sealed class XpServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task TryDeductXpAsync_WhenSufficient_DeductsAndRecalculatesLevel()
+    public async Task TryDeductXpAsync_WhenSufficient_DeductsSpendableOnly()
     {
         await using (var db = _factory.CreateDbContext())
         {
             var seededProfile = await db.PlayerProfiles.SingleAsync();
             seededProfile.TotalXp = 1500;
             seededProfile.CurrentLevel = 2;
+            seededProfile.SpendableXp = 1500;
             await db.SaveChangesAsync();
         }
 
@@ -159,48 +193,43 @@ public sealed class XpServiceTests : IDisposable
 
         await using var verifyDb = _factory.CreateDbContext();
         var profile = await verifyDb.PlayerProfiles.SingleAsync();
-        Assert.Equal(900, profile.TotalXp);
-        Assert.Equal(1, profile.CurrentLevel);
+        Assert.Equal(1500, profile.TotalXp);
+        Assert.Equal(2, profile.CurrentLevel);
+        Assert.Equal(900, profile.SpendableXp);
 
         var transaction = await verifyDb.XpTransactions.SingleAsync(t => t.Amount < 0);
         Assert.Equal(-600, transaction.Amount);
+        Assert.True(transaction.IsGlobal);
     }
 
     [Fact]
-    public async Task RevokeXpForSourceAsync_RemovesEarnedXpMilestonesAndMedals()
+    public async Task RevokeXpForSourceAsync_RemovesHobbyXpAndGlobalMetaIfLevelDrops()
     {
         await using (var db = _factory.CreateDbContext())
         {
             var profile = await db.PlayerProfiles.SingleAsync();
-            profile.TotalXp = 200;
-            profile.CurrentLevel = 1;
+            profile.TotalXp = 1000;
+            profile.CurrentLevel = 2;
+            profile.SpendableXp = 2000; // 1000 hobby + 1000 meta ya acreditados al saldo
+
+            db.HobbyProgresses.Add(new HobbyProgress
+            {
+                PlayerProfileId = profile.Id,
+                SourceType = MilestoneSourceType.Running,
+                CurrentLevel = 2,
+                TotalXp = 1000
+            });
 
             db.XpTransactions.Add(new XpTransaction
             {
                 PlayerProfileId = profile.Id,
-                Amount = 200,
-                ActionType = AchievementActionType.BookCompleted,
-                Description = "Libro",
-                SourceEntityType = nameof(Models.PersonalGrowth.Book),
-                SourceEntityId = 42,
-                EarnedAt = DateTime.UtcNow
-            });
-
-            db.Milestones.Add(new Milestone
-            {
-                Title = "Libro",
-                PointsEarned = 200,
-                SourceType = MilestoneSourceType.Book,
-                SourceEntityId = 42,
-                CompletedAt = DateTime.UtcNow
-            });
-
-            var medalDefinition = await db.MedalDefinitions.FirstAsync();
-            db.EarnedMedals.Add(new EarnedMedal
-            {
-                MedalDefinitionId = medalDefinition.Id,
-                SourceEntityType = nameof(Models.PersonalGrowth.Book),
-                SourceEntityId = 42,
+                Amount = 1000,
+                ActionType = AchievementActionType.RunningKilometer,
+                Description = "Sesión",
+                SourceEntityType = "RunningSession",
+                SourceEntityId = 7,
+                SourceType = MilestoneSourceType.Running,
+                IsGlobal = false,
                 EarnedAt = DateTime.UtcNow
             });
 
@@ -208,77 +237,46 @@ public sealed class XpServiceTests : IDisposable
         }
 
         var revoked = await _sut.RevokeXpForSourceAsync(
-            MilestoneSourceType.Book,
-            nameof(Models.PersonalGrowth.Book),
-            42,
-            "Eliminación de libro");
+            MilestoneSourceType.Running,
+            "RunningSession",
+            7,
+            "Eliminado");
 
-        Assert.Equal(200, revoked);
+        Assert.Equal(1000, revoked);
 
         await using var verifyDb = _factory.CreateDbContext();
-        Assert.Equal(0, await verifyDb.PlayerProfiles.Select(p => p.TotalXp).SingleAsync());
-        Assert.Empty(await verifyDb.XpTransactions.Where(t => t.Amount > 0).ToListAsync());
-        Assert.Empty(await verifyDb.Milestones.ToListAsync());
-        Assert.Empty(await verifyDb.EarnedMedals.ToListAsync());
+        var hobby = await verifyDb.HobbyProgresses.SingleAsync(h => h.SourceType == MilestoneSourceType.Running);
+        Assert.Equal(0, hobby.TotalXp);
+        Assert.Equal(1, hobby.CurrentLevel);
+
+        var globalProfile = await verifyDb.PlayerProfiles.SingleAsync();
+        Assert.Equal(0, globalProfile.TotalXp);
+        Assert.Equal(1, globalProfile.CurrentLevel);
+        Assert.Equal(0, globalProfile.SpendableXp);
     }
 
     [Fact]
-    public async Task GetDailyXpForLastDaysAsync_GroupsPositiveTransactionsByDay()
+    public async Task GetHobbyProgressAsync_ReturnsHobbySnapshot()
     {
-        var today = DateTime.UtcNow.Date;
+        await _sut.AwardXpAsync(
+            AchievementActionType.PuzzleCompleted,
+            1m,
+            "Puzzle",
+            MilestoneSourceType.Puzzle);
 
-        await using (var db = _factory.CreateDbContext())
-        {
-            var profile = await db.PlayerProfiles.SingleAsync();
-            db.XpTransactions.AddRange(
-                new XpTransaction
-                {
-                    PlayerProfileId = profile.Id,
-                    Amount = 40,
-                    ActionType = AchievementActionType.RunningKilometer,
-                    Description = "Hoy",
-                    EarnedAt = today.AddHours(10)
-                },
-                new XpTransaction
-                {
-                    PlayerProfileId = profile.Id,
-                    Amount = 60,
-                    ActionType = AchievementActionType.RunningKilometer,
-                    Description = "Hoy tarde",
-                    EarnedAt = today.AddHours(18)
-                },
-                new XpTransaction
-                {
-                    PlayerProfileId = profile.Id,
-                    Amount = 25,
-                    ActionType = AchievementActionType.GymWorkoutSaved,
-                    Description = "Ayer",
-                    EarnedAt = today.AddDays(-1).AddHours(9)
-                },
-                new XpTransaction
-                {
-                    PlayerProfileId = profile.Id,
-                    Amount = -10,
-                    ActionType = AchievementActionType.RewardRedeemed,
-                    Description = "Canje",
-                    EarnedAt = today
-                });
-            await db.SaveChangesAsync();
-        }
+        var progress = await _sut.GetHobbyProgressAsync(MilestoneSourceType.Puzzle);
 
-        var points = await _sut.GetDailyXpForLastDaysAsync(3);
-
-        Assert.Equal(3, points.Count);
-        Assert.Equal(100, points[^1].TotalXp);
-        Assert.Equal(25, points[^2].TotalXp);
-        Assert.Equal(0, points[^3].TotalXp);
+        Assert.Equal(1, progress.CurrentLevel);
+        Assert.Equal(50, progress.TotalXp);
     }
 
     [Fact]
-    public async Task GetDailyXpForLastDaysAsync_WhenDaysNotPositive_ReturnsEmpty()
+    public async Task GetAllHobbyProgressAsync_ReturnsAllTrackedHobbies()
     {
-        var points = await _sut.GetDailyXpForLastDaysAsync(0);
+        var all = await _sut.GetAllHobbyProgressAsync();
 
-        Assert.Empty(points);
+        Assert.Equal(9, all.Count);
+        Assert.Contains(all, h => h.SourceType == MilestoneSourceType.Gym);
+        Assert.Contains(all, h => h.SourceType == MilestoneSourceType.Diet);
     }
 }

@@ -186,6 +186,37 @@ namespace HobbyXP.Data.Migrations
                             IsActive = true,
                             PointsPerUnit = 10m,
                             UnitLabel = "sesión"
+                        },
+                        new
+                        {
+                            Id = 13,
+                            ActionType = "MediaChapterWatched",
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            DisplayName = "Capítulo de serie",
+                            IsActive = true,
+                            PointsPerUnit = 5m,
+                            UnitLabel = "capítulo"
+                        },
+                        new
+                        {
+                            Id = 14,
+                            ActionType = "DietMealOnPlan",
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            DisplayName = "Comida en plan",
+                            IsActive = true,
+                            PointsPerUnit = 15m,
+                            UnitLabel = "comida"
+                        },
+                        new
+                        {
+                            Id = 15,
+                            ActionType = "DietPerfectDay",
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            DisplayName = "Día perfecto de dieta",
+                            FlatBonusPoints = 40,
+                            IsActive = true,
+                            PointsPerUnit = 0m,
+                            UnitLabel = "día"
                         });
                 });
 
@@ -782,6 +813,56 @@ namespace HobbyXP.Data.Migrations
                             IconPath = "Assets/Medals/media.png",
                             Name = "Palmarés del Streaming",
                             UnlockHint = "Completa 100 series o películas."
+                        },
+                        new
+                        {
+                            Id = 53,
+                            Code = "DietGoodDays1",
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Completaste tu primer día bueno de dieta (3 de 4 comidas en plan).",
+                            IconPath = "Assets/Medals/gym-workout.png",
+                            Name = "Primer Plato",
+                            UnlockHint = "Registra un día con al menos 3 comidas en plan."
+                        },
+                        new
+                        {
+                            Id = 54,
+                            Code = "DietGoodDays10",
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Diez días buenos de dieta.",
+                            IconPath = "Assets/Medals/gym-workout.png",
+                            Name = "Disciplina en la Mesa",
+                            UnlockHint = "Acumula 10 días con al menos 3 comidas en plan."
+                        },
+                        new
+                        {
+                            Id = 55,
+                            Code = "DietGoodDays50",
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Cincuenta días buenos. El plan ya es costumbre.",
+                            IconPath = "Assets/Medals/gym-workout.png",
+                            Name = "Hábito Forjado",
+                            UnlockHint = "Acumula 50 días con al menos 3 comidas en plan."
+                        },
+                        new
+                        {
+                            Id = 56,
+                            Code = "DietPerfectDays7",
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Siete días perfectos (4/4 en plan).",
+                            IconPath = "Assets/Medals/progressive-overload.png",
+                            Name = "Semana Impecable",
+                            UnlockHint = "Acumula 7 días con las 4 comidas en plan."
+                        },
+                        new
+                        {
+                            Id = 57,
+                            Code = "DietPerfectDays30",
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Treinta días perfectos. Adherencia de élite.",
+                            IconPath = "Assets/Medals/progressive-overload.png",
+                            Name = "Mes de Acero",
+                            UnlockHint = "Acumula 30 días con las 4 comidas en plan."
                         });
                 });
 
@@ -822,6 +903,42 @@ namespace HobbyXP.Data.Migrations
                     b.HasIndex("Status");
 
                     b.ToTable("Rewards", (string)null);
+                });
+
+            modelBuilder.Entity("HobbyXP.Models.Core.HobbyProgress", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("CurrentLevel")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasDefaultValue(1);
+
+                    b.Property<int>("PlayerProfileId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("SourceType")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("TotalXp")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PlayerProfileId", "SourceType")
+                        .IsUnique();
+
+                    b.ToTable("HobbyProgresses", (string)null);
                 });
 
             modelBuilder.Entity("HobbyXP.Models.Core.Milestone", b =>
@@ -896,15 +1013,96 @@ namespace HobbyXP.Data.Migrations
                         .HasColumnType("TEXT")
                         .HasDefaultValue("Aventurero");
 
+                    b.Property<bool>("SpendableLedgerInitialized")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("SpendableProgressBaselineApplied")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasDefaultValue(false);
+
+                    b.Property<int>("SpendableXp")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasDefaultValue(0);
+
                     b.Property<int>("TotalXp")
                         .HasColumnType("INTEGER");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("TEXT");
 
+                    b.Property<DateTime?>("WeeklyQuotaTrackingStartedAtUtc")
+                        .HasColumnType("TEXT");
+
                     b.HasKey("Id");
 
                     b.ToTable("PlayerProfiles", (string)null);
+                });
+
+            modelBuilder.Entity("HobbyXP.Models.Core.WeeklyQuotaEvaluation", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("ActualPrimary")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("ActualSecondary")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("GlobalXpRevoked")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("HobbyLevelAfter")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("HobbyLevelBefore")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("HobbyXpRevoked")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime?>("PenalizedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("RequiredPrimary")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("RequiredSecondary")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime?>("RestoredAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("SourceType")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("WeekStartUtc")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SourceType", "WeekStartUtc")
+                        .IsUnique();
+
+                    b.ToTable("WeeklyQuotaEvaluations", (string)null);
                 });
 
             modelBuilder.Entity("HobbyXP.Models.Core.XpTransaction", b =>
@@ -932,6 +1130,11 @@ namespace HobbyXP.Data.Migrations
                     b.Property<DateTime>("EarnedAt")
                         .HasColumnType("TEXT");
 
+                    b.Property<bool>("IsGlobal")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasDefaultValue(false);
+
                     b.Property<int>("PlayerProfileId")
                         .HasColumnType("INTEGER");
 
@@ -939,6 +1142,10 @@ namespace HobbyXP.Data.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("SourceEntityType")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("SourceType")
+                        .HasMaxLength(32)
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime?>("UpdatedAt")
@@ -949,6 +1156,8 @@ namespace HobbyXP.Data.Migrations
                     b.HasIndex("EarnedAt");
 
                     b.HasIndex("PlayerProfileId");
+
+                    b.HasIndex("SourceType");
 
                     b.ToTable("XpTransactions", (string)null);
                 });
@@ -986,6 +1195,81 @@ namespace HobbyXP.Data.Migrations
                     b.HasIndex("CompletedAt");
 
                     b.ToTable("MediaEntries", (string)null);
+                });
+
+            modelBuilder.Entity("HobbyXP.Models.Entertainment.MediaSeries", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("ChaptersWatched")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("CompletedMediaEntryId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("TotalChapters")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("XpEarned")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Status");
+
+                    b.ToTable("MediaSeries", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_MediaSeries_ChaptersWatched", "[ChaptersWatched] >= 0 AND [ChaptersWatched] <= [TotalChapters]");
+                        });
+                });
+
+            modelBuilder.Entity("HobbyXP.Models.Entertainment.MediaSeriesChapterLog", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("ChaptersDone")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("MediaSeriesId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("WatchDate")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MediaSeriesId", "WatchDate");
+
+                    b.ToTable("MediaSeriesChapterLogs", (string)null);
                 });
 
             modelBuilder.Entity("HobbyXP.Models.Entertainment.Puzzle", b =>
@@ -1082,6 +1366,34 @@ namespace HobbyXP.Data.Migrations
                         });
                 });
 
+            modelBuilder.Entity("HobbyXP.Models.Entertainment.VideoGameProgressLog", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("PercentDelta")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("ProgressDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("VideoGameId")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("VideoGameId", "ProgressDate");
+
+                    b.ToTable("VideoGameProgressLogs", (string)null);
+                });
+
             modelBuilder.Entity("HobbyXP.Models.PersonalGrowth.Book", b =>
                 {
                     b.Property<int>("Id")
@@ -1129,6 +1441,34 @@ namespace HobbyXP.Data.Migrations
                         {
                             t.HasCheckConstraint("CK_Books_PagesRead", "[PagesRead] >= 0 AND [PagesRead] <= [TotalPages]");
                         });
+                });
+
+            modelBuilder.Entity("HobbyXP.Models.PersonalGrowth.BookReadingLog", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("BookId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("PagesDone")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("ReadDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BookId", "ReadDate");
+
+                    b.ToTable("BookReadingLogs", (string)null);
                 });
 
             modelBuilder.Entity("HobbyXP.Models.PersonalGrowth.Course", b =>
@@ -1208,6 +1548,59 @@ namespace HobbyXP.Data.Migrations
                     b.ToTable("CourseSessionLogs", (string)null);
                 });
 
+            modelBuilder.Entity("HobbyXP.Models.Physical.DietDayLog", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("BreakfastStatus")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("DayDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("DinnerStatus")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("LunchStatus")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("OnPlanCount")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("SnackStatus")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("XpEarned")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DayDate")
+                        .IsUnique();
+
+                    b.ToTable("DietDayLogs", (string)null);
+                });
+
             modelBuilder.Entity("HobbyXP.Models.Physical.Exercise", b =>
                 {
                     b.Property<int>("Id")
@@ -1222,6 +1615,10 @@ namespace HobbyXP.Data.Migrations
                         .HasMaxLength(32)
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("MuscleGroup")
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(150)
@@ -1231,6 +1628,8 @@ namespace HobbyXP.Data.Migrations
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("MuscleGroup");
 
                     b.HasIndex("Name")
                         .IsUnique();
@@ -1399,6 +1798,10 @@ namespace HobbyXP.Data.Migrations
                     b.Property<DateTime>("RecordedAt")
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("SessionType")
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("TEXT");
 
@@ -1410,6 +1813,8 @@ namespace HobbyXP.Data.Migrations
                     b.HasIndex("CarreraId");
 
                     b.HasIndex("RecordedAt");
+
+                    b.HasIndex("SessionType");
 
                     b.ToTable("RunningSessions", (string)null);
                 });
@@ -1425,6 +1830,17 @@ namespace HobbyXP.Data.Migrations
                     b.Navigation("MedalDefinition");
                 });
 
+            modelBuilder.Entity("HobbyXP.Models.Core.HobbyProgress", b =>
+                {
+                    b.HasOne("HobbyXP.Models.Core.PlayerProfile", "PlayerProfile")
+                        .WithMany("HobbyProgresses")
+                        .HasForeignKey("PlayerProfileId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("PlayerProfile");
+                });
+
             modelBuilder.Entity("HobbyXP.Models.Core.XpTransaction", b =>
                 {
                     b.HasOne("HobbyXP.Models.Core.PlayerProfile", "PlayerProfile")
@@ -1434,6 +1850,39 @@ namespace HobbyXP.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("PlayerProfile");
+                });
+
+            modelBuilder.Entity("HobbyXP.Models.Entertainment.MediaSeriesChapterLog", b =>
+                {
+                    b.HasOne("HobbyXP.Models.Entertainment.MediaSeries", "MediaSeries")
+                        .WithMany("ChapterLogs")
+                        .HasForeignKey("MediaSeriesId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("MediaSeries");
+                });
+
+            modelBuilder.Entity("HobbyXP.Models.Entertainment.VideoGameProgressLog", b =>
+                {
+                    b.HasOne("HobbyXP.Models.Entertainment.VideoGame", "VideoGame")
+                        .WithMany("ProgressLogs")
+                        .HasForeignKey("VideoGameId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("VideoGame");
+                });
+
+            modelBuilder.Entity("HobbyXP.Models.PersonalGrowth.BookReadingLog", b =>
+                {
+                    b.HasOne("HobbyXP.Models.PersonalGrowth.Book", "Book")
+                        .WithMany("ReadingLogs")
+                        .HasForeignKey("BookId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Book");
                 });
 
             modelBuilder.Entity("HobbyXP.Models.PersonalGrowth.CourseSessionLog", b =>
@@ -1483,7 +1932,24 @@ namespace HobbyXP.Data.Migrations
 
             modelBuilder.Entity("HobbyXP.Models.Core.PlayerProfile", b =>
                 {
+                    b.Navigation("HobbyProgresses");
+
                     b.Navigation("Transactions");
+                });
+
+            modelBuilder.Entity("HobbyXP.Models.Entertainment.MediaSeries", b =>
+                {
+                    b.Navigation("ChapterLogs");
+                });
+
+            modelBuilder.Entity("HobbyXP.Models.Entertainment.VideoGame", b =>
+                {
+                    b.Navigation("ProgressLogs");
+                });
+
+            modelBuilder.Entity("HobbyXP.Models.PersonalGrowth.Book", b =>
+                {
+                    b.Navigation("ReadingLogs");
                 });
 
             modelBuilder.Entity("HobbyXP.Models.PersonalGrowth.Course", b =>

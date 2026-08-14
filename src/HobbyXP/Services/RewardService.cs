@@ -71,7 +71,7 @@ public sealed class RewardService : IRewardService
             return false;
 
         var profile = await _playerProfileService.GetProfileAsync(cancellationToken);
-        return profile.TotalXp >= reward.CostInPoints;
+        return profile.SpendableXp >= reward.CostInPoints;
     }
 
     public async Task<OperationResult<Reward>> RedeemAsync(

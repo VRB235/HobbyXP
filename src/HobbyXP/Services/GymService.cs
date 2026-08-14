@@ -1,4 +1,5 @@
 using HobbyXP.Data;
+using HobbyXP.Helpers;
 using HobbyXP.Models.Enums;
 using HobbyXP.Models.Physical;
 using HobbyXP.Services.Abstractions;
@@ -12,15 +13,18 @@ public sealed class GymService : IGymService
     private readonly IDbContextFactory<HobbyXpDbContext> _dbContextFactory;
     private readonly IXpService _xpService;
     private readonly IAchievementEngineService _achievementEngine;
+    private readonly IWeeklyQuotaService _weeklyQuotaService;
 
     public GymService(
         IDbContextFactory<HobbyXpDbContext> dbContextFactory,
         IXpService xpService,
-        IAchievementEngineService achievementEngine)
+        IAchievementEngineService achievementEngine,
+        IWeeklyQuotaService weeklyQuotaService)
     {
         _dbContextFactory = dbContextFactory;
         _xpService = xpService;
         _achievementEngine = achievementEngine;
+        _weeklyQuotaService = weeklyQuotaService;
     }
 
     public async Task<IReadOnlyList<Exercise>> GetExercisesAsync(CancellationToken cancellationToken = default)
@@ -28,13 +32,16 @@ public sealed class GymService : IGymService
         await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
         return await db.Exercises
             .AsNoTracking()
-            .OrderBy(e => e.Name)
+            .OrderBy(e => e.MuscleGroup == null)
+            .ThenBy(e => e.MuscleGroup)
+            .ThenBy(e => e.Name)
             .ToListAsync(cancellationToken);
     }
 
     public async Task<Exercise> CreateOrGetExerciseAsync(
         string name,
         ExerciseType exerciseType,
+        MuscleGroup? muscleGroup = null,
         CancellationToken cancellationToken = default)
     {
         var normalized = name.Trim();
@@ -46,12 +53,22 @@ public sealed class GymService : IGymService
             .FirstOrDefaultAsync(e => e.Name == normalized, cancellationToken);
 
         if (existing is not null)
+        {
+            // Completa grupo en ejercicios legacy cuando el usuario lo aporta al recrear por nombre.
+            if (existing.MuscleGroup is null && muscleGroup is not null)
+            {
+                existing.MuscleGroup = muscleGroup;
+                await db.SaveChangesAsync(cancellationToken);
+            }
+
             return existing;
+        }
 
         var exercise = new Exercise
         {
             Name = normalized,
-            ExerciseType = exerciseType
+            ExerciseType = exerciseType,
+            MuscleGroup = muscleGroup
         };
 
         db.Exercises.Add(exercise);
@@ -59,8 +76,53 @@ public sealed class GymService : IGymService
         return exercise;
     }
 
+    public async Task<Exercise?> UpdateExerciseMuscleGroupAsync(
+        int exerciseId,
+        MuscleGroup? muscleGroup,
+        CancellationToken cancellationToken = default)
+    {
+        await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var exercise = await db.Exercises.FirstOrDefaultAsync(e => e.Id == exerciseId, cancellationToken);
+        if (exercise is null)
+            return null;
+
+        exercise.MuscleGroup = muscleGroup;
+        await db.SaveChangesAsync(cancellationToken);
+        return exercise;
+    }
+
+    public async Task<Exercise?> UpdateExerciseNameAsync(
+        int exerciseId,
+        string name,
+        CancellationToken cancellationToken = default)
+    {
+        var normalized = name.Trim();
+        if (string.IsNullOrWhiteSpace(normalized))
+            throw new ArgumentException("El nombre del ejercicio es obligatorio.", nameof(name));
+        if (normalized.Length > 150)
+            throw new ArgumentException("El nombre del ejercicio no puede superar 150 caracteres.", nameof(name));
+
+        await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var exercise = await db.Exercises.FirstOrDefaultAsync(e => e.Id == exerciseId, cancellationToken);
+        if (exercise is null)
+            return null;
+
+        if (string.Equals(exercise.Name, normalized, StringComparison.Ordinal))
+            return exercise;
+
+        var nameTaken = await db.Exercises
+            .AnyAsync(e => e.Id != exerciseId && e.Name == normalized, cancellationToken);
+        if (nameTaken)
+            throw new InvalidOperationException($"Ya existe un ejercicio llamado '{normalized}'.");
+
+        exercise.Name = normalized;
+        await db.SaveChangesAsync(cancellationToken);
+        return exercise;
+    }
+
     public async Task<OperationResult<GymWorkout>> SaveWorkoutAsync(
         IReadOnlyList<GymWorkoutEntryDraft> entries,
+        DateTime workoutDate,
         string? notes = null,
         CancellationToken cancellationToken = default)
     {
@@ -71,7 +133,7 @@ public sealed class GymService : IGymService
 
         var workout = new GymWorkout
         {
-            WorkoutDate = DateTime.UtcNow,
+            WorkoutDate = DateTimeHelper.ToUtcFromLocalDate(workoutDate),
             Notes = notes
         };
 
@@ -164,6 +226,8 @@ public sealed class GymService : IGymService
             nameof(GymWorkout),
             workout.Id,
             cancellationToken));
+
+        await _weeklyQuotaService.NotifyActivityAsync(MilestoneSourceType.Gym, workoutDate.Date, cancellationToken);
 
         return OperationResult<GymWorkout>.WithEvents(workout, events.ToArray());
     }

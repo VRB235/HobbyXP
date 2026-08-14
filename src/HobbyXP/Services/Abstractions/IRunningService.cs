@@ -1,3 +1,4 @@
+using HobbyXP.Models.Enums;
 using HobbyXP.Models.Physical;
 using HobbyXP.Services.Results;
 
@@ -14,6 +15,8 @@ public interface IRunningService
     Task<OperationResult<RunningSession>> SaveSessionAsync(
         decimal distanceKm,
         TimeSpan duration,
+        RunningSessionType sessionType,
+        DateTime recordedAt,
         int? carreraId = null,
         string? notes = null,
         CancellationToken cancellationToken = default);
@@ -28,6 +31,11 @@ public interface IRunningService
 
     Task<RacePreparationStats> GetRacePreparationStatsAsync(
         int raceId,
+        CancellationToken cancellationToken = default);
+
+    Task<RunningSession?> UpdateSessionTypeAsync(
+        int sessionId,
+        RunningSessionType sessionType,
         CancellationToken cancellationToken = default);
 
     Task<bool> DeleteSessionAsync(int sessionId, CancellationToken cancellationToken = default);

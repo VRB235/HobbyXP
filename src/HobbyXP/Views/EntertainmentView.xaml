@@ -15,6 +15,7 @@
             <TabItem Header="Rompecabezas">
                 <ScrollViewer x:Name="PuzzlesScrollViewer" DataContext="{Binding Puzzles}">
                     <StackPanel Margin="8">
+                        <controls:HobbyXpBanner DataContext="{Binding HobbyXp}" />
                         <Grid Margin="0,0,0,4">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="160" />
@@ -104,86 +105,116 @@
                         </StackPanel>
 
                         <GroupBox Header="Historial" Padding="12" Margin="0,0,0,12">
-                            <StackPanel>
-                                <Grid Margin="0,0,0,12">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" MinHeight="280" />
+                                </Grid.RowDefinitions>
+
+                                <Grid Grid.Row="0" Margin="0,0,0,12">
                                     <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="160" />
+                                        <ColumnDefinition Width="140" />
                                         <ColumnDefinition Width="Auto" />
                                         <ColumnDefinition Width="130" />
                                         <ColumnDefinition Width="Auto" />
                                         <ColumnDefinition Width="130" />
                                         <ColumnDefinition Width="Auto" />
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Text="Desde:" VerticalAlignment="Center" Margin="0,0,8,0" />
-                                    <DatePicker Grid.Column="1" SelectedDate="{Binding FilterFromDate}" Margin="0,0,16,0" />
-                                    <TextBlock Grid.Column="2" Text="Hasta:" VerticalAlignment="Center" Margin="0,0,8,0" />
-                                    <DatePicker Grid.Column="3" SelectedDate="{Binding FilterToDate}" Margin="0,0,16,0" />
-                                    <Button Grid.Column="4" Content="Limpiar" Command="{Binding ClearDateFilterCommand}"
-                                            Style="{StaticResource PrimaryButton}" VerticalAlignment="Center" />
+
+                                    <StackPanel Grid.Column="0" Margin="0,0,12,0">
+                                        <TextBlock Text="Buscar" Style="{StaticResource MutedText}" />
+                                        <TextBox Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" />
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="1" Margin="0,0,12,0">
+                                        <TextBlock Text="Categoría" Style="{StaticResource MutedText}" />
+                                        <ComboBox ItemsSource="{Binding CategoryFilterOptions}"
+                                                  SelectedItem="{Binding CategoryFilterOption}"
+                                                  DisplayMemberPath="Label" />
+                                    </StackPanel>
+                                    <TextBlock Grid.Column="2" Text="Desde:" VerticalAlignment="Bottom" Margin="0,0,8,6" />
+                                    <DatePicker Grid.Column="3" SelectedDate="{Binding FilterFromDate}"
+                                                VerticalAlignment="Bottom" Margin="0,0,12,0" />
+                                    <TextBlock Grid.Column="4" Text="Hasta:" VerticalAlignment="Bottom" Margin="0,0,8,6" />
+                                    <DatePicker Grid.Column="5" SelectedDate="{Binding FilterToDate}"
+                                                VerticalAlignment="Bottom" Margin="0,0,12,0" />
+                                    <Button Grid.Column="6" Content="Limpiar" Command="{Binding ClearDateFilterCommand}"
+                                            Style="{StaticResource PrimaryButton}" VerticalAlignment="Bottom" />
                                 </Grid>
 
-                                <ItemsControl ItemsSource="{Binding Puzzles}">
-                                    <ItemsControl.ItemsPanel>
-                                        <ItemsPanelTemplate>
-                                            <WrapPanel />
-                                        </ItemsPanelTemplate>
-                                    </ItemsControl.ItemsPanel>
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate>
-                                            <Border Width="200" Margin="4" Padding="10" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="10" Background="{StaticResource BgCardBrush}">
-                                                <Grid>
-                                                    <StackPanel>
-                                                    <ItemsControl ItemsSource="{Binding PhotoPath, Converter={StaticResource PhotoPathsToImagesConverter}}"
-                                                                  Margin="0,0,0,8">
-                                                        <ItemsControl.ItemsPanel>
-                                                            <ItemsPanelTemplate>
-                                                                <WrapPanel />
-                                                            </ItemsPanelTemplate>
-                                                        </ItemsControl.ItemsPanel>
-                                                        <ItemsControl.ItemTemplate>
-                                                            <DataTemplate>
-                                                                <Border Width="56" Height="56" Margin="0,0,6,6" CornerRadius="6"
-                                                                        BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
-                                                                        ClipToBounds="True">
-                                                                    <Image Source="{Binding}" Stretch="UniformToFill" />
-                                                                </Border>
-                                                            </DataTemplate>
-                                                        </ItemsControl.ItemTemplate>
-                                                    </ItemsControl>
-                                                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextWrapping="Wrap" />
-                                                    <TextBlock Text="{Binding PieceCount, StringFormat={}{0} piezas}" />
-                                                    <TextBlock Text="{Binding Category, Converter={StaticResource PuzzleCategoryDisplayConverter}}" />
-                                                    <TextBlock Text="{Binding CompletedAt, StringFormat={}{0:dd/MM/yyyy}}"
-                                                               Style="{StaticResource MutedText}" Margin="0,4,0,0" />
-                                                    <TextBlock Text="{Binding XpEarned, StringFormat=+{0} XP}"
-                                                               Foreground="{StaticResource AccentGreenBrush}" Margin="0,4,0,0" />
-                                                    </StackPanel>
-                                                    <Button Content="✕"
-                                                            Style="{StaticResource DangerIconButton}"
-                                                            ToolTip="Eliminar del historial"
-                                                            HorizontalAlignment="Right"
-                                                            VerticalAlignment="Top"
-                                                            Command="{Binding DataContext.DeletePuzzleCommand, ElementName=PuzzlesScrollViewer}"
-                                                            CommandParameter="{Binding}" />
-                                                </Grid>
-                                            </Border>
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
-                            </StackPanel>
+                                <ListView Grid.Row="1"
+                                          ItemsSource="{Binding Puzzles}"
+                                          MinHeight="280"
+                                          HorizontalAlignment="Stretch"
+                                          VerticalAlignment="Stretch"
+                                          helpers:GridViewStretchHelper.StretchColumns="True"
+                                          helpers:GridViewSortHelper.EnableSort="True">
+                                    <ListView.View>
+                                        <GridView>
+                                            <GridViewColumn Header="Nombre" DisplayMemberBinding="{Binding Name}" Width="180" />
+                                            <GridViewColumn Header="Piezas" DisplayMemberBinding="{Binding PieceCount}" Width="70" />
+                                            <GridViewColumn Header="Categoría" DisplayMemberBinding="{Binding CategoryLabel}"
+                                                            helpers:GridViewSortHelper.SortProperty="Category" Width="90" />
+                                            <GridViewColumn Header="Fecha" DisplayMemberBinding="{Binding CompletedAt, StringFormat={}{0:dd/MM/yyyy}}" Width="100" />
+                                            <GridViewColumn Header="XP" DisplayMemberBinding="{Binding XpEarned}" Width="60" />
+                                            <GridViewColumn Header="Fotos" Width="120">
+                                                <GridViewColumn.CellTemplate>
+                                                    <DataTemplate>
+                                                        <ItemsControl ItemsSource="{Binding PhotoPath, Converter={StaticResource PhotoPathsToImagesConverter}}">
+                                                            <ItemsControl.ItemsPanel>
+                                                                <ItemsPanelTemplate>
+                                                                    <WrapPanel />
+                                                                </ItemsPanelTemplate>
+                                                            </ItemsControl.ItemsPanel>
+                                                            <ItemsControl.ItemTemplate>
+                                                                <DataTemplate>
+                                                                    <Border Width="28" Height="28" Margin="0,0,4,0" CornerRadius="4"
+                                                                            BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
+                                                                            ClipToBounds="True">
+                                                                        <Image Source="{Binding}" Stretch="UniformToFill" />
+                                                                    </Border>
+                                                                </DataTemplate>
+                                                            </ItemsControl.ItemTemplate>
+                                                        </ItemsControl>
+                                                    </DataTemplate>
+                                                </GridViewColumn.CellTemplate>
+                                            </GridViewColumn>
+                                            <GridViewColumn Header="" Width="44">
+                                                <GridViewColumn.CellTemplate>
+                                                    <DataTemplate>
+                                                        <Button Content="✕"
+                                                                Style="{StaticResource DangerIconButton}"
+                                                                ToolTip="Eliminar del historial"
+                                                                Command="{Binding DataContext.DeletePuzzleCommand, ElementName=PuzzlesScrollViewer}"
+                                                                CommandParameter="{Binding}" />
+                                                    </DataTemplate>
+                                                </GridViewColumn.CellTemplate>
+                                            </GridViewColumn>
+                                        </GridView>
+                                    </ListView.View>
+                                </ListView>
+                            </Grid>
                         </GroupBox>
                     </StackPanel>
                 </ScrollViewer>
             </TabItem>
 
             <TabItem Header="Series y Películas">
-                <Grid DataContext="{Binding Media}" Margin="8">
+                <DockPanel DataContext="{Binding Media}" Margin="8">
+                    <controls:HobbyXpBanner DockPanel.Dock="Top" DataContext="{Binding HobbyXp}" />
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
-                        <RowDefinition Height="*" MinHeight="120" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" MinHeight="160" />
                     </Grid.RowDefinitions>
 
                     <StackPanel Grid.Row="0" Margin="0,0,0,12">
+                        <TextBlock Text="Obra terminada" Style="{StaticResource SubsectionTitleText}" Margin="0,0,0,8" />
                         <Grid Margin="0,0,0,4">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="220" />
@@ -214,13 +245,44 @@
                         <controls:FormValidationBanner Message="{Binding ValidationMessage}" />
                     </StackPanel>
 
-                    <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,12">
+                    <StackPanel Grid.Row="1" Margin="0,0,0,12">
+                        <TextBlock Text="Serie en progreso" Style="{StaticResource SubsectionTitleText}" Margin="0,0,0,8" />
+                        <Grid Margin="0,0,0,4">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="260" />
+                                <ColumnDefinition Width="120" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                                <TextBlock Text="Título" Style="{StaticResource MutedText}" />
+                                <TextBox Text="{Binding SeriesTitle}" HorizontalAlignment="Stretch" />
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="1" Margin="0,0,8,0">
+                                <TextBlock Text="Capítulos totales" Style="{StaticResource MutedText}" />
+                                <TextBox Text="{Binding TotalChapters}" HorizontalAlignment="Stretch" />
+                            </StackPanel>
+
+                            <Button Grid.Column="2" Content="Agregar serie" Command="{Binding RegisterSeriesCommand}"
+                                    Style="{StaticResource AccentButton}" VerticalAlignment="Bottom" />
+                        </Grid>
+                    </StackPanel>
+
+                    <StackPanel Grid.Row="2" Margin="0,0,0,12">
+                        <TextBlock Text="En visionado" Style="{StaticResource SubsectionTitleText}" Margin="0,0,0,8" />
+                        <ItemsControl ItemsSource="{Binding InProgressSeriesRows}" />
+                    </StackPanel>
+
+                    <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="0,0,0,12">
                         <TextBlock Text="{Binding YearlyMovies, StringFormat=Películas ({0})}" Style="{StaticResource SubsectionTitleText}" Margin="0,0,16,0" />
                         <TextBlock Text="{Binding YearlySeries, StringFormat=Series ({0})}" Style="{StaticResource SubsectionTitleText}" Margin="0,0,16,0" />
                         <TextBlock Text="{Binding YearlyTotal, StringFormat=Total ({0})}" Style="{StaticResource SubsectionTitleText}" />
                     </StackPanel>
 
-                    <GroupBox Grid.Row="2" Header="Historial" Padding="12" VerticalAlignment="Stretch">
+                    <TextBlock Grid.Row="4" Text="Historial" Style="{StaticResource SubsectionTitleText}" Margin="0,0,0,8" />
+
+                    <GroupBox Grid.Row="5" Header="Obras terminadas" Padding="12" VerticalAlignment="Stretch">
                         <Grid>
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto" />
@@ -229,29 +291,46 @@
 
                             <Grid Grid.Row="0" Margin="0,0,0,8">
                                 <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="160" />
+                                    <ColumnDefinition Width="140" />
                                     <ColumnDefinition Width="Auto" />
                                     <ColumnDefinition Width="130" />
                                     <ColumnDefinition Width="Auto" />
                                     <ColumnDefinition Width="130" />
                                     <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
-                                <TextBlock Text="Desde:" VerticalAlignment="Center" Margin="0,0,8,0" />
-                                <DatePicker Grid.Column="1" SelectedDate="{Binding FilterFromDate}" Margin="0,0,16,0" />
-                                <TextBlock Grid.Column="2" Text="Hasta:" VerticalAlignment="Center" Margin="0,0,8,0" />
-                                <DatePicker Grid.Column="3" SelectedDate="{Binding FilterToDate}" Margin="0,0,16,0" />
-                                <Button Grid.Column="4" Content="Limpiar" Command="{Binding ClearDateFilterCommand}"
-                                        Style="{StaticResource PrimaryButton}" VerticalAlignment="Center" />
+
+                                <StackPanel Grid.Column="0" Margin="0,0,12,0">
+                                    <TextBlock Text="Buscar título" Style="{StaticResource MutedText}" />
+                                    <TextBox Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" />
+                                </StackPanel>
+                                <StackPanel Grid.Column="1" Margin="0,0,12,0">
+                                    <TextBlock Text="Tipo" Style="{StaticResource MutedText}" />
+                                    <ComboBox ItemsSource="{Binding MediaTypeFilterOptions}"
+                                              SelectedItem="{Binding MediaTypeFilterOption}"
+                                              DisplayMemberPath="Label" />
+                                </StackPanel>
+                                <TextBlock Grid.Column="2" Text="Desde:" VerticalAlignment="Bottom" Margin="0,0,8,6" />
+                                <DatePicker Grid.Column="3" SelectedDate="{Binding FilterFromDate}"
+                                            VerticalAlignment="Bottom" Margin="0,0,12,0" />
+                                <TextBlock Grid.Column="4" Text="Hasta:" VerticalAlignment="Bottom" Margin="0,0,8,6" />
+                                <DatePicker Grid.Column="5" SelectedDate="{Binding FilterToDate}"
+                                            VerticalAlignment="Bottom" Margin="0,0,12,0" />
+                                <Button Grid.Column="6" Content="Limpiar" Command="{Binding ClearDateFilterCommand}"
+                                        Style="{StaticResource PrimaryButton}" VerticalAlignment="Bottom" />
                             </Grid>
 
                             <ListView Grid.Row="1"
                                       ItemsSource="{Binding History}"
                                       HorizontalAlignment="Stretch"
                                       VerticalAlignment="Stretch"
-                                      helpers:GridViewStretchHelper.StretchColumns="True">
+                                      helpers:GridViewStretchHelper.StretchColumns="True"
+                                      helpers:GridViewSortHelper.EnableSort="True">
                                 <ListView.View>
                                     <GridView>
                                         <GridViewColumn Header="Título" DisplayMemberBinding="{Binding Title}" Width="220" />
-                                        <GridViewColumn Header="Tipo" DisplayMemberBinding="{Binding MediaType}" Width="90" />
+                                        <GridViewColumn Header="Tipo" DisplayMemberBinding="{Binding MediaTypeLabel}"
+                                                        helpers:GridViewSortHelper.SortProperty="MediaType" Width="90" />
                                         <GridViewColumn Header="Fecha" DisplayMemberBinding="{Binding CompletedAt, StringFormat={}{0:dd/MM/yyyy}}" Width="100" />
                                         <GridViewColumn Header="XP" DisplayMemberBinding="{Binding XpEarned}" Width="60" />
                                         <GridViewColumn Header="" Width="44">
@@ -271,11 +350,14 @@
                         </Grid>
                     </GroupBox>
                 </Grid>
+                    </ScrollViewer>
+                </DockPanel>
             </TabItem>
 
             <TabItem Header="Videojuegos">
                 <ScrollViewer x:Name="VideoGamesScrollViewer" DataContext="{Binding VideoGames}">
                     <StackPanel Margin="8">
+                        <controls:HobbyXpBanner DataContext="{Binding HobbyXp}" />
                         <StackPanel Margin="0,0,0,12">
                             <Grid Margin="0,0,0,4">
                                 <Grid.ColumnDefinitions>
@@ -318,18 +400,33 @@
                             <StackPanel>
                                 <Grid Margin="0,0,0,12">
                                     <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="160" />
+                                        <ColumnDefinition Width="160" />
                                         <ColumnDefinition Width="Auto" />
                                         <ColumnDefinition Width="130" />
                                         <ColumnDefinition Width="Auto" />
                                         <ColumnDefinition Width="130" />
                                         <ColumnDefinition Width="Auto" />
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Text="Desde:" VerticalAlignment="Center" Margin="0,0,8,0" />
-                                    <DatePicker Grid.Column="1" SelectedDate="{Binding FilterFromDate}" Margin="0,0,16,0" />
-                                    <TextBlock Grid.Column="2" Text="Hasta:" VerticalAlignment="Center" Margin="0,0,8,0" />
-                                    <DatePicker Grid.Column="3" SelectedDate="{Binding FilterToDate}" Margin="0,0,16,0" />
-                                    <Button Grid.Column="4" Content="Limpiar" Command="{Binding ClearDateFilterCommand}"
-                                            Style="{StaticResource PrimaryButton}" VerticalAlignment="Center" />
+
+                                    <StackPanel Grid.Column="0" Margin="0,0,12,0">
+                                        <TextBlock Text="Buscar título" Style="{StaticResource MutedText}" />
+                                        <TextBox Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" />
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="1" Margin="0,0,12,0">
+                                        <TextBlock Text="Plataforma" Style="{StaticResource MutedText}" />
+                                        <ComboBox ItemsSource="{Binding PlatformFilterOptions}"
+                                                  SelectedItem="{Binding PlatformFilterOption}"
+                                                  DisplayMemberPath="Label" />
+                                    </StackPanel>
+                                    <TextBlock Grid.Column="2" Text="Desde:" VerticalAlignment="Bottom" Margin="0,0,8,6" />
+                                    <DatePicker Grid.Column="3" SelectedDate="{Binding FilterFromDate}"
+                                                VerticalAlignment="Bottom" Margin="0,0,12,0" />
+                                    <TextBlock Grid.Column="4" Text="Hasta:" VerticalAlignment="Bottom" Margin="0,0,8,6" />
+                                    <DatePicker Grid.Column="5" SelectedDate="{Binding FilterToDate}"
+                                                VerticalAlignment="Bottom" Margin="0,0,12,0" />
+                                    <Button Grid.Column="6" Content="Limpiar" Command="{Binding ClearDateFilterCommand}"
+                                            Style="{StaticResource PrimaryButton}" VerticalAlignment="Bottom" />
                                 </Grid>
 
                                 <TextBlock Text="En progreso" Style="{StaticResource SubsectionTitleText}" Margin="0,0,0,8" />
@@ -346,7 +443,7 @@
                                                     <Grid Grid.Row="0">
                                                         <StackPanel Margin="0,0,36,0">
                                                             <TextBlock Text="{Binding Title}" FontWeight="SemiBold" />
-                                                            <TextBlock Text="{Binding Platform}" />
+                                                            <TextBlock Text="{Binding PlatformLabel}" />
                                                             <TextBlock Text="{Binding StartedAt, StringFormat=Inicio: {0:dd/MM/yyyy}}"
                                                                        Style="{StaticResource MutedText}" FontSize="12" />
                                                             <TextBlock Text="{Binding XpEarned, StringFormat='XP: {0}'}"
@@ -368,6 +465,7 @@
                                                                    Margin="0,0,0,6" />
                                                         <Grid>
                                                             <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="130" />
                                                                 <ColumnDefinition Width="*" />
                                                                 <ColumnDefinition Width="104" />
                                                                 <ColumnDefinition Width="Auto" />
@@ -375,7 +473,12 @@
                                                                 <ColumnDefinition Width="Auto" />
                                                             </Grid.ColumnDefinitions>
 
-                                                            <Slider Grid.Column="0"
+                                                            <DatePicker Grid.Column="0"
+                                                                        SelectedDate="{Binding ProgressDate}"
+                                                                        Margin="0,0,8,0"
+                                                                        ToolTip="Fecha del avance (permite atrasar para disciplina semanal)" />
+
+                                                            <Slider Grid.Column="1"
                                                                     Minimum="{Binding CurrentCompletion}"
                                                                     Maximum="100"
                                                                     Value="{Binding TargetCompletion}"
@@ -384,13 +487,13 @@
                                                                     TickFrequency="5"
                                                                     IsSnapToTickEnabled="False" />
 
-                                                            <controls:NumericStepper Grid.Column="1"
+                                                            <controls:NumericStepper Grid.Column="2"
                                                                                      Value="{Binding TargetCompletion, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource FlexibleNumber}}"
                                                                                      Minimum="{Binding CurrentCompletion}"
                                                                                      Maximum="100"
                                                                                      Margin="0,0,8,0" />
 
-                                                            <Button Grid.Column="2"
+                                                            <Button Grid.Column="3"
                                                                     Content="+10"
                                                                     Style="{StaticResource PrimaryButton}"
                                                                     Padding="8,4"
@@ -399,7 +502,7 @@
                                                                     CommandParameter="10"
                                                                     ToolTip="Sumar 10% al objetivo" />
 
-                                                            <Button Grid.Column="3"
+                                                            <Button Grid.Column="4"
                                                                     Content="100%"
                                                                     Style="{StaticResource PrimaryButton}"
                                                                     Padding="8,4"
@@ -407,7 +510,7 @@
                                                                     Command="{Binding SetFullProgressCommand}"
                                                                     ToolTip="Marcar como completado al 100%" />
 
-                                                            <Button Grid.Column="4"
+                                                            <Button Grid.Column="5"
                                                                     Content="Aplicar"
                                                                     Style="{StaticResource AccentButton}"
                                                                     Padding="10,4"
@@ -422,30 +525,32 @@
                                 </ItemsControl>
 
                                 <TextBlock Text="Juegos platinados" Style="{StaticResource SubsectionTitleText}" Margin="0,0,0,8" />
-                                <ItemsControl ItemsSource="{Binding PlatinumGames}">
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate>
-                                            <Border BorderBrush="{StaticResource AccentGoldBrush}" BorderThickness="2" CornerRadius="10" Padding="12" Margin="0,0,0,8" Background="#2A2418">
-                                                <Grid>
-                                                    <StackPanel>
-                                                        <TextBlock Text="{Binding Title}" FontWeight="Bold" />
-                                                        <TextBlock Text="{Binding Platform}" />
-                                                        <TextBlock Text="{Binding PlatinumUnlockedAt, StringFormat=Platino: {0:dd/MM/yyyy}}" />
-                                                        <TextBlock Text="{Binding XpEarned, StringFormat=+{0} XP}"
-                                                                   Foreground="{StaticResource AccentGreenBrush}" Margin="0,4,0,0" />
-                                                    </StackPanel>
-                                                    <Button Content="✕"
-                                                            Style="{StaticResource DangerIconButton}"
-                                                            ToolTip="Eliminar del historial"
-                                                            HorizontalAlignment="Right"
-                                                            VerticalAlignment="Top"
-                                                            Command="{Binding DataContext.DeleteGameCommand, ElementName=VideoGamesScrollViewer}"
-                                                            CommandParameter="{Binding}" />
-                                                </Grid>
-                                            </Border>
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
+                                <ListView ItemsSource="{Binding PlatinumGames}"
+                                          MinHeight="160"
+                                          HorizontalAlignment="Stretch"
+                                          helpers:GridViewStretchHelper.StretchColumns="True"
+                                          helpers:GridViewSortHelper.EnableSort="True">
+                                    <ListView.View>
+                                        <GridView>
+                                            <GridViewColumn Header="Título" DisplayMemberBinding="{Binding Title}" Width="200" />
+                                            <GridViewColumn Header="Plataforma" DisplayMemberBinding="{Binding PlatformLabel}"
+                                                            helpers:GridViewSortHelper.SortProperty="Platform" Width="120" />
+                                            <GridViewColumn Header="Platino" DisplayMemberBinding="{Binding PlatinumUnlockedAt, StringFormat={}{0:dd/MM/yyyy}}" Width="100" />
+                                            <GridViewColumn Header="XP" DisplayMemberBinding="{Binding XpEarned}" Width="60" />
+                                            <GridViewColumn Header="" Width="44">
+                                                <GridViewColumn.CellTemplate>
+                                                    <DataTemplate>
+                                                        <Button Content="✕"
+                                                                Style="{StaticResource DangerIconButton}"
+                                                                ToolTip="Eliminar del historial"
+                                                                Command="{Binding DataContext.DeleteGameCommand, ElementName=VideoGamesScrollViewer}"
+                                                                CommandParameter="{Binding}" />
+                                                    </DataTemplate>
+                                                </GridViewColumn.CellTemplate>
+                                            </GridViewColumn>
+                                        </GridView>
+                                    </ListView.View>
+                                </ListView>
                             </StackPanel>
                         </GroupBox>
                     </StackPanel>

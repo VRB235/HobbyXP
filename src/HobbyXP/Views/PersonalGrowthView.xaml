@@ -9,7 +9,9 @@
 
         <TabControl SelectedIndex="{Binding SelectedTabIndex}" VerticalAlignment="Stretch">
             <TabItem Header="Libros">
-                <Grid DataContext="{Binding Books}" Margin="8">
+                <DockPanel DataContext="{Binding Books}" Margin="8">
+                    <controls:HobbyXpBanner DockPanel.Dock="Top" DataContext="{Binding HobbyXp}" />
+                    <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
@@ -72,24 +74,59 @@
                     </StackPanel>
 
                     <ListView Grid.Row="3"
-                              ItemsSource="{Binding CompletedBooks}"
+                              ItemsSource="{Binding CompletedRows}"
                               HorizontalAlignment="Stretch"
                               VerticalAlignment="Stretch"
-                              helpers:GridViewStretchHelper.StretchColumns="True">
+                              helpers:GridViewStretchHelper.StretchColumns="True"
+                              helpers:GridViewSortHelper.EnableSort="True">
                         <ListView.View>
                             <GridView>
-                                <GridViewColumn Header="Título" DisplayMemberBinding="{Binding Title}" Width="220" />
-                                <GridViewColumn Header="Autor" DisplayMemberBinding="{Binding Author}" Width="160" />
-                                <GridViewColumn Header="Fecha" DisplayMemberBinding="{Binding CompletedAt, StringFormat={}{0:dd/MM/yyyy}}" Width="100" />
-                                <GridViewColumn Header="XP" DisplayMemberBinding="{Binding XpEarned}" Width="60" />
+                                <GridViewColumn Header="Título" Width="220"
+                                                helpers:GridViewSortHelper.SortProperty="EditTitle">
+                                    <GridViewColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <TextBox Text="{Binding EditTitle, UpdateSourceTrigger=PropertyChanged}"
+                                                     Margin="0,2"
+                                                     ToolTip="Título del libro" />
+                                        </DataTemplate>
+                                    </GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="Autor" Width="160"
+                                                helpers:GridViewSortHelper.SortProperty="EditAuthor">
+                                    <GridViewColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <TextBox Text="{Binding EditAuthor, UpdateSourceTrigger=PropertyChanged}"
+                                                     Margin="0,2"
+                                                     ToolTip="Autor del libro" />
+                                        </DataTemplate>
+                                    </GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="Fecha" DisplayMemberBinding="{Binding CompletedAt, StringFormat={}{0:dd/MM/yyyy}}" Width="100"
+                                                helpers:GridViewSortHelper.SortProperty="CompletedAt" />
+                                <GridViewColumn Header="XP" DisplayMemberBinding="{Binding XpEarned}" Width="60"
+                                                helpers:GridViewSortHelper.SortProperty="XpEarned" />
+                                <GridViewColumn Header="" Width="90">
+                                    <GridViewColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Button Content="Guardar"
+                                                    Style="{StaticResource PrimaryButton}"
+                                                    Padding="8,2"
+                                                    Command="{Binding SaveMetadataCommand}"
+                                                    ToolTip="Guardar título y autor" />
+                                        </DataTemplate>
+                                    </GridViewColumn.CellTemplate>
+                                </GridViewColumn>
                             </GridView>
                         </ListView.View>
                     </ListView>
                 </Grid>
+                </DockPanel>
             </TabItem>
 
             <TabItem Header="Cursos">
-                <Grid DataContext="{Binding Courses}" Margin="8">
+                <DockPanel DataContext="{Binding Courses}" Margin="8">
+                    <controls:HobbyXpBanner DockPanel.Dock="Top" DataContext="{Binding HobbyXp}" />
+                    <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
@@ -155,7 +192,8 @@
                               ItemsSource="{Binding CompletedCourses}"
                               HorizontalAlignment="Stretch"
                               VerticalAlignment="Stretch"
-                              helpers:GridViewStretchHelper.StretchColumns="True">
+                              helpers:GridViewStretchHelper.StretchColumns="True"
+                              helpers:GridViewSortHelper.EnableSort="True">
                         <ListView.View>
                             <GridView>
                                 <GridViewColumn Header="Curso" DisplayMemberBinding="{Binding Name}" Width="200" />
@@ -167,6 +205,7 @@
                         </ListView.View>
                     </ListView>
                 </Grid>
+                </DockPanel>
             </TabItem>
         </TabControl>
     </DockPanel>

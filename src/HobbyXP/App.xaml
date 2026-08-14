@@ -50,6 +50,9 @@
             <DataTemplate DataType="{x:Type vmGrow:CourseProgressRowViewModel}">
                 <viewControls:CourseProgressRowView />
             </DataTemplate>
+            <DataTemplate DataType="{x:Type vmEnt:SeriesProgressRowViewModel}">
+                <viewControls:SeriesProgressRowView />
+            </DataTemplate>
             <DataTemplate DataType="{x:Type vmAch:AchievementsViewModel}">
                 <views:AchievementsView />
             </DataTemplate>

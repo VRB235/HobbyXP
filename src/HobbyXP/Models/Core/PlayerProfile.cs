@@ -12,7 +12,24 @@ public class PlayerProfile : EntityBase
     public int TotalXp { get; set; }
 
     /// <summary>
-    /// XP base requerida para alcanzar el siguiente nivel (escala configurable).
+    /// Saldo canjeable en la tienda de premios (independiente del XP de progresión/nivel).
+    /// </summary>
+    public int SpendableXp { get; set; }
+
+    /// <summary>
+    /// True cuando ya se separó el ledger (progresión vs saldo) y se aplicó el reset one-shot si aplicaba.
+    /// </summary>
+    public bool SpendableLedgerInitialized { get; set; }
+
+    /// <summary>
+    /// True cuando la progresión quedó en baseline (nivel 1 / 0 XP) tras el ledger de saldo.
+    /// Evita reaplicar el wipe a awards legítimos posteriores; repara BDs donde el backfill
+    /// histórico volvió a llenar hobbies tras el prestige.
+    /// </summary>
+    public bool SpendableProgressBaselineApplied { get; set; }
+
+    /// <summary>
+    /// XP del tramo 1→2. Cada nivel siguiente cuesta el doble (escala geométrica configurable).
     /// </summary>
     public int BaseXpPerLevel { get; set; } = 1000;
 
@@ -26,5 +43,13 @@ public class PlayerProfile : EntityBase
     /// </summary>
     public string? AvatarPath { get; set; }
 
+    /// <summary>
+    /// Lunes UTC desde el cual aplica la disciplina semanal (null = aún no inicializado).
+    /// Evita castigar semanas anteriores a la activación de la feature.
+    /// </summary>
+    public DateTime? WeeklyQuotaTrackingStartedAtUtc { get; set; }
+
     public ICollection<XpTransaction> Transactions { get; set; } = [];
+
+    public ICollection<HobbyProgress> HobbyProgresses { get; set; } = [];
 }

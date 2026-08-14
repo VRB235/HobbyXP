@@ -1,4 +1,5 @@
 using HobbyXP.Data;
+using HobbyXP.Helpers;
 using HobbyXP.Models.Enums;
 using HobbyXP.Models.PersonalGrowth;
 using HobbyXP.Services.Abstractions;
@@ -12,15 +13,18 @@ public sealed class BookService : IBookService
     private readonly IDbContextFactory<HobbyXpDbContext> _dbContextFactory;
     private readonly IXpService _xpService;
     private readonly IAchievementEngineService _achievementEngine;
+    private readonly IWeeklyQuotaService _weeklyQuotaService;
 
     public BookService(
         IDbContextFactory<HobbyXpDbContext> dbContextFactory,
         IXpService xpService,
-        IAchievementEngineService achievementEngine)
+        IAchievementEngineService achievementEngine,
+        IWeeklyQuotaService weeklyQuotaService)
     {
         _dbContextFactory = dbContextFactory;
         _xpService = xpService;
         _achievementEngine = achievementEngine;
+        _weeklyQuotaService = weeklyQuotaService;
     }
 
     public async Task<IReadOnlyList<Book>> GetReadingAsync(CancellationToken cancellationToken = default)
@@ -74,10 +78,13 @@ public sealed class BookService : IBookService
     public async Task<OperationResult<Book>> UpdatePagesReadAsync(
         int bookId,
         int pagesRead,
+        DateTime? readingDate = null,
         CancellationToken cancellationToken = default)
     {
         if (pagesRead < 0)
             throw new ArgumentOutOfRangeException(nameof(pagesRead));
+
+        var activityLocalDate = (readingDate ?? DateTime.Today).Date;
 
         await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
         var book = await db.Books.FindAsync([bookId], cancellationToken)
@@ -96,6 +103,16 @@ public sealed class BookService : IBookService
 
         var events = new List<AchievementEvent>();
         var pageDelta = Math.Max(0, clampedPages - previousPages);
+
+        if (pageDelta > 0)
+        {
+            db.BookReadingLogs.Add(new BookReadingLog
+            {
+                BookId = book.Id,
+                ReadDate = DateTimeHelper.ToUtcFromLocalDate(activityLocalDate),
+                PagesDone = pageDelta
+            });
+        }
 
         if (pageDelta > 0 && clampedPages < book.TotalPages)
         {
@@ -124,7 +141,7 @@ public sealed class BookService : IBookService
         if (clampedPages >= book.TotalPages)
         {
             book.Status = BookStatus.Completed;
-            book.CompletedAt = DateTime.UtcNow;
+            book.CompletedAt = DateTimeHelper.ToUtcFromLocalDate(activityLocalDate);
             book.PagesRead = book.TotalPages;
 
             var remainingPages = Math.Max(0, book.TotalPages - previousPages);
@@ -185,6 +202,33 @@ public sealed class BookService : IBookService
                 cancellationToken));
         }
 
+        if (pageDelta > 0)
+            await _weeklyQuotaService.NotifyActivityAsync(MilestoneSourceType.Book, activityLocalDate, cancellationToken);
+
         return OperationResult<Book>.WithEvents(book, events.ToArray());
+    }
+
+    public async Task<Book?> UpdateMetadataAsync(
+        int bookId,
+        string title,
+        string author,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(title))
+            throw new ArgumentException("El título es obligatorio.", nameof(title));
+
+        if (string.IsNullOrWhiteSpace(author))
+            throw new ArgumentException("El autor es obligatorio.", nameof(author));
+
+        await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var book = await db.Books.FindAsync([bookId], cancellationToken);
+        if (book is null)
+            return null;
+
+        book.Title = title.Trim();
+        book.Author = author.Trim();
+        book.UpdatedAt = DateTime.UtcNow;
+        await db.SaveChangesAsync(cancellationToken);
+        return book;
     }
 }

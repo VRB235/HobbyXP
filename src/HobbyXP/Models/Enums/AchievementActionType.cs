@@ -17,5 +17,15 @@ public enum AchievementActionType
     BookCompleted = 9,
     CourseCompleted = 10,
     RewardRedeemed = 11,
-    CourseSessionCompleted = 12
+    CourseSessionCompleted = 12,
+    /// <summary>Bonus al XP global al subir de nivel un hobby.</summary>
+    HobbyLevelUp = 13,
+    /// <summary>Capítulo de serie visionado.</summary>
+    MediaChapterWatched = 14,
+    /// <summary>Castigo o restauración por cuota semanal de disciplina.</summary>
+    WeeklyQuotaPenalty = 15,
+    /// <summary>Comida marcada como en plan.</summary>
+    DietMealOnPlan = 16,
+    /// <summary>Día con las 4 comidas en plan.</summary>
+    DietPerfectDay = 17
 }

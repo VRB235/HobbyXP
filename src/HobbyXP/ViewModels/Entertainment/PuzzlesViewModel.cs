@@ -19,12 +19,16 @@ public sealed class PuzzlesViewModel : AchievementAwareViewModel
     private string _pieceCount = "500";
     private PuzzleCategory _category = PuzzleCategory.TwoD;
     private DateTime? _completedDate = DateTime.Today;
+    private string _searchText = string.Empty;
+    private EnumFilterOption<PuzzleCategory> _categoryFilterOption;
     private DateTime? _filterFromDate;
     private DateTime? _filterToDate;
     private List<Puzzle> _allPuzzles = [];
 
     public PuzzlesViewModel(
         IPuzzleService puzzleService,
+        IXpService xpService,
+        IWeeklyQuotaService weeklyQuotaService,
         IFileDialogService fileDialogService,
         IMessageDialogService messageDialogService,
         IProfileRefreshMessenger profileRefreshMessenger,
@@ -35,21 +39,30 @@ public sealed class PuzzlesViewModel : AchievementAwareViewModel
         _fileDialogService = fileDialogService;
         _messageDialogService = messageDialogService;
         _profileRefreshMessenger = profileRefreshMessenger;
+        HobbyXp = new HobbyProgressPresenter(xpService, MilestoneSourceType.Puzzle, weeklyQuotaService);
         Puzzles = new ObservableCollection<Puzzle>();
         SelectedPhotos = new ObservableCollection<PuzzlePhotoItem>();
+        CategoryFilterOptions = EnumFilterOption<PuzzleCategory>.Create(
+            "Todas las categorías",
+            EntertainmentDisplayLabels.GetPuzzleCategory);
+        _categoryFilterOption = CategoryFilterOptions[0];
         RegisterCommand = new AsyncRelayCommand(RegisterAsync, CanRegister);
         PickPhotosCommand = new RelayCommand(PickPhotos);
         RemovePhotoCommand = new RelayCommand(RemovePhoto);
-        ClearDateFilterCommand = new RelayCommand(ClearDateFilter);
+        ClearDateFilterCommand = new RelayCommand(ClearHistoryFilters);
         DeletePuzzleCommand = new AsyncRelayCommand(p => DeletePuzzleAsync(p));
         RefreshRegisterValidation();
     }
+
+    public HobbyProgressPresenter HobbyXp { get; }
 
     public ObservableCollection<Puzzle> Puzzles { get; }
 
     public ObservableCollection<PuzzlePhotoItem> SelectedPhotos { get; }
 
     public Array Categories => Enum.GetValues(typeof(PuzzleCategory));
+
+    public IReadOnlyList<EnumFilterOption<PuzzleCategory>> CategoryFilterOptions { get; }
 
     public string Name
     {
@@ -87,6 +100,26 @@ public sealed class PuzzlesViewModel : AchievementAwareViewModel
         }
     }
 
+    public string SearchText
+    {
+        get => _searchText;
+        set
+        {
+            if (SetProperty(ref _searchText, value))
+                ApplyFilter();
+        }
+    }
+
+    public EnumFilterOption<PuzzleCategory> CategoryFilterOption
+    {
+        get => _categoryFilterOption;
+        set
+        {
+            if (SetProperty(ref _categoryFilterOption, value))
+                ApplyFilter();
+        }
+    }
+
     public DateTime? FilterFromDate
     {
         get => _filterFromDate;
@@ -121,6 +154,7 @@ public sealed class PuzzlesViewModel : AchievementAwareViewModel
 
     protected override async Task LoadCoreAsync()
     {
+        await HobbyXp.RefreshAsync();
         _allPuzzles = (await _puzzleService.GetAllAsync()).ToList();
         ApplyFilter();
     }
@@ -128,14 +162,23 @@ public sealed class PuzzlesViewModel : AchievementAwareViewModel
     private void ApplyFilter()
     {
         Puzzles.Clear();
-        foreach (var puzzle in _allPuzzles.Where(p => DateRangeFilter.Matches(p.CompletedAt, FilterFromDate, FilterToDate)))
+        foreach (var puzzle in _allPuzzles.Where(MatchesFilters))
             Puzzles.Add(puzzle);
     }
 
-    private void ClearDateFilter()
+    private bool MatchesFilters(Puzzle puzzle) =>
+        TextSearchFilter.Matches(puzzle.Name, SearchText) &&
+        CategoryFilterOption.Matches(puzzle.Category) &&
+        DateRangeFilter.Matches(puzzle.CompletedAt, FilterFromDate, FilterToDate);
+
+    private void ClearHistoryFilters()
     {
+        _searchText = string.Empty;
+        _categoryFilterOption = CategoryFilterOptions[0];
         _filterFromDate = null;
         _filterToDate = null;
+        OnPropertyChanged(nameof(SearchText));
+        OnPropertyChanged(nameof(CategoryFilterOption));
         OnPropertyChanged(nameof(FilterFromDate));
         OnPropertyChanged(nameof(FilterToDate));
         ApplyFilter();
@@ -206,6 +249,7 @@ public sealed class PuzzlesViewModel : AchievementAwareViewModel
             var result = await _puzzleService.RegisterCompletedAsync(
                 Name, pieces, Category, photoPaths, completedAt);
             PublishAchievements(result.Events);
+            await HobbyXp.RefreshAsync();
 
             _allPuzzles.Insert(0, result.Value);
             ApplyFilter();
@@ -237,6 +281,7 @@ public sealed class PuzzlesViewModel : AchievementAwareViewModel
 
             _allPuzzles.RemoveAll(p => p.Id == puzzle.Id);
             ApplyFilter();
+            await HobbyXp.RefreshAsync();
             _profileRefreshMessenger.RequestRefresh();
             StatusMessage = $"«{puzzle.Name}» eliminado del historial.";
         }, "Eliminando rompecabezas...");

@@ -20,8 +20,10 @@
 
 **Solución:** `HobbyXP.slnx` → proyecto `src/HobbyXP/HobbyXP.csproj`
 
-**Base de datos:** `%LocalAppData%\HobbyXP\hobbyxp.db`  
-En Windows: `C:\Users\<usuario>\AppData\Local\HobbyXP\hobbyxp.db`
+**Base de datos (ambientes separados):**  
+- Producción (Release): `%LocalAppData%\HobbyXP\hobbyxp.db`  
+- Desarrollo (Debug): `%LocalAppData%\HobbyXP-Dev\hobbyxp.db`  
+Override: variable `HOBBYXP_DATA_DIR`.
 
 ---
 
@@ -73,7 +75,8 @@ En Windows: `C:\Users\<usuario>\AppData\Local\HobbyXP\hobbyxp.db`
 - **`XpService`** como motor central: calcula puntos, otorga XP, recalcula nivel, registra transacciones/hitos, publica level-up.
 - **`AchievementEngineService`**: evalúa y otorga medallas según reglas.
 - **`OperationResult<T>`** y DTOs en `Services/Results/`.
-- **`XpLevelCalculator`** (internal): fórmula de nivel lineal por `BaseXpPerLevel`.
+- **`XpLevelCalculator`** (internal): fórmula geométrica (×2) para perfil global y `HobbyProgress`.
+- Pools por hobby + meta-progresión global (`HobbyLevelUp`).
 - **`ServiceCollectionExtensions.AddHobbyXpServices()`**.
 
 ### Fase 3 — ViewModels y navegación ✅
@@ -140,14 +143,14 @@ src/HobbyXP/
 
 ### Perfil y progresión
 
-- **`PlayerProfile`**: `CurrentLevel`, `TotalXp`, `BaseXpPerLevel`, `DisplayName`, `AvatarPath`.
+- **`PlayerProfile`**: `CurrentLevel`, `TotalXp` (progresión global), `SpendableXp` (saldo canjeable), `SpendableLedgerInitialized`, `SpendableProgressBaselineApplied`, `BaseXpPerLevel`, `DisplayName`, `AvatarPath`.
 - **`XpTransaction`**: historial de movimientos de XP.
 - **`Milestone`**: hitos narrativos mostrados en dashboard.
 
 ### Físico
 
-- **Running:** `RunningSession`, `OfficialRace` (carreras con bonus XP al completar).
-- **Gym:** `GymWorkout`, `GymWorkoutEntry`, `Exercise` (incluye detección de sobrecarga progresiva → medalla).
+- **Running:** `RunningSession` (fecha editable al registrar → `RecordedAt`), `OfficialRace` (carreras con bonus XP al completar).
+- **Gym:** `GymWorkout` (fecha editable → `WorkoutDate`), `GymWorkoutEntry`, `Exercise` (incluye detección de sobrecarga progresiva → medalla).
 
 ### Entretenimiento
 
@@ -190,11 +193,18 @@ src/HobbyXP/
 ### Fórmula de nivel (actual)
 
 ```
-XP umbral nivel N = (N - 1) * BaseXpPerLevel
-Progreso % = XP dentro del nivel actual / BaseXpPerLevel * 100
+Costo del tramo L → L+1 = BaseXpPerLevel × 2^(L − 1)
+XP umbral nivel N       = BaseXpPerLevel × (2^(N − 1) − 1)
+Progreso %              = XP dentro del nivel actual / costo del tramo actual × 100
 ```
 
-`XpLevelCalculator` recalcula nivel al subir/bajar XP y acota el porcentaje 0–100.
+Ejemplo con `BaseXpPerLevel = 1000`: nivel 1→2 cuesta 1000, 2→3 cuesta 2000, 3→4 cuesta 4000, etc.
+
+**Pools:** cada hobby (Running, Gym, OfficialRace, Puzzle, Media, VideoGame, Book, Course) tiene `HobbyProgress` independiente. Las actividades suman al pool del hobby **y** al `SpendableXp`. Al subir de nivel un hobby, el **global** (`PlayerProfile.TotalXp`) recibe `BaseXpPerLevel × nivelesGanados` (`AchievementActionType.HobbyLevelUp`) **y** esa misma cantidad también se acredita a `SpendableXp`. Los canjes de premios descuentan **solo** de `SpendableXp` (no bajan el nivel global).
+
+Al arrancar: `EnsureHobbyProgressRowsAsync` + `EnsureHobbyXpBackfillAsync` (migración histórica **solo si el ledger de saldo aún no está activo**), `EnsureGeometricLevelScaleAsync` y `EnsureSpendableLedgerAsync` (one-shot: mueve XP de progresión hobbies+global a `SpendableXp`, reinicia niveles a 1 y marca baseline; si el backfill había vuelto a llenar hobbies, repara progresión sin tocar el saldo). Cambiar `BaseXpPerLevel` en Configuración recalcula el nivel **global**.
+
+`XpLevelCalculator` opera sobre perfil y hobbies; acota el porcentaje 0–100.
 
 ---
 
@@ -202,7 +212,7 @@ Progreso % = XP dentro del nivel actual / BaseXpPerLevel * 100
 
 ### MainWindow (shell)
 
-- Sidebar: branding, tarjeta de perfil (avatar, nombre editable, nivel, XP, barra `XpProgressBar`), botones avatar/nombre, navegación con indicador verde activo.
+- Sidebar: branding, tarjeta de perfil (avatar, nombre editable, nivel, XP de progresión, saldo canjeable, barra `XpProgressBar`), botones avatar/nombre, navegación con indicador verde activo.
 - Área principal: `GeometricBackground`, barra de último logro, `ContentControl` con ViewModel actual.
 - Overlay global: `LevelUpOverlay` (`Panel.ZIndex=1000`).
 
@@ -212,7 +222,7 @@ Progreso % = XP dentro del nivel actual / BaseXpPerLevel * 100
 |---------|------|------------------|
 | Dashboard | `DashboardView` | Hero XP, gráficos, sugerencias para subir de nivel, hitos |
 | Físico | `PhysicalActivitiesView` | Running (sesiones + **alta de carreras oficiales** + completar carrera), Gimnasio |
-| Entretenimiento | `EntertainmentView` | Rompecabezas, Media, Videojuegos |
+| Entretenimiento | `EntertainmentView` | Rompecabezas, Media, Videojuegos (historial con búsqueda/filtros y ordenación por columnas; platinados en `ListView`) |
 | Crecimiento | `PersonalGrowthView` | Libros, Cursos |
 | Logros | `AchievementsView` | Vitrina, Reglas, Tienda premios |
 | Configuración | `SettingsView` | XP base por nivel, exportar BD, restablecer datos |
@@ -362,6 +372,11 @@ dotnet build
 - [x] **Guardar nombre** al pulsar Enter en el `TextBox` del sidebar (hoy solo botón).
 - [x] Refrescar `SaveDisplayNameCommand.CanExecute` cuando cambia `DisplayName`.
 - [x] Avatar: validar que rutas inválidas o archivos borrados no rompan la UI (fallback).
+- [x] **Ambientes Dev/Prod** separados (`HobbyXP-Dev` vs `HobbyXP`); título `[DEV]` en Debug.
+- [x] Historiales de actividad física con altura útil (~10 filas) + scroll de página.
+- [x] **Ordenación por columnas** en tablas de historial / catálogos (`GridViewSortHelper`).
+- [x] **Grupo muscular** en ejercicios de gimnasio (nullable; catálogo agrupado + filtro + edición).
+- [x] **Tipo de sesión** en running: Regenerativa, Umbral, Tirada larga.
 
 ### Media prioridad — producto
 
@@ -384,7 +399,7 @@ dotnet build
 
 ### Arranque
 - [x] App abre sin excepciones.
-- [x] BD se crea en `%LocalAppData%\HobbyXP\`.
+- [x] BD se crea en `%LocalAppData%\HobbyXP-Dev\` (Debug) o `%LocalAppData%\HobbyXP\` (Release).
 - [x] Dashboard carga con perfil inicial (Aventurero, Nivel 1).
 
 ### Perfil
@@ -403,7 +418,8 @@ dotnet build
 - [x] Puzzle, media, videojuego (% y platino).
 - [x] Libro: páginas y completado.
 - [x] Curso completado.
-- [x] Logros: vitrina, editar regla, editar medalla, canjear premio (deducción XP).
+- [x] Logros: vitrina, editar regla, editar medalla, canjear premio (deducción de `SpendableXp`).
+- [x] Ledger separado: progresión (hobbies/global) vs saldo canjeable; migración one-shot al arrancar.
 
 ---
 

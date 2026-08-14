@@ -21,6 +21,7 @@ public sealed class MilestoneSourceToIconConverter : IValueConverter
             MilestoneSourceType.Book => "📖",
             MilestoneSourceType.Course => "🎓",
             MilestoneSourceType.OfficialRace => "🏅",
+            MilestoneSourceType.Diet => "🥗",
             MilestoneSourceType.Reward => "🎁",
             MilestoneSourceType.System => "⚔️",
             _ => "⭐"

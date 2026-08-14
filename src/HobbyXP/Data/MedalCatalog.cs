@@ -217,6 +217,23 @@ internal static class MedalCatalog
         E(52, MedalCode.MediaCompleted100, MedalMilestoneTrack.MediaCompleted, 100,
             "Palmarés del Streaming", "Cien obras. Algoritmo personalizado.",
             "Completa 100 series o películas."),
+
+        // Dieta
+        E(53, MedalCode.DietGoodDays1, MedalMilestoneTrack.DietGoodDays, 1,
+            "Primer Plato", "Completaste tu primer día bueno de dieta (3 de 4 comidas en plan).",
+            "Registra un día con al menos 3 comidas en plan."),
+        E(54, MedalCode.DietGoodDays10, MedalMilestoneTrack.DietGoodDays, 10,
+            "Disciplina en la Mesa", "Diez días buenos de dieta.",
+            "Acumula 10 días con al menos 3 comidas en plan."),
+        E(55, MedalCode.DietGoodDays50, MedalMilestoneTrack.DietGoodDays, 50,
+            "Hábito Forjado", "Cincuenta días buenos. El plan ya es costumbre.",
+            "Acumula 50 días con al menos 3 comidas en plan."),
+        E(56, MedalCode.DietPerfectDays7, MedalMilestoneTrack.DietPerfectDays, 7,
+            "Semana Impecable", "Siete días perfectos (4/4 en plan).",
+            "Acumula 7 días con las 4 comidas en plan."),
+        E(57, MedalCode.DietPerfectDays30, MedalMilestoneTrack.DietPerfectDays, 30,
+            "Mes de Acero", "Treinta días perfectos. Adherencia de élite.",
+            "Acumula 30 días con las 4 comidas en plan."),
     ];
 
     private static MedalCatalogEntry E(

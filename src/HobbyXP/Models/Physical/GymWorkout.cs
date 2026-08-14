@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations.Schema;
+using HobbyXP.Helpers;
 using HobbyXP.Models.Common;
 
 namespace HobbyXP.Models.Physical;
@@ -35,6 +36,25 @@ public class GymWorkout : EntityBase
                 return string.Join(", ", names);
 
             return string.Join(", ", names.Take(3)) + $" (+{names.Count - 3})";
+        }
+    }
+
+    [NotMapped]
+    public string MuscleGroupsLabel
+    {
+        get
+        {
+            if (Entries.Count == 0)
+                return "—";
+
+            var labels = Entries
+                .Select(e => e.Exercise?.MuscleGroup)
+                .Distinct()
+                .OrderBy(g => g is null ? int.MaxValue : (int)g.Value)
+                .Select(MuscleGroupLabels.GetOrUnassigned)
+                .ToList();
+
+            return labels.Count == 0 ? "—" : string.Join(", ", labels);
         }
     }
 

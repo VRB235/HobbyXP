@@ -48,6 +48,10 @@ public sealed class DatabaseMaintenanceService : IDatabaseMaintenanceService
             await db.Database.EnsureDeletedAsync(cancellationToken);
             await db.Database.MigrateAsync(cancellationToken);
             await HobbyXpDatabaseInitializer.EnsurePlayerProfileAsync(db, cancellationToken);
+            await HobbyXpDatabaseInitializer.EnsureGeometricLevelScaleAsync(db, cancellationToken);
+            await HobbyXpDatabaseInitializer.EnsureHobbyProgressRowsAsync(db, cancellationToken);
+            await HobbyXpDatabaseInitializer.EnsureHobbyXpBackfillAsync(db, cancellationToken);
+            await HobbyXpDatabaseInitializer.EnsureSpendableLedgerAsync(db, cancellationToken);
         }
 
         ClearUserDataFolders();

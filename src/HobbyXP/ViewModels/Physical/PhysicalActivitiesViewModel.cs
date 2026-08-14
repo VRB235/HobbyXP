@@ -7,15 +7,18 @@ public sealed class PhysicalActivitiesViewModel : LoadableViewModelBase
 {
     private int _selectedTabIndex;
 
-    public PhysicalActivitiesViewModel(RunningViewModel running, GymViewModel gym)
+    public PhysicalActivitiesViewModel(RunningViewModel running, GymViewModel gym, DietViewModel diet)
     {
         Running = running;
         Gym = gym;
+        Diet = diet;
     }
 
     public RunningViewModel Running { get; }
 
     public GymViewModel Gym { get; }
+
+    public DietViewModel Diet { get; }
 
     public int SelectedTabIndex
     {
@@ -27,5 +30,6 @@ public sealed class PhysicalActivitiesViewModel : LoadableViewModelBase
     {
         await Running.LoadAsync();
         await Gym.LoadAsync();
+        await Diet.LoadAsync();
     }
 }

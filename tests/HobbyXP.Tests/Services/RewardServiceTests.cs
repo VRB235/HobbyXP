@@ -46,13 +46,14 @@ public sealed class RewardServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task RedeemAsync_DeductsXpAndMarksRewardRedeemed()
+    public async Task RedeemAsync_DeductsSpendableXpAndMarksRewardRedeemed()
     {
         await using (var db = _factory.CreateDbContext())
         {
             var profile = await db.PlayerProfiles.SingleAsync();
             profile.TotalXp = 1000;
             profile.CurrentLevel = 2;
+            profile.SpendableXp = 1000;
             await db.SaveChangesAsync();
         }
 
@@ -67,7 +68,10 @@ public sealed class RewardServiceTests : IDisposable
         Assert.Single(result.Events);
 
         await using var verifyDb = _factory.CreateDbContext();
-        Assert.Equal(700, await verifyDb.PlayerProfiles.Select(p => p.TotalXp).SingleAsync());
+        var profileAfter = await verifyDb.PlayerProfiles.SingleAsync();
+        Assert.Equal(1000, profileAfter.TotalXp);
+        Assert.Equal(2, profileAfter.CurrentLevel);
+        Assert.Equal(700, profileAfter.SpendableXp);
         Assert.Equal(-300, await verifyDb.XpTransactions.Select(t => t.Amount).SingleAsync());
         Assert.Single(await verifyDb.Milestones.Where(m => m.SourceType == MilestoneSourceType.Reward).ToListAsync());
     }

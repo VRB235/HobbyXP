@@ -77,7 +77,8 @@ public sealed class SettingsViewModel : LoadableViewModelBase
         private set => SetProperty(ref _totalXp, value);
     }
 
-    public string ProfileSummary => $"Nivel {CurrentLevel} · {TotalXp:N0} XP acumulados";
+    public string ProfileSummary =>
+        $"{GlobalLevelTitles.FormatLevelLabel(CurrentLevel)} · {TotalXp:N0} XP acumulados";
 
     public AsyncRelayCommand SaveBaseXpPerLevelCommand { get; }
 

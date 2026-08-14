@@ -1,4 +1,5 @@
 using HobbyXP.Data;
+using HobbyXP.Helpers;
 using HobbyXP.Models.Achievements;
 using HobbyXP.Models.Core;
 using HobbyXP.Models.Enums;
@@ -28,6 +29,40 @@ public sealed class XpService : IXpService
         await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
         var profile = await GetProfileAsync(db, cancellationToken);
         return XpLevelCalculator.BuildProgress(profile);
+    }
+
+    public async Task<LevelProgressInfo> GetHobbyProgressAsync(
+        MilestoneSourceType sourceType,
+        CancellationToken cancellationToken = default)
+    {
+        if (!HobbyProgressCatalog.IsTrackedHobby(sourceType))
+            throw new ArgumentOutOfRangeException(nameof(sourceType), "No es un hobby con pool de XP.");
+
+        await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var profile = await GetProfileAsync(db, cancellationToken);
+        var hobby = await GetOrCreateHobbyProgressAsync(db, profile, sourceType, cancellationToken);
+        return XpLevelCalculator.BuildProgress(hobby, profile.BaseXpPerLevel);
+    }
+
+    public async Task<IReadOnlyList<HobbyProgressInfo>> GetAllHobbyProgressAsync(
+        CancellationToken cancellationToken = default)
+    {
+        await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var profile = await GetProfileAsync(db, cancellationToken);
+        await EnsureAllHobbyRowsAsync(db, profile, cancellationToken);
+
+        return HobbyProgressCatalog.TrackedHobbies
+            .Select(source =>
+            {
+                var hobby = profile.HobbyProgresses.First(h => h.SourceType == source);
+                var progress = XpLevelCalculator.BuildProgress(hobby, profile.BaseXpPerLevel);
+                return new HobbyProgressInfo(
+                    source,
+                    HobbyProgressCatalog.GetDisplayName(source),
+                    progress,
+                    HobbyLevelTitles.GetTitle(source, progress.CurrentLevel));
+            })
+            .ToList();
     }
 
     public async Task<int> CalculatePointsAsync(
@@ -98,12 +133,11 @@ public sealed class XpService : IXpService
         await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
         var profile = await GetProfileAsync(db, cancellationToken);
 
-        if (profile.TotalXp < amount)
+        if (profile.SpendableXp < amount)
             return false;
 
-        profile.TotalXp -= amount;
+        profile.SpendableXp -= amount;
         profile.UpdatedAt = DateTime.UtcNow;
-        XpLevelCalculator.RecalculateLevel(profile);
 
         db.XpTransactions.Add(new XpTransaction
         {
@@ -112,6 +146,8 @@ public sealed class XpService : IXpService
             ActionType = AchievementActionType.RewardRedeemed,
             Description = description,
             SourceEntityType = nameof(Reward),
+            SourceType = MilestoneSourceType.Reward,
+            IsGlobal = true,
             EarnedAt = DateTime.UtcNow
         });
 
@@ -132,14 +168,68 @@ public sealed class XpService : IXpService
         var transactions = await db.XpTransactions
             .Where(t => t.SourceEntityType == sourceEntityType &&
                         t.SourceEntityId == sourceEntityId &&
-                        t.Amount > 0)
+                        t.Amount > 0 &&
+                        !t.IsGlobal)
             .ToListAsync(cancellationToken);
 
         var totalToRevoke = transactions.Sum(t => t.Amount);
 
-        if (totalToRevoke > 0)
+        if (totalToRevoke > 0 && HobbyProgressCatalog.IsTrackedHobby(milestoneSource))
         {
+            var hobby = await GetOrCreateHobbyProgressAsync(db, profile, milestoneSource, cancellationToken);
+            var previousHobbyLevel = hobby.CurrentLevel;
+
+            hobby.TotalXp = Math.Max(0, hobby.TotalXp - totalToRevoke);
+            XpLevelCalculator.RecalculateLevel(hobby, profile.BaseXpPerLevel);
+
+            var levelsLost = Math.Max(0, previousHobbyLevel - hobby.CurrentLevel);
+            if (levelsLost > 0)
+            {
+                var globalPenalty = levelsLost * profile.BaseXpPerLevel;
+                profile.TotalXp = Math.Max(0, profile.TotalXp - globalPenalty);
+                profile.UpdatedAt = DateTime.UtcNow;
+                XpLevelCalculator.RecalculateLevel(profile);
+
+                db.XpTransactions.Add(new XpTransaction
+                {
+                    PlayerProfileId = profile.Id,
+                    Amount = -globalPenalty,
+                    ActionType = AchievementActionType.HobbyLevelUp,
+                    Description = $"Ajuste global por pérdida de nivel en {HobbyProgressCatalog.GetDisplayName(milestoneSource)}",
+                    SourceEntityType = sourceEntityType,
+                    SourceEntityId = sourceEntityId,
+                    SourceType = milestoneSource,
+                    IsGlobal = true,
+                    EarnedAt = DateTime.UtcNow
+                });
+
+                // El bonus global también se había acreditado al saldo canjeable.
+                profile.SpendableXp = Math.Max(0, profile.SpendableXp - globalPenalty);
+            }
+
+            profile.SpendableXp = Math.Max(0, profile.SpendableXp - totalToRevoke);
+            profile.UpdatedAt = DateTime.UtcNow;
+
+            db.XpTransactions.Add(new XpTransaction
+            {
+                PlayerProfileId = profile.Id,
+                Amount = -totalToRevoke,
+                ActionType = AchievementActionType.RewardRedeemed,
+                Description = description,
+                SourceEntityType = sourceEntityType,
+                SourceEntityId = sourceEntityId,
+                SourceType = milestoneSource,
+                IsGlobal = false,
+                EarnedAt = DateTime.UtcNow
+            });
+
+            db.XpTransactions.RemoveRange(transactions);
+        }
+        else if (totalToRevoke > 0)
+        {
+            // Fallback legacy: txs globales sin pool de hobby.
             profile.TotalXp = Math.Max(0, profile.TotalXp - totalToRevoke);
+            profile.SpendableXp = Math.Max(0, profile.SpendableXp - totalToRevoke);
             profile.UpdatedAt = DateTime.UtcNow;
             XpLevelCalculator.RecalculateLevel(profile);
 
@@ -151,6 +241,8 @@ public sealed class XpService : IXpService
                 Description = description,
                 SourceEntityType = sourceEntityType,
                 SourceEntityId = sourceEntityId,
+                SourceType = milestoneSource,
+                IsGlobal = true,
                 EarnedAt = DateTime.UtcNow
             });
 
@@ -175,6 +267,146 @@ public sealed class XpService : IXpService
         return totalToRevoke;
     }
 
+    public async Task<HobbyLevelPenaltyOutcome> ApplyHobbyLevelDownPenaltyAsync(
+        MilestoneSourceType milestoneSource,
+        string description,
+        int? sourceEntityId = null,
+        CancellationToken cancellationToken = default)
+    {
+        if (!HobbyProgressCatalog.IsTrackedHobby(milestoneSource))
+            throw new ArgumentOutOfRangeException(nameof(milestoneSource));
+
+        await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var profile = await GetProfileAsync(db, cancellationToken);
+        var hobby = await GetOrCreateHobbyProgressAsync(db, profile, milestoneSource, cancellationToken);
+
+        var levelBefore = hobby.CurrentLevel;
+        var threshold = XpLevelCalculator.GetXpThresholdForLevel(hobby.CurrentLevel, profile.BaseXpPerLevel);
+        var targetXp = hobby.CurrentLevel <= 1
+            ? 0
+            : Math.Max(0, (int)Math.Min(int.MaxValue, threshold) - 1);
+
+        var hobbyXpToRevoke = Math.Max(0, hobby.TotalXp - targetXp);
+        if (hobbyXpToRevoke <= 0)
+        {
+            return new HobbyLevelPenaltyOutcome(0, 0, levelBefore, hobby.CurrentLevel, Applied: false);
+        }
+
+        hobby.TotalXp = Math.Max(0, hobby.TotalXp - hobbyXpToRevoke);
+        XpLevelCalculator.RecalculateLevel(hobby, profile.BaseXpPerLevel);
+        var levelsLost = Math.Max(0, levelBefore - hobby.CurrentLevel);
+
+        var globalXpRevoked = 0;
+        if (levelsLost > 0)
+        {
+            globalXpRevoked = levelsLost * profile.BaseXpPerLevel;
+            profile.TotalXp = Math.Max(0, profile.TotalXp - globalXpRevoked);
+            profile.SpendableXp = Math.Max(0, profile.SpendableXp - globalXpRevoked);
+            XpLevelCalculator.RecalculateLevel(profile);
+
+            db.XpTransactions.Add(new XpTransaction
+            {
+                PlayerProfileId = profile.Id,
+                Amount = -globalXpRevoked,
+                ActionType = AchievementActionType.WeeklyQuotaPenalty,
+                Description = $"Ajuste global por castigo en {HobbyProgressCatalog.GetDisplayName(milestoneSource)}",
+                SourceEntityType = nameof(WeeklyQuotaEvaluation),
+                SourceEntityId = sourceEntityId,
+                SourceType = milestoneSource,
+                IsGlobal = true,
+                EarnedAt = DateTime.UtcNow
+            });
+        }
+
+        profile.SpendableXp = Math.Max(0, profile.SpendableXp - hobbyXpToRevoke);
+        profile.UpdatedAt = DateTime.UtcNow;
+
+        db.XpTransactions.Add(new XpTransaction
+        {
+            PlayerProfileId = profile.Id,
+            Amount = -hobbyXpToRevoke,
+            ActionType = AchievementActionType.WeeklyQuotaPenalty,
+            Description = description,
+            SourceEntityType = nameof(WeeklyQuotaEvaluation),
+            SourceEntityId = sourceEntityId,
+            SourceType = milestoneSource,
+            IsGlobal = false,
+            EarnedAt = DateTime.UtcNow
+        });
+
+        await db.SaveChangesAsync(cancellationToken);
+
+        return new HobbyLevelPenaltyOutcome(
+            hobbyXpToRevoke,
+            globalXpRevoked,
+            levelBefore,
+            hobby.CurrentLevel,
+            Applied: true);
+    }
+
+    public async Task RestoreHobbyLevelPenaltyAsync(
+        MilestoneSourceType milestoneSource,
+        int hobbyXpToRestore,
+        int globalXpToRestore,
+        string description,
+        int? sourceEntityId = null,
+        CancellationToken cancellationToken = default)
+    {
+        if (!HobbyProgressCatalog.IsTrackedHobby(milestoneSource))
+            throw new ArgumentOutOfRangeException(nameof(milestoneSource));
+
+        if (hobbyXpToRestore <= 0 && globalXpToRestore <= 0)
+            return;
+
+        await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var profile = await GetProfileAsync(db, cancellationToken);
+        var hobby = await GetOrCreateHobbyProgressAsync(db, profile, milestoneSource, cancellationToken);
+
+        if (hobbyXpToRestore > 0)
+        {
+            hobby.TotalXp += hobbyXpToRestore;
+            profile.SpendableXp += hobbyXpToRestore;
+            XpLevelCalculator.RecalculateLevel(hobby, profile.BaseXpPerLevel);
+
+            db.XpTransactions.Add(new XpTransaction
+            {
+                PlayerProfileId = profile.Id,
+                Amount = hobbyXpToRestore,
+                ActionType = AchievementActionType.WeeklyQuotaPenalty,
+                Description = description,
+                SourceEntityType = nameof(WeeklyQuotaEvaluation),
+                SourceEntityId = sourceEntityId,
+                SourceType = milestoneSource,
+                IsGlobal = false,
+                EarnedAt = DateTime.UtcNow
+            });
+        }
+
+        if (globalXpToRestore > 0)
+        {
+            profile.TotalXp += globalXpToRestore;
+            profile.SpendableXp += globalXpToRestore;
+            XpLevelCalculator.RecalculateLevel(profile);
+
+            db.XpTransactions.Add(new XpTransaction
+            {
+                PlayerProfileId = profile.Id,
+                Amount = globalXpToRestore,
+                ActionType = AchievementActionType.WeeklyQuotaPenalty,
+                Description =
+                    $"Restauración global por disciplina en {HobbyProgressCatalog.GetDisplayName(milestoneSource)}",
+                SourceEntityType = nameof(WeeklyQuotaEvaluation),
+                SourceEntityId = sourceEntityId,
+                SourceType = milestoneSource,
+                IsGlobal = true,
+                EarnedAt = DateTime.UtcNow
+            });
+        }
+
+        profile.UpdatedAt = DateTime.UtcNow;
+        await db.SaveChangesAsync(cancellationToken);
+    }
+
     public async Task<IReadOnlyList<DailyXpPoint>> GetDailyXpForLastDaysAsync(
         int days,
         CancellationToken cancellationToken = default)
@@ -187,7 +419,7 @@ public sealed class XpService : IXpService
 
         var grouped = await db.XpTransactions
             .AsNoTracking()
-            .Where(t => t.EarnedAt >= startDate && t.Amount > 0)
+            .Where(t => t.EarnedAt >= startDate && t.Amount > 0 && !t.IsGlobal)
             .GroupBy(t => t.EarnedAt.Date)
             .Select(g => new { Date = g.Key, Total = g.Sum(t => t.Amount) })
             .ToListAsync(cancellationToken);
@@ -230,13 +462,24 @@ public sealed class XpService : IXpService
 
         if (totalAward <= 0)
         {
-            return new XpAwardOutcome(0, profile.TotalXp, null, false, null);
+            var emptyHobbyXp = HobbyProgressCatalog.IsTrackedHobby(milestoneSource)
+                ? (await GetOrCreateHobbyProgressAsync(db, profile, milestoneSource, cancellationToken)).TotalXp
+                : profile.TotalXp;
+            return new XpAwardOutcome(0, emptyHobbyXp, null, false, null);
         }
 
-        var previousLevel = profile.CurrentLevel;
-        profile.TotalXp += totalAward;
+        if (!HobbyProgressCatalog.IsTrackedHobby(milestoneSource))
+            throw new InvalidOperationException(
+                $"No se puede otorgar XP de actividad al source '{milestoneSource}' (sin pool de hobby).");
+
+        var hobby = await GetOrCreateHobbyProgressAsync(db, profile, milestoneSource, cancellationToken);
+        var previousHobbyLevel = hobby.CurrentLevel;
+        var previousGlobalLevel = profile.CurrentLevel;
+
+        hobby.TotalXp += totalAward;
+        profile.SpendableXp += totalAward;
         profile.UpdatedAt = DateTime.UtcNow;
-        XpLevelCalculator.RecalculateLevel(profile);
+        XpLevelCalculator.RecalculateLevel(hobby, profile.BaseXpPerLevel);
 
         db.XpTransactions.Add(new XpTransaction
         {
@@ -246,6 +489,8 @@ public sealed class XpService : IXpService
             Description = description,
             SourceEntityType = sourceEntityType,
             SourceEntityId = sourceEntityId,
+            SourceType = milestoneSource,
+            IsGlobal = false,
             EarnedAt = DateTime.UtcNow
         });
 
@@ -264,18 +509,91 @@ public sealed class XpService : IXpService
             db.Milestones.Add(milestone);
         }
 
+        var levelsGained = Math.Max(0, hobby.CurrentLevel - previousHobbyLevel);
+        var globalBonus = 0;
+        if (levelsGained > 0)
+        {
+            globalBonus = levelsGained * profile.BaseXpPerLevel;
+            profile.TotalXp += globalBonus;
+            profile.SpendableXp += globalBonus;
+            profile.UpdatedAt = DateTime.UtcNow;
+            XpLevelCalculator.RecalculateLevel(profile);
+
+            db.XpTransactions.Add(new XpTransaction
+            {
+                PlayerProfileId = profile.Id,
+                Amount = globalBonus,
+                ActionType = AchievementActionType.HobbyLevelUp,
+                Description =
+                    $"Bonus global: {HobbyProgressCatalog.GetDisplayName(milestoneSource)} → {HobbyLevelTitles.FormatLevelLabel(milestoneSource, hobby.CurrentLevel)}",
+                SourceEntityType = sourceEntityType,
+                SourceEntityId = sourceEntityId,
+                SourceType = milestoneSource,
+                IsGlobal = true,
+                EarnedAt = DateTime.UtcNow
+            });
+        }
+
         await db.SaveChangesAsync(cancellationToken);
 
-        var leveledUp = profile.CurrentLevel > previousLevel;
-        if (leveledUp)
+        var hobbyLeveledUp = hobby.CurrentLevel > previousHobbyLevel;
+        var globalLeveledUp = profile.CurrentLevel > previousGlobalLevel;
+        if (globalLeveledUp)
             _levelUpMessenger.Publish(profile.CurrentLevel, profile.TotalXp);
 
         return new XpAwardOutcome(
             totalAward,
-            profile.TotalXp,
-            leveledUp ? profile.CurrentLevel : null,
-            leveledUp,
-            milestone);
+            hobby.TotalXp,
+            hobbyLeveledUp ? hobby.CurrentLevel : null,
+            hobbyLeveledUp,
+            milestone,
+            globalBonus,
+            globalLeveledUp ? profile.CurrentLevel : null,
+            globalLeveledUp);
+    }
+
+    private static async Task<HobbyProgress> GetOrCreateHobbyProgressAsync(
+        HobbyXpDbContext db,
+        PlayerProfile profile,
+        MilestoneSourceType sourceType,
+        CancellationToken cancellationToken)
+    {
+        await EnsureAllHobbyRowsAsync(db, profile, cancellationToken);
+        return profile.HobbyProgresses.First(h => h.SourceType == sourceType);
+    }
+
+    private static async Task EnsureAllHobbyRowsAsync(
+        HobbyXpDbContext db,
+        PlayerProfile profile,
+        CancellationToken cancellationToken)
+    {
+        if (profile.HobbyProgresses.Count == 0)
+        {
+            await db.Entry(profile)
+                .Collection(p => p.HobbyProgresses)
+                .LoadAsync(cancellationToken);
+        }
+
+        var changed = false;
+        foreach (var source in HobbyProgressCatalog.TrackedHobbies)
+        {
+            if (profile.HobbyProgresses.Any(h => h.SourceType == source))
+                continue;
+
+            var hobby = new HobbyProgress
+            {
+                PlayerProfileId = profile.Id,
+                SourceType = source,
+                CurrentLevel = 1,
+                TotalXp = 0
+            };
+            profile.HobbyProgresses.Add(hobby);
+            db.HobbyProgresses.Add(hobby);
+            changed = true;
+        }
+
+        if (changed)
+            await db.SaveChangesAsync(cancellationToken);
     }
 
     private static async Task<PlayerProfile> GetProfileAsync(

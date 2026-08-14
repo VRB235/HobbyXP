@@ -1,4 +1,5 @@
 using HobbyXP.Data;
+using HobbyXP.Helpers;
 using HobbyXP.Models.Enums;
 using HobbyXP.Models.Physical;
 using HobbyXP.Services.Abstractions;
@@ -12,15 +13,18 @@ public sealed class RunningService : IRunningService
     private readonly IDbContextFactory<HobbyXpDbContext> _dbContextFactory;
     private readonly IXpService _xpService;
     private readonly IAchievementEngineService _achievementEngine;
+    private readonly IWeeklyQuotaService _weeklyQuotaService;
 
     public RunningService(
         IDbContextFactory<HobbyXpDbContext> dbContextFactory,
         IXpService xpService,
-        IAchievementEngineService achievementEngine)
+        IAchievementEngineService achievementEngine,
+        IWeeklyQuotaService weeklyQuotaService)
     {
         _dbContextFactory = dbContextFactory;
         _xpService = xpService;
         _achievementEngine = achievementEngine;
+        _weeklyQuotaService = weeklyQuotaService;
     }
 
     public async Task<IReadOnlyList<RunningSession>> GetSessionsAsync(CancellationToken cancellationToken = default)
@@ -54,6 +58,8 @@ public sealed class RunningService : IRunningService
     public async Task<OperationResult<RunningSession>> SaveSessionAsync(
         decimal distanceKm,
         TimeSpan duration,
+        RunningSessionType sessionType,
+        DateTime recordedAt,
         int? carreraId = null,
         string? notes = null,
         CancellationToken cancellationToken = default)
@@ -63,6 +69,9 @@ public sealed class RunningService : IRunningService
 
         if (duration <= TimeSpan.Zero)
             throw new ArgumentOutOfRangeException(nameof(duration), "El tiempo debe ser mayor que cero.");
+
+        if (!Enum.IsDefined(sessionType))
+            throw new ArgumentOutOfRangeException(nameof(sessionType), "Tipo de sesión inválido.");
 
         await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
 
@@ -78,9 +87,10 @@ public sealed class RunningService : IRunningService
             DistanceKm = distanceKm,
             Duration = duration,
             PaceMinPerKm = pace,
+            SessionType = sessionType,
             CarreraId = carreraId,
             Notes = notes,
-            RecordedAt = DateTime.UtcNow
+            RecordedAt = DateTimeHelper.ToUtcFromLocalDate(recordedAt)
         };
 
         db.RunningSessions.Add(session);
@@ -119,11 +129,13 @@ public sealed class RunningService : IRunningService
 
         if (xpOutcome.LeveledUp && xpOutcome.NewLevel.HasValue)
         {
+            var title = HobbyLevelTitles.GetTitle(MilestoneSourceType.Running, xpOutcome.NewLevel.Value);
             events.Add(new AchievementEvent(
-                $"¡Nivel {xpOutcome.NewLevel.Value}!",
-                "Subiste de nivel por tu actividad de running.",
-                0,
-                MilestoneSourceType.System));
+                $"¡{title}!",
+                $"Running alcanzó Nv. {xpOutcome.NewLevel.Value} · {title}.",
+                xpOutcome.GlobalBonusAwarded,
+                MilestoneSourceType.Running,
+                RequiresCelebration: true));
         }
 
         events.AddRange(await _achievementEngine.TryAwardMilestonesForTrackAsync(
@@ -139,6 +151,8 @@ public sealed class RunningService : IRunningService
             nameof(RunningSession),
             session.Id,
             cancellationToken));
+
+        await _weeklyQuotaService.NotifyActivityAsync(MilestoneSourceType.Running, recordedAt.Date, cancellationToken);
 
         return OperationResult<RunningSession>.WithEvents(session, events.ToArray());
     }
@@ -246,6 +260,30 @@ public sealed class RunningService : IRunningService
             sessions.Count,
             sessions.Sum(s => s.DistanceKm),
             sessions.Count == 0 ? null : sessions.Min(s => s.PaceMinPerKm));
+    }
+
+    public async Task<RunningSession?> UpdateSessionTypeAsync(
+        int sessionId,
+        RunningSessionType sessionType,
+        CancellationToken cancellationToken = default)
+    {
+        if (!Enum.IsDefined(sessionType))
+            throw new ArgumentOutOfRangeException(nameof(sessionType), "Tipo de sesión inválido.");
+
+        await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var session = await db.RunningSessions
+            .Include(s => s.Carrera)
+            .FirstOrDefaultAsync(s => s.Id == sessionId, cancellationToken);
+        if (session is null)
+            return null;
+
+        session.SessionType = sessionType;
+        session.UpdatedAt = DateTime.UtcNow;
+        await db.SaveChangesAsync(cancellationToken);
+
+        // Detach-friendly copy for UI (AsNoTracking-style consumers).
+        db.Entry(session).State = EntityState.Detached;
+        return session;
     }
 
     public async Task<bool> DeleteSessionAsync(int sessionId, CancellationToken cancellationToken = default)

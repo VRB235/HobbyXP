@@ -56,6 +56,7 @@
                                 <controls:FormValidationBanner Message="{Binding DisplayNameValidationMessage}" Margin="0,2,0,0" />
                                 <TextBlock Text="{Binding SidebarLevelText}" Style="{StaticResource MutedText}" FontSize="12" Margin="0,2,0,0" />
                                 <TextBlock Text="{Binding SidebarXpSummary}" Style="{StaticResource MutedText}" FontSize="11" />
+                                <TextBlock Text="{Binding SidebarSpendableSummary}" Style="{StaticResource MutedText}" FontSize="11" />
                             </StackPanel>
                         </Grid>
 

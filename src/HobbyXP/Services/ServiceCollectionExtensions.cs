@@ -15,6 +15,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IDashboardService, DashboardService>();
         services.AddScoped<IRunningService, RunningService>();
         services.AddScoped<IGymService, GymService>();
+        services.AddScoped<IDietService, DietService>();
         services.AddScoped<IPuzzleService, PuzzleService>();
         services.AddScoped<IMediaService, MediaService>();
         services.AddScoped<IVideoGameService, VideoGameService>();
@@ -22,6 +23,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ICourseService, CourseService>();
         services.AddScoped<IMedalService, MedalService>();
         services.AddScoped<IRewardService, RewardService>();
+        services.AddScoped<IWeeklyQuotaService, WeeklyQuotaService>();
 
         services.AddSingleton<IFileDialogService, FileDialogService>();
         services.AddSingleton<IMessageDialogService, MessageDialogService>();

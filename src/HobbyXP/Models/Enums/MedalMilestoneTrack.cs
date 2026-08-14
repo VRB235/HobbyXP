@@ -16,5 +16,7 @@ public enum MedalMilestoneTrack
     RunningKilometers = 8,
     GymWorkouts = 9,
     ProgressiveOverloadPrs = 10,
-    VideoGamesPlatinum = 11
+    VideoGamesPlatinum = 11,
+    DietGoodDays = 12,
+    DietPerfectDays = 13
 }

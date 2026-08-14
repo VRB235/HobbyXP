@@ -1,4 +1,5 @@
 using HobbyXP.Data;
+using HobbyXP.Helpers;
 using HobbyXP.Models.Achievements;
 using HobbyXP.Models.Enums;
 using HobbyXP.Models.PersonalGrowth;
@@ -156,14 +157,19 @@ public sealed class AchievementEngineService : IAchievementEngineService
             .CountAsync(r => r.IsCompleted, cancellationToken),
         MedalMilestoneTrack.RunningSessions => await db.RunningSessions
             .CountAsync(cancellationToken),
-        MedalMilestoneTrack.RunningKilometers => (int)await db.RunningSessions
-            .SumAsync(s => s.DistanceKm, cancellationToken),
+        // SQLite/EF no traduce Sum sobre decimal; agregar como double y redondear.
+        MedalMilestoneTrack.RunningKilometers => (int)Math.Round(
+            await db.RunningSessions.SumAsync(s => (double)s.DistanceKm, cancellationToken)),
         MedalMilestoneTrack.GymWorkouts => await db.GymWorkouts
             .CountAsync(cancellationToken),
         MedalMilestoneTrack.ProgressiveOverloadPrs => await db.GymWorkouts
             .CountAsync(w => w.TriggeredProgressiveOverload, cancellationToken),
         MedalMilestoneTrack.VideoGamesPlatinum => await db.VideoGames
             .CountAsync(g => g.CompletionPercentage >= 100, cancellationToken),
+        MedalMilestoneTrack.DietGoodDays => await db.DietDayLogs
+            .CountAsync(d => d.OnPlanCount >= DietDayRules.GoodDayThreshold, cancellationToken),
+        MedalMilestoneTrack.DietPerfectDays => await db.DietDayLogs
+            .CountAsync(d => d.OnPlanCount == DietDayRules.MealsPerDay, cancellationToken),
         _ => 0
     };
 }

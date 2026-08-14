@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using HobbyXP.Helpers;
+using HobbyXP.Models.Enums;
 using HobbyXP.Models.Physical;
 using HobbyXP.Services.Abstractions;
 using HobbyXP.Services.Messaging;
@@ -17,6 +18,7 @@ public sealed class RunningViewModel : AchievementAwareViewModel
     private string _distanceKm = string.Empty;
     private string _durationMinutes = string.Empty;
     private string _durationSeconds = string.Empty;
+    private DateTime? _sessionDate = DateTime.Today;
     private RaceOption? _selectedRaceOption;
     private OfficialRace? _selectedRace;
     private RacePreparationStats? _selectedRaceStats;
@@ -26,6 +28,10 @@ public sealed class RunningViewModel : AchievementAwareViewModel
     private string _newRaceLocation = string.Empty;
     private DateTime? _sessionsFromDate;
     private DateTime? _sessionsToDate;
+    private RunningSessionTypeOption _selectedSessionTypeOption;
+    private RunningSessionTypeOption _sessionsTypeFilterOption;
+    private RunningSessionTypeOption _editSessionTypeOption;
+    private RunningSession? _selectedSession;
     private List<RunningSession> _allSessions = [];
     private List<OfficialRace> _allOfficialRaces = [];
     private string _raceSearchText = string.Empty;
@@ -33,9 +39,16 @@ public sealed class RunningViewModel : AchievementAwareViewModel
     private DateTime? _racesToDate;
     private string? _sessionValidationMessage;
     private string? _raceValidationMessage;
+    private bool _isNewSessionExpanded = true;
+    private bool _isNewRaceExpanded;
+    private bool _isOfficialRacesExpanded;
+    private bool _isSessionsExpanded;
+    private bool _suppressSectionAccordion;
 
     public RunningViewModel(
         IRunningService runningService,
+        IXpService xpService,
+        IWeeklyQuotaService weeklyQuotaService,
         IMessageDialogService messageDialogService,
         IProfileRefreshMessenger profileRefreshMessenger,
         IAchievementMessenger achievementMessenger)
@@ -44,15 +57,23 @@ public sealed class RunningViewModel : AchievementAwareViewModel
         _runningService = runningService;
         _messageDialogService = messageDialogService;
         _profileRefreshMessenger = profileRefreshMessenger;
+        HobbyXp = new HobbyProgressPresenter(xpService, MilestoneSourceType.Running, weeklyQuotaService);
+        OfficialRaceXp = new HobbyProgressPresenter(xpService, MilestoneSourceType.OfficialRace);
         Sessions = new ObservableCollection<RunningSession>();
         OfficialRaces = new ObservableCollection<OfficialRace>();
         RaceOptions = new ObservableCollection<RaceOption> { RaceOption.None };
+        SessionTypeOptions = RunningSessionTypeOption.CreateCatalogOptions();
+        SessionTypeFilterOptions = RunningSessionTypeOption.CreateFilterOptions();
+        _selectedSessionTypeOption = SessionTypeOptions[0];
+        _sessionsTypeFilterOption = SessionTypeFilterOptions[0];
+        _editSessionTypeOption = SessionTypeOptions[0];
 
         SaveSessionCommand = new AsyncRelayCommand(SaveSessionAsync, CanSaveSession);
         RegisterOfficialRaceCommand = new AsyncRelayCommand(RegisterOfficialRaceAsync, CanRegisterOfficialRace);
         CompleteRaceCommand = new AsyncRelayCommand(CompleteRaceAsync, () => SelectedRace is { IsCompleted: false });
         ClearSessionsDateFilterCommand = new RelayCommand(ClearSessionsDateFilter);
         ClearOfficialRacesFilterCommand = new RelayCommand(ClearOfficialRacesFilter);
+        UpdateSessionTypeCommand = new AsyncRelayCommand(UpdateSessionTypeAsync, () => SelectedSession is not null);
         DeleteSessionCommand = new AsyncRelayCommand(p => DeleteSessionAsync(p));
         DeleteOfficialRaceCommand = new AsyncRelayCommand(
             p => DeleteOfficialRaceAsync(p),
@@ -60,6 +81,10 @@ public sealed class RunningViewModel : AchievementAwareViewModel
         RefreshSessionValidation();
         RefreshRaceValidation();
     }
+
+    public HobbyProgressPresenter HobbyXp { get; }
+
+    public HobbyProgressPresenter OfficialRaceXp { get; }
 
     public string? SessionValidationMessage
     {
@@ -73,11 +98,74 @@ public sealed class RunningViewModel : AchievementAwareViewModel
         private set => SetProperty(ref _raceValidationMessage, value);
     }
 
+    public bool IsNewSessionExpanded
+    {
+        get => _isNewSessionExpanded;
+        set => SetSectionExpanded(RunningSection.NewSession, value, ref _isNewSessionExpanded, nameof(IsNewSessionExpanded));
+    }
+
+    public bool IsNewRaceExpanded
+    {
+        get => _isNewRaceExpanded;
+        set => SetSectionExpanded(RunningSection.NewRace, value, ref _isNewRaceExpanded, nameof(IsNewRaceExpanded));
+    }
+
+    public bool IsOfficialRacesExpanded
+    {
+        get => _isOfficialRacesExpanded;
+        set => SetSectionExpanded(RunningSection.OfficialRaces, value, ref _isOfficialRacesExpanded, nameof(IsOfficialRacesExpanded));
+    }
+
+    public bool IsSessionsExpanded
+    {
+        get => _isSessionsExpanded;
+        set => SetSectionExpanded(RunningSection.Sessions, value, ref _isSessionsExpanded, nameof(IsSessionsExpanded));
+    }
+
     public ObservableCollection<RunningSession> Sessions { get; }
 
     public ObservableCollection<OfficialRace> OfficialRaces { get; }
 
     public ObservableCollection<RaceOption> RaceOptions { get; }
+
+    public IReadOnlyList<RunningSessionTypeOption> SessionTypeOptions { get; }
+
+    public IReadOnlyList<RunningSessionTypeOption> SessionTypeFilterOptions { get; }
+
+    public RunningSessionTypeOption SelectedSessionTypeOption
+    {
+        get => _selectedSessionTypeOption;
+        set => SetProperty(ref _selectedSessionTypeOption, value);
+    }
+
+    public RunningSessionTypeOption SessionsTypeFilterOption
+    {
+        get => _sessionsTypeFilterOption;
+        set
+        {
+            if (SetProperty(ref _sessionsTypeFilterOption, value))
+                ApplySessionsFilter();
+        }
+    }
+
+    public RunningSessionTypeOption EditSessionTypeOption
+    {
+        get => _editSessionTypeOption;
+        set => SetProperty(ref _editSessionTypeOption, value);
+    }
+
+    public RunningSession? SelectedSession
+    {
+        get => _selectedSession;
+        set
+        {
+            if (!SetProperty(ref _selectedSession, value))
+                return;
+
+            SyncEditSessionTypeOption();
+            UpdateSessionTypeCommand.RaiseCanExecuteChanged();
+        }
+    }
 
     public string DistanceKm
     {
@@ -105,6 +193,16 @@ public sealed class RunningViewModel : AchievementAwareViewModel
         set
         {
             if (SetProperty(ref _durationSeconds, value))
+                RefreshSessionValidation();
+        }
+    }
+
+    public DateTime? SessionDate
+    {
+        get => _sessionDate;
+        set
+        {
+            if (SetProperty(ref _sessionDate, value))
                 RefreshSessionValidation();
         }
     }
@@ -218,6 +316,8 @@ public sealed class RunningViewModel : AchievementAwareViewModel
 
     public AsyncRelayCommand SaveSessionCommand { get; }
 
+    public AsyncRelayCommand UpdateSessionTypeCommand { get; }
+
     public AsyncRelayCommand RegisterOfficialRaceCommand { get; }
 
     public AsyncRelayCommand CompleteRaceCommand { get; }
@@ -232,6 +332,9 @@ public sealed class RunningViewModel : AchievementAwareViewModel
 
     protected override async Task LoadCoreAsync()
     {
+        await HobbyXp.RefreshAsync();
+        await OfficialRaceXp.RefreshAsync();
+
         _allSessions = (await _runningService.GetSessionsAsync()).ToList();
         ApplySessionsFilter();
 
@@ -242,17 +345,69 @@ public sealed class RunningViewModel : AchievementAwareViewModel
 
     private void ApplySessionsFilter()
     {
+        var selectedId = SelectedSession?.Id;
+
         Sessions.Clear();
-        foreach (var session in _allSessions.Where(s => DateRangeFilter.Matches(s.RecordedAt, SessionsFromDate, SessionsToDate)))
+        foreach (var session in _allSessions.Where(MatchesSessionFilters))
             Sessions.Add(session);
+
+        if (selectedId is int id)
+        {
+            var stillVisible = Sessions.FirstOrDefault(s => s.Id == id);
+            if (!ReferenceEquals(SelectedSession, stillVisible))
+                SelectedSession = stillVisible;
+        }
     }
+
+    private void SyncEditSessionTypeOption()
+    {
+        if (SelectedSession?.SessionType is RunningSessionType type)
+        {
+            EditSessionTypeOption = SessionTypeOptions.FirstOrDefault(o => o.Value == type)
+                ?? SessionTypeOptions[0];
+            return;
+        }
+
+        EditSessionTypeOption = SessionTypeOptions[0];
+    }
+
+    private async Task UpdateSessionTypeAsync()
+    {
+        if (SelectedSession is null || EditSessionTypeOption.Value is null)
+            return;
+
+        var sessionId = SelectedSession.Id;
+        var type = EditSessionTypeOption.Value.Value;
+
+        await RunBusyAsync(async () =>
+        {
+            var updated = await _runningService.UpdateSessionTypeAsync(sessionId, type);
+            if (updated is null)
+                return;
+
+            var index = _allSessions.FindIndex(s => s.Id == sessionId);
+            if (index >= 0)
+                _allSessions[index] = updated;
+
+            ApplySessionsFilter();
+            SelectedSession = Sessions.FirstOrDefault(s => s.Id == sessionId)
+                ?? _allSessions.FirstOrDefault(s => s.Id == sessionId);
+            StatusMessage = $"Tipo actualizado: {updated.SessionTypeLabel} ({updated.RecordedAt:dd/MM/yyyy}, {updated.DistanceKm:0.##} km).";
+        }, "Actualizando tipo...");
+    }
+
+    private bool MatchesSessionFilters(RunningSession session) =>
+        DateRangeFilter.Matches(session.RecordedAt, SessionsFromDate, SessionsToDate) &&
+        SessionsTypeFilterOption.Matches(session.SessionType);
 
     private void ClearSessionsDateFilter()
     {
         _sessionsFromDate = null;
         _sessionsToDate = null;
+        _sessionsTypeFilterOption = SessionTypeFilterOptions[0];
         OnPropertyChanged(nameof(SessionsFromDate));
         OnPropertyChanged(nameof(SessionsToDate));
+        OnPropertyChanged(nameof(SessionsTypeFilterOption));
         ApplySessionsFilter();
     }
 
@@ -343,6 +498,9 @@ public sealed class RunningViewModel : AchievementAwareViewModel
         if (!seconds.IsValid)
             return seconds;
 
+        if (!SessionDate.HasValue)
+            return ValidationResult.Fail("Indique la fecha de la sesión.");
+
         return min == 0 && sec == 0
             ? ValidationResult.Fail("Indique una duración mayor que cero.")
             : ValidationResult.Ok();
@@ -426,16 +584,35 @@ public sealed class RunningViewModel : AchievementAwareViewModel
 
         await RunBusyAsync(async () =>
         {
-            var result = await _runningService.SaveSessionAsync(distance, duration, raceId);
+            var result = await _runningService.SaveSessionAsync(
+                distance,
+                duration,
+                SelectedSessionTypeOption.Value ?? RunningSessionType.Regenerativa,
+                SessionDate ?? DateTime.Today,
+                raceId);
             PublishAchievements(result.Events);
+            await HobbyXp.RefreshAsync();
             _allSessions.Insert(0, result.Value);
+
+            // Evitar que un filtro previo oculte la fila recién guardada.
+            _sessionsFromDate = null;
+            _sessionsToDate = null;
+            _sessionsTypeFilterOption = SessionTypeFilterOptions[0];
+            OnPropertyChanged(nameof(SessionsFromDate));
+            OnPropertyChanged(nameof(SessionsToDate));
+            OnPropertyChanged(nameof(SessionsTypeFilterOption));
             ApplySessionsFilter();
 
             DistanceKm = string.Empty;
             DurationMinutes = string.Empty;
             DurationSeconds = string.Empty;
+            SessionDate = DateTime.Today;
+            SelectedSessionTypeOption = SessionTypeOptions[0];
             SessionValidationMessage = null;
-            StatusMessage = $"Sesión guardada · Ritmo: {result.Value.PaceMinPerKm:0.00} min/km · +{result.Value.XpEarned} XP";
+            // El acordeón deja "Nueva sesión" abierta por defecto; abrir el historial
+            // para que el alta sea visible sin un clic extra.
+            IsSessionsExpanded = true;
+            StatusMessage = $"Sesión {result.Value.SessionTypeLabel} · Ritmo: {result.Value.PaceMinPerKm:0.00} min/km · +{result.Value.XpEarned} XP";
         }, "Guardando sesión...");
     }
 
@@ -448,6 +625,7 @@ public sealed class RunningViewModel : AchievementAwareViewModel
         {
             var result = await _runningService.CompleteOfficialRaceAsync(SelectedRace.Id);
             PublishAchievements(result.Events);
+            await OfficialRaceXp.RefreshAsync();
 
             UpdateOfficialRace(result.Value);
             SelectedRace = OfficialRaces.FirstOrDefault(r => r.Id == result.Value.Id);
@@ -483,6 +661,7 @@ public sealed class RunningViewModel : AchievementAwareViewModel
 
             _allSessions.RemoveAll(s => s.Id == session.Id);
             ApplySessionsFilter();
+            await HobbyXp.RefreshAsync();
             _profileRefreshMessenger.RequestRefresh();
             StatusMessage = "Sesión eliminada del historial.";
         }, "Eliminando sesión...");
@@ -509,8 +688,58 @@ public sealed class RunningViewModel : AchievementAwareViewModel
             SyncRaceOptions();
             SelectedRace = OfficialRaces.FirstOrDefault();
             SelectedRaceOption = RaceOptions.FirstOrDefault();
+            await OfficialRaceXp.RefreshAsync();
             _profileRefreshMessenger.RequestRefresh();
             StatusMessage = $"Carrera «{race.Name}» eliminada del historial.";
         }, "Eliminando carrera...");
+    }
+
+    private void SetSectionExpanded(RunningSection section, bool isExpanded, ref bool field, string propertyName)
+    {
+        if (!SetProperty(ref field, isExpanded, propertyName) || _suppressSectionAccordion)
+            return;
+
+        if (!isExpanded)
+            return;
+
+        _suppressSectionAccordion = true;
+        try
+        {
+            if (section != RunningSection.NewSession && _isNewSessionExpanded)
+            {
+                _isNewSessionExpanded = false;
+                OnPropertyChanged(nameof(IsNewSessionExpanded));
+            }
+
+            if (section != RunningSection.NewRace && _isNewRaceExpanded)
+            {
+                _isNewRaceExpanded = false;
+                OnPropertyChanged(nameof(IsNewRaceExpanded));
+            }
+
+            if (section != RunningSection.OfficialRaces && _isOfficialRacesExpanded)
+            {
+                _isOfficialRacesExpanded = false;
+                OnPropertyChanged(nameof(IsOfficialRacesExpanded));
+            }
+
+            if (section != RunningSection.Sessions && _isSessionsExpanded)
+            {
+                _isSessionsExpanded = false;
+                OnPropertyChanged(nameof(IsSessionsExpanded));
+            }
+        }
+        finally
+        {
+            _suppressSectionAccordion = false;
+        }
+    }
+
+    private enum RunningSection
+    {
+        NewSession,
+        NewRace,
+        OfficialRaces,
+        Sessions
     }
 }

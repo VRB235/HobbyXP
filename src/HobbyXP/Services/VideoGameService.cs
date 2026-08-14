@@ -12,15 +12,18 @@ public sealed class VideoGameService : IVideoGameService
     private readonly IDbContextFactory<HobbyXpDbContext> _dbContextFactory;
     private readonly IXpService _xpService;
     private readonly IAchievementEngineService _achievementEngine;
+    private readonly IWeeklyQuotaService _weeklyQuotaService;
 
     public VideoGameService(
         IDbContextFactory<HobbyXpDbContext> dbContextFactory,
         IXpService xpService,
-        IAchievementEngineService achievementEngine)
+        IAchievementEngineService achievementEngine,
+        IWeeklyQuotaService weeklyQuotaService)
     {
         _dbContextFactory = dbContextFactory;
         _xpService = xpService;
         _achievementEngine = achievementEngine;
+        _weeklyQuotaService = weeklyQuotaService;
     }
 
     public async Task<IReadOnlyList<VideoGame>> GetInProgressAsync(CancellationToken cancellationToken = default)
@@ -70,16 +73,24 @@ public sealed class VideoGameService : IVideoGameService
         db.VideoGames.Add(game);
         await db.SaveChangesAsync(cancellationToken);
 
-        return await ApplyCompletionDeltaAsync(game.Id, previousPercentage: 0, percentage, cancellationToken);
+        return await ApplyCompletionDeltaAsync(
+            game.Id,
+            previousPercentage: 0,
+            percentage,
+            progressLocalDate: startedAt.HasValue
+                ? startedAt.Value.ToLocalTime().Date
+                : DateTime.Today,
+            cancellationToken);
     }
 
     public Task<OperationResult<VideoGame>> UpdateCompletionAsync(
         int videoGameId,
         int newCompletionPercentage,
+        DateTime? progressDate = null,
         CancellationToken cancellationToken = default)
     {
         var clamped = Math.Clamp(newCompletionPercentage, 0, 100);
-        return UpdateCompletionInternalAsync(videoGameId, clamped, cancellationToken);
+        return UpdateCompletionInternalAsync(videoGameId, clamped, progressDate, cancellationToken);
     }
 
     public async Task<OperationResult<VideoGame>> IncrementCompletionAsync(
@@ -92,12 +103,13 @@ public sealed class VideoGameService : IVideoGameService
             ?? throw new InvalidOperationException($"No existe el videojuego con Id {videoGameId}.");
 
         var target = Math.Clamp(game.CompletionPercentage + increment, 0, 100);
-        return await UpdateCompletionInternalAsync(videoGameId, target, cancellationToken);
+        return await UpdateCompletionInternalAsync(videoGameId, target, progressDate: null, cancellationToken);
     }
 
     private async Task<OperationResult<VideoGame>> UpdateCompletionInternalAsync(
         int videoGameId,
         int newPercentage,
+        DateTime? progressDate,
         CancellationToken cancellationToken)
     {
         await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
@@ -115,13 +127,19 @@ public sealed class VideoGameService : IVideoGameService
         game.UpdatedAt = DateTime.UtcNow;
         await db.SaveChangesAsync(cancellationToken);
 
-        return await ApplyCompletionDeltaAsync(game.Id, previous, newPercentage, cancellationToken);
+        return await ApplyCompletionDeltaAsync(
+            game.Id,
+            previous,
+            newPercentage,
+            (progressDate ?? DateTime.Today).Date,
+            cancellationToken);
     }
 
     private async Task<OperationResult<VideoGame>> ApplyCompletionDeltaAsync(
         int videoGameId,
         int previousPercentage,
         int newPercentage,
+        DateTime progressLocalDate,
         CancellationToken cancellationToken)
     {
         await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
@@ -130,6 +148,16 @@ public sealed class VideoGameService : IVideoGameService
 
         var events = new List<AchievementEvent>();
         var delta = Math.Max(0, newPercentage - previousPercentage);
+
+        if (delta > 0)
+        {
+            db.VideoGameProgressLogs.Add(new VideoGameProgressLog
+            {
+                VideoGameId = game.Id,
+                ProgressDate = Helpers.DateTimeHelper.ToUtcFromLocalDate(progressLocalDate),
+                PercentDelta = delta
+            });
+        }
 
         if (delta > 0 && newPercentage < 100)
         {
@@ -158,7 +186,7 @@ public sealed class VideoGameService : IVideoGameService
         if (newPercentage >= 100 && game.Status != VideoGameStatus.Platinum)
         {
             game.Status = VideoGameStatus.Platinum;
-            game.PlatinumUnlockedAt = DateTime.UtcNow;
+            game.PlatinumUnlockedAt = Helpers.DateTimeHelper.ToUtcFromLocalDate(progressLocalDate);
             game.CompletionPercentage = 100;
 
             var remainingDelta = Math.Max(0, 100 - previousPercentage);
@@ -208,6 +236,9 @@ public sealed class VideoGameService : IVideoGameService
 
         game.UpdatedAt = DateTime.UtcNow;
         await db.SaveChangesAsync(cancellationToken);
+
+        if (delta > 0)
+            await _weeklyQuotaService.NotifyActivityAsync(MilestoneSourceType.VideoGame, progressLocalDate, cancellationToken);
 
         return OperationResult<VideoGame>.WithEvents(game, events.ToArray());
     }

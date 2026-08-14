@@ -1,3 +1,4 @@
+using HobbyXP.Helpers;
 using HobbyXP.Models.Common;
 using HobbyXP.Models.Enums;
 
@@ -13,6 +14,9 @@ public class Puzzle : EntityBase
     /// Categoría obligatoria: 2D o 3D.
     /// </summary>
     public PuzzleCategory Category { get; set; }
+
+    /// <summary>Etiqueta corta para UI (2D / 3D).</summary>
+    public string CategoryLabel => EntertainmentDisplayLabels.GetPuzzleCategory(Category);
 
     /// <summary>
     /// Rutas locales opcionales a fotos del rompecabezas armado (JSON con rutas relativas).

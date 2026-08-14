@@ -18,4 +18,6 @@ public class Book : EntityBase
     public DateTime? CompletedAt { get; set; }
 
     public int XpEarned { get; set; }
+
+    public ICollection<BookReadingLog> ReadingLogs { get; set; } = [];
 }

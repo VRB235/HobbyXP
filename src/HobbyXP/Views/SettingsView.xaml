@@ -9,12 +9,12 @@
             <Border Style="{StaticResource DarkCard}" Margin="0,0,0,16" Padding="20">
                 <StackPanel>
                     <TextBlock Text="Progresión RPG" Style="{StaticResource SectionTitleText}" Margin="0,0,0,4" />
-                    <TextBlock Text="Define cuánta XP se necesita para subir de nivel. Al cambiar este valor se recalcula el nivel actual según tu XP total."
+                    <TextBlock Text="Define la XP del tramo 1→2 (global y hobbies). Cada nivel siguiente cuesta el doble. Las actividades llenan el hobby; el global sube al avanzar de nivel en un hobby. Al guardar se recalcula el nivel global según tu XP total."
                                Style="{StaticResource MutedText}" TextWrapping="Wrap" Margin="0,0,0,12" />
 
                     <TextBlock Text="{Binding ProfileSummary}" Foreground="{StaticResource AccentCyanBrush}" Margin="0,0,0,12" />
 
-                    <TextBlock Text="XP base por nivel" Style="{StaticResource CardTitleText}" Margin="0,0,0,6" />
+                    <TextBlock Text="XP base (nivel 1→2)" Style="{StaticResource CardTitleText}" Margin="0,0,0,6" />
                     <controls:FormValidationBanner Message="{Binding ValidationMessage}" />
                     <Grid Margin="0,0,0,12">
                         <Grid.ColumnDefinitions>

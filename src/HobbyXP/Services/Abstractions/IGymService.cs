@@ -11,10 +11,22 @@ public interface IGymService
     Task<Exercise> CreateOrGetExerciseAsync(
         string name,
         ExerciseType exerciseType,
+        MuscleGroup? muscleGroup = null,
+        CancellationToken cancellationToken = default);
+
+    Task<Exercise?> UpdateExerciseMuscleGroupAsync(
+        int exerciseId,
+        MuscleGroup? muscleGroup,
+        CancellationToken cancellationToken = default);
+
+    Task<Exercise?> UpdateExerciseNameAsync(
+        int exerciseId,
+        string name,
         CancellationToken cancellationToken = default);
 
     Task<OperationResult<GymWorkout>> SaveWorkoutAsync(
         IReadOnlyList<GymWorkoutEntryDraft> entries,
+        DateTime workoutDate,
         string? notes = null,
         CancellationToken cancellationToken = default);
 

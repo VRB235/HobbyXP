@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using HobbyXP.Helpers;
+using HobbyXP.Models.Enums;
 using HobbyXP.Models.PersonalGrowth;
 using HobbyXP.Services.Abstractions;
 using HobbyXP.Services.Messaging;
@@ -22,18 +23,23 @@ public sealed class CoursesViewModel : AchievementAwareViewModel
 
     public CoursesViewModel(
         ICourseService courseService,
+        IXpService xpService,
+        IWeeklyQuotaService weeklyQuotaService,
         IProfileRefreshMessenger profileRefreshMessenger,
         IAchievementMessenger achievementMessenger)
         : base(achievementMessenger)
     {
         _courseService = courseService;
         _profileRefreshMessenger = profileRefreshMessenger;
+        HobbyXp = new HobbyProgressPresenter(xpService, MilestoneSourceType.Course, weeklyQuotaService);
         InProgressRows = new ObservableCollection<CourseProgressRowViewModel>();
         CompletedCourses = new ObservableCollection<Course>();
         RegisterCommand = new AsyncRelayCommand(RegisterAsync, CanRegister);
         ClearCompletedDateFilterCommand = new RelayCommand(ClearCompletedDateFilter);
         RefreshRegisterValidation();
     }
+
+    public HobbyProgressPresenter HobbyXp { get; }
 
     public ObservableCollection<CourseProgressRowViewModel> InProgressRows { get; }
 
@@ -93,6 +99,7 @@ public sealed class CoursesViewModel : AchievementAwareViewModel
 
     private async Task ReloadAsync()
     {
+        await HobbyXp.RefreshAsync();
         _allInProgress = (await _courseService.GetInProgressAsync()).ToList();
         _allCompleted = (await _courseService.GetCompletedAsync()).ToList();
         ApplyFilter();

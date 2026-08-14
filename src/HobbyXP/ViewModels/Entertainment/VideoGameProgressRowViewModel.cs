@@ -6,16 +6,17 @@ namespace HobbyXP.ViewModels.Entertainment;
 
 public sealed class VideoGameProgressRowViewModel : ViewModelBase
 {
-    private readonly Func<VideoGame, int, Task> _applyAsync;
+    private readonly Func<VideoGame, int, DateTime, Task> _applyAsync;
     private int _targetCompletion;
+    private DateTime? _progressDate = DateTime.Today;
 
-    public VideoGameProgressRowViewModel(VideoGame game, Func<VideoGame, int, Task> applyAsync)
+    public VideoGameProgressRowViewModel(VideoGame game, Func<VideoGame, int, DateTime, Task> applyAsync)
     {
         Game = game;
         _applyAsync = applyAsync;
         _targetCompletion = game.CompletionPercentage;
 
-        ApplyProgressCommand = new AsyncRelayCommand(ApplyProgressAsync, () => HasPendingChange);
+        ApplyProgressCommand = new AsyncRelayCommand(ApplyProgressAsync, CanApply);
         BumpProgressCommand = new RelayCommand(BumpProgress);
         SetFullProgressCommand = new RelayCommand(SetFullProgress);
     }
@@ -26,11 +27,23 @@ public sealed class VideoGameProgressRowViewModel : ViewModelBase
 
     public VideoGamePlatform Platform => Game.Platform;
 
+    public string PlatformLabel => Game.PlatformLabel;
+
     public DateTime? StartedAt => Game.StartedAt;
 
     public int XpEarned => Game.XpEarned;
 
     public int CurrentCompletion => Game.CompletionPercentage;
+
+    public DateTime? ProgressDate
+    {
+        get => _progressDate;
+        set
+        {
+            if (SetProperty(ref _progressDate, value))
+                ApplyProgressCommand.RaiseCanExecuteChanged();
+        }
+    }
 
     public int TargetCompletion
     {
@@ -59,6 +72,8 @@ public sealed class VideoGameProgressRowViewModel : ViewModelBase
 
     public RelayCommand SetFullProgressCommand { get; }
 
+    private bool CanApply() => HasPendingChange && ProgressDate.HasValue;
+
     private void BumpProgress(object? parameter)
     {
         var amount = parameter switch
@@ -75,9 +90,9 @@ public sealed class VideoGameProgressRowViewModel : ViewModelBase
 
     private async Task ApplyProgressAsync()
     {
-        if (!HasPendingChange)
+        if (!HasPendingChange || !ProgressDate.HasValue)
             return;
 
-        await _applyAsync(Game, TargetCompletion);
+        await _applyAsync(Game, TargetCompletion, ProgressDate.Value);
     }
 }

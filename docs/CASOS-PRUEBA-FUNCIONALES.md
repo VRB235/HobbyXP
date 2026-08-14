@@ -17,6 +17,7 @@
 | `CP-VAL` | Validaciones de formulario |
 | `CP-RUN` | Running |
 | `CP-GYM` | Gimnasio |
+| `CP-DIE` | Dieta |
 | `CP-PUZ` | Rompecabezas |
 | `CP-MED` | Series y películas |
 | `CP-VG` | Videojuegos |
@@ -44,10 +45,11 @@
 |----------|-------|
 | SO | Windows 10/11 |
 | Runtime | .NET 8 SDK |
-| Ejecución | `dotnet run` desde `src\HobbyXP` o `HobbyXP.exe` en `bin\Debug\net8.0-windows10.0.19041\` |
-| Base de datos | `%LocalAppData%\HobbyXP\hobbyxp.db` |
-| Carpeta de datos | `%LocalAppData%\HobbyXP\` |
-| Avatar gestionado | `%LocalAppData%\HobbyXP\Avatar\profile.{ext}` |
+| Ejecución (pruebas) | `dotnet run` desde `src\HobbyXP` (Debug) — **no** usar el exe de producción |
+| Base de datos (Dev) | `%LocalAppData%\HobbyXP-Dev\hobbyxp.db` |
+| Carpeta de datos (Dev) | `%LocalAppData%\HobbyXP-Dev\` |
+| Avatar gestionado (Dev) | `%LocalAppData%\HobbyXP-Dev\Avatar\profile.{ext}` |
+| Producción (no tocar en pruebas) | `%LocalAppData%\HobbyXP\` |
 
 **Herramientas recomendadas para BD:** [DB Browser for SQLite](https://sqlitebrowser.org/) o `sqlite3` en consola.  
 **Nota:** HobbyXP no expone API HTTP; la verificación de persistencia es directa sobre SQLite y archivos locales.
@@ -56,7 +58,7 @@
 
 ```sql
 -- Perfil
-SELECT Id, DisplayName, AvatarPath, CurrentLevel, TotalXp, BaseXpPerLevel, UpdatedAt
+SELECT Id, DisplayName, AvatarPath, CurrentLevel, TotalXp, SpendableXp, SpendableLedgerInitialized, BaseXpPerLevel, UpdatedAt
 FROM PlayerProfiles;
 
 -- Últimas transacciones de XP
@@ -69,6 +71,7 @@ LIMIT 10;
 SELECT 'RunningSessions' AS Tabla, COUNT(*) AS Total FROM RunningSessions
 UNION ALL SELECT 'OfficialRaces', COUNT(*) FROM OfficialRaces
 UNION ALL SELECT 'GymWorkouts', COUNT(*) FROM GymWorkouts
+UNION ALL SELECT 'DietDayLogs', COUNT(*) FROM DietDayLogs
 UNION ALL SELECT 'Puzzles', COUNT(*) FROM Puzzles
 UNION ALL SELECT 'MediaEntries', COUNT(*) FROM MediaEntries
 UNION ALL SELECT 'VideoGames', COUNT(*) FROM VideoGames
@@ -92,13 +95,15 @@ UNION ALL SELECT 'Courses', COUNT(*) FROM Courses;
 | Libro terminado | +200 XP (bono) |
 | Sesión de curso | 10 XP / sesión |
 | Curso terminado | +100 XP (bono) |
+| Comida en plan | 15 XP / comida |
+| Día perfecto de dieta (4/4) | +40 XP (bono) |
 
 ### 1.6 Criterios de aceptación globales
 
 - La aplicación no debe cerrarse con excepción no controlada.
 - Los mensajes de validación deben mostrarse en español, en banner rojo sobre el formulario.
 - Tras guardar una actividad que otorga XP, la barra superior debe mostrar un mensaje de logro/XP.
-- El sidebar y el dashboard deben reflejar el `TotalXp` y nivel actualizados sin reiniciar la app.
+- El sidebar y el dashboard deben reflejar progresión global, saldo canjeable y niveles de hobby actualizados sin reiniciar la app.
 - Al eliminar un registro con XP asociado, debe pedirse confirmación y revertirse el XP correspondiente.
 
 ---
@@ -110,12 +115,12 @@ UNION ALL SELECT 'Courses', COUNT(*) FROM Courses;
 | Campo | Detalle |
 |-------|---------|
 | **Prioridad** | Alta |
-| **Precondiciones** | No existe `%LocalAppData%\HobbyXP\` (renombrar carpeta si hace falta). |
+| **Precondiciones** | No existe `%LocalAppData%\HobbyXP-Dev\` (renombrar carpeta si hace falta). |
 | **Datos** | N/A |
 | **Pasos** | 1. Ejecutar la aplicación.<br>2. Esperar carga del dashboard. |
-| **UI** | Ventana principal visible; sidebar con nombre «Aventurero», nivel 1, XP 0; icono de avatar por defecto (⚔). |
-| **BD** | `SELECT COUNT(*) FROM PlayerProfiles;` → **1** fila con `DisplayName='Aventurero'`, `CurrentLevel=1`, `TotalXp=0`, `BaseXpPerLevel=1000`. |
-| **Archivos** | Carpeta `%LocalAppData%\HobbyXP\` creada con `hobbyxp.db`. |
+| **UI** | Ventana principal visible; sidebar con nombre «Aventurero», nivel 1, XP 0, saldo 0; icono de avatar por defecto (⚔). |
+| **BD** | `SELECT COUNT(*) FROM PlayerProfiles;` → **1** fila con `DisplayName='Aventurero'`, `CurrentLevel=1`, `TotalXp=0`, `SpendableXp=0`, `SpendableLedgerInitialized=1`, `BaseXpPerLevel=1000`. |
+| **Archivos** | Carpeta `%LocalAppData%\HobbyXP-Dev\` creada con `hobbyxp.db`. |
 
 ---
 
@@ -125,7 +130,7 @@ UNION ALL SELECT 'Courses', COUNT(*) FROM Courses;
 |-------|---------|
 | **Prioridad** | Alta |
 | **Precondiciones** | App abierta. |
-| **Pasos** | 1. Pulsar cada ítem del sidebar: Dashboard, Actividades Físicas, Entretenimiento, Crecimiento Personal, Logros y Premios.<br>2. En secciones con pestañas, alternar entre ellas. |
+| **Pasos** | 1. Pulsar cada ítem del sidebar: Dashboard, Actividades Físicas, Entretenimiento, Crecimiento Personal, Logros y Premios.<br>2. En secciones con pestañas, alternar entre ellas (Running / Gimnasio / Dieta; etc.). |
 | **UI** | Cada sección carga sin error; el contenido cambia según la selección. |
 | **BD** | Sin cambios. |
 
@@ -177,12 +182,12 @@ UNION ALL SELECT 'Courses', COUNT(*) FROM Courses;
 | Campo | Detalle |
 |-------|---------|
 | **Prioridad** | Alta |
-| **Precondiciones** | Imagen de prueba en disco, p. ej. `C:\Temp\avatar-test.jpg` (fuera de `%LocalAppData%\HobbyXP\`). |
+| **Precondiciones** | Imagen de prueba en disco, p. ej. `C:\Temp\avatar-test.jpg` (fuera de `%LocalAppData%\HobbyXP-Dev\`). |
 | **Datos** | JPG o PNG válido |
 | **Pasos** | 1. Sidebar → **📷 Avatar**.<br>2. Elegir la imagen de prueba.<br>3. Verificar visualización en sidebar y dashboard. |
 | **UI** | Avatar personalizado visible; mensaje «Avatar actualizado.» |
 | **BD** | `SELECT AvatarPath FROM PlayerProfiles;` → ruta **relativa** tipo `Avatar\profile.jpg` (no ruta absoluta de `C:\Temp\...`). |
-| **Archivos** | Existe `%LocalAppData%\HobbyXP\Avatar\profile.jpg` (o extensión elegida). |
+| **Archivos** | Existe `%LocalAppData%\HobbyXP-Dev\Avatar\profile.jpg` (o extensión elegida). |
 
 ---
 
@@ -195,7 +200,7 @@ UNION ALL SELECT 'Courses', COUNT(*) FROM Courses;
 | **Pasos** | 1. Eliminar `C:\Temp\avatar-test.jpg` del disco.<br>2. Cerrar y reabrir la aplicación.<br>3. Revisar sidebar y dashboard. |
 | **UI** | Avatar personalizado sigue visible (carga desde copia local). |
 | **BD** | `AvatarPath` sigue apuntando a `Avatar\profile.*`. |
-| **Archivos** | Copia en `%LocalAppData%\HobbyXP\Avatar\` intacta. |
+| **Archivos** | Copia en `%LocalAppData%\HobbyXP-Dev\Avatar\` intacta. |
 
 ---
 
@@ -205,7 +210,7 @@ UNION ALL SELECT 'Courses', COUNT(*) FROM Courses;
 |-------|---------|
 | **Prioridad** | Alta |
 | **Precondiciones** | Perfil con `AvatarPath` en BD pero archivo borrado manualmente de `Avatar\`. |
-| **Pasos** | 1. Borrar `%LocalAppData%\HobbyXP\Avatar\profile.*`.<br>2. Reiniciar app. |
+| **Pasos** | 1. Borrar `%LocalAppData%\HobbyXP-Dev\Avatar\profile.*`.<br>2. Reiniciar app. |
 | **UI** | Muestra avatar por defecto (⚔); sin área en blanco ni excepción. |
 | **BD** | Tras carga, `AvatarPath` debe quedar `NULL` (sanitización automática). |
 
@@ -304,6 +309,19 @@ UNION ALL SELECT 'Courses', COUNT(*) FROM Courses;
 
 ---
 
+### CP-VAL-007 — Dieta: no guardar el día sin comidas marcadas
+
+| Campo | Detalle |
+|-------|---------|
+| **Prioridad** | Media |
+| **Precondiciones** | Actividades Físicas → Dieta. |
+| **Datos** | Las 4 comidas en «—» (sin marcar). |
+| **Pasos** | 1. No pulsar En plan ni Fuera de plan, o pulsar de nuevo para desmarcar.<br>2. Intentar Guardar día. |
+| **UI** | «Marque al menos una comida (En plan o Fuera de plan).» |
+| **BD** | Sin fila nueva en `DietDayLogs`. |
+
+---
+
 ## 5. Running
 
 ### CP-RUN-001 — Registrar sesión de running con XP
@@ -311,11 +329,11 @@ UNION ALL SELECT 'Courses', COUNT(*) FROM Courses;
 | Campo | Detalle |
 |-------|---------|
 | **Prioridad** | Alta |
-| **Precondiciones** | Anotar `TotalXp` inicial del perfil. |
-| **Datos** | Fecha: hoy; Distancia: `5.0` km |
-| **Pasos** | 1. Actividades Físicas → Running.<br>2. Registrar sesión.<br>3. Revisar historial y barra superior. |
-| **UI** | Nueva fila en historial; mensaje de XP (+50 XP por 5 km × 10). |
-| **BD** | `RunningSessions`: 1 fila con `DistanceKm = 5`.<br>`PlayerProfiles.TotalXp` = inicial + 50.<br>`XpTransactions`: movimiento positivo ~50. |
+| **Precondiciones** | Anotar `SpendableXp` y XP del hobby Running (`HobbyProgresses`). |
+| **Datos** | Fecha: editable (default hoy; probar también una fecha pasada); Distancia: `5.0` km |
+| **Pasos** | 1. Actividades Físicas → Running.<br>2. Elegir fecha si no es hoy.<br>3. Registrar sesión.<br>4. Revisar historial, banner del hobby y saldo del sidebar. |
+| **UI** | Nueva fila en historial con la fecha elegida; mensaje de XP (+50 XP por 5 km × 10); saldo canjeable +50; progresión global sin cambios si no hubo level-up de hobby. |
+| **BD** | `RunningSessions`: 1 fila con `DistanceKm = 5` y `RecordedAt` = fecha elegida (UTC día local).<br>`HobbyProgresses` (Running): +50 XP.<br>`PlayerProfiles.SpendableXp` = inicial + 50.<br>`XpTransactions`: movimiento positivo ~50 (`IsGlobal=0`). |
 
 ---
 
@@ -337,10 +355,10 @@ UNION ALL SELECT 'Courses', COUNT(*) FROM Courses;
 | Campo | Detalle |
 |-------|---------|
 | **Prioridad** | Alta |
-| **Precondiciones** | CP-RUN-001 ejecutado; anotar XP actual. |
+| **Precondiciones** | CP-RUN-001 ejecutado; anotar `SpendableXp` y XP del hobby Running. |
 | **Pasos** | 1. En historial de sesiones, pulsar eliminar (🗑).<br>2. Confirmar en diálogo. |
-| **UI** | Fila desaparece; XP del sidebar disminuye en la cantidad revertida. |
-| **BD** | Registro ausente en `RunningSessions`.<br>`TotalXp` reducido; transacción de reversión en `XpTransactions`. |
+| **UI** | Fila desaparece; saldo canjeable y barra del hobby disminuyen en la cantidad revertida. |
+| **BD** | Registro ausente en `RunningSessions`.<br>`HobbyProgresses` y `SpendableXp` reducidos; transacción de reversión en `XpTransactions`. |
 
 ---
 
@@ -364,10 +382,10 @@ UNION ALL SELECT 'Courses', COUNT(*) FROM Courses;
 |-------|---------|
 | **Prioridad** | Alta |
 | **Precondiciones** | Pestaña Gym en Actividades Físicas. |
-| **Datos** | Fecha: hoy; Ejercicio: `Press banca`; Peso: `60` kg; Reps: `10` |
-| **Pasos** | 1. Agregar ejercicio a la sesión.<br>2. Guardar entrenamiento. |
-| **UI** | Entrenamiento en historial; +25 XP base por sesión. |
-| **BD** | `GymWorkouts` + `GymWorkoutEntries` creados. |
+| **Datos** | Fecha: editable (default hoy; probar también una fecha pasada); Ejercicio: `Press banca`; Peso: `60` kg; Reps: `10` |
+| **Pasos** | 1. Elegir fecha del entrenamiento.<br>2. Agregar ejercicio a la sesión.<br>3. Guardar entrenamiento. |
+| **UI** | Entrenamiento en historial con la fecha elegida; +25 XP base por sesión. |
+| **BD** | `GymWorkouts` con `WorkoutDate` = fecha elegida (UTC día local) + `GymWorkoutEntries` creados. |
 
 ---
 
@@ -396,6 +414,88 @@ UNION ALL SELECT 'Courses', COUNT(*) FROM Courses;
 
 ---
 
+## 6.1 Dieta
+
+Contrato: 4 comidas (Desayuno, Almuerzo, Cena, Snack). Cada una: En plan / Fuera de plan / sin marcar. **Día bueno** = al menos 3 comidas en plan. **Día perfecto** = 4/4. Cuota semanal (lun–dom): **5 días buenos**. Las comidas sin marcar no suman. Un desliz (fuera de plan) no anula el día si quedan ≥3 en plan.
+
+XP de referencia: 15 XP por comida en plan; +40 XP si el día queda 4/4. Fuera de plan = 0 XP, pero sí se persiste.
+
+### CP-DIE-001 — Día bueno con 3 comidas en plan
+
+| Campo | Detalle |
+|-------|---------|
+| **Prioridad** | Alta |
+| **Precondiciones** | Actividades Físicas → pestaña **Dieta**. |
+| **Datos** | Fecha: hoy. Desayuno, Almuerzo y Cena = **En plan**. Snack = sin marcar. |
+| **Pasos** | 1. Abrir Dieta.<br>2. Marcar las 3 comidas indicadas.<br>3. Verificar resumen `3/4 · Día bueno`.<br>4. Guardar día. |
+| **UI** | Historial con fecha de hoy, resultado `3/4`, tipo «Día bueno»; +45 XP; medalla «Primer Plato» la primera vez. Dashboard: cuota Dieta avanza 1/5 días buenos (si es la semana actual). |
+| **BD** | `SELECT DayDate, BreakfastStatus, LunchStatus, DinnerStatus, SnackStatus, OnPlanCount, XpEarned FROM DietDayLogs ORDER BY Id DESC LIMIT 1;` → `OnPlanCount=3`, `SnackStatus='Unlogged'`, `XpEarned=45`. `HobbyProgresses` de `SourceType='Diet'` incrementa 45. |
+
+---
+
+### CP-DIE-002 — Snack fuera de plan no tumba un día bueno
+
+| Campo | Detalle |
+|-------|---------|
+| **Prioridad** | Alta |
+| **Precondiciones** | CP-DIE-001 guardado el mismo día (o repetir 3 comidas en plan). |
+| **Datos** | Snack = **Fuera de plan**. |
+| **Pasos** | 1. En el mismo día, pulsar **Fuera de plan** en Snack.<br>2. Guardar día (upsert, no debe crear otra fila). |
+| **UI** | Sigue `3/4 · Día bueno`; XP permanece 45 (no suma el snack). Historial: 1 sola fila para esa fecha; Snack = «Fuera de plan». |
+| **BD** | `SELECT COUNT(*) FROM DietDayLogs WHERE date(DayDate)=date('ahora-local-en-utc');` → **1**. `OnPlanCount=3`, `SnackStatus='OffPlan'`, `XpEarned=45`. |
+
+---
+
+### CP-DIE-003 — Día perfecto otorga bono
+
+| Campo | Detalle |
+|-------|---------|
+| **Prioridad** | Alta |
+| **Precondiciones** | Pestaña Dieta. Usar una **fecha distinta** a CP-DIE-001 (p. ej. ayer) para no pisar el upsert. |
+| **Datos** | Las 4 comidas = **En plan**. |
+| **Pasos** | 1. Cambiar el DatePicker a ayer.<br>2. Marcar las 4 comidas En plan.<br>3. Guardar. |
+| **UI** | `4/4 · Día perfecto`; +100 XP (60 de comidas + 40 bono); mensaje de día perfecto. |
+| **BD** | `OnPlanCount=4`, `XpEarned=100`. Transacciones: una de `DietMealOnPlan` (60) y una de `DietPerfectDay` (40). |
+
+---
+
+### CP-DIE-004 — Semana con 4 días buenos no cumple la cuota
+
+| Campo | Detalle |
+|-------|---------|
+| **Prioridad** | Alta |
+| **Precondiciones** | Semana lun–dom actual. Saber interpretar `WeeklyQuotaEvaluations` (la cuota de Dieta **no castiga** semanas anteriores al primer `DietDayLogs`; el dashboard de la semana abierta sí cuenta). |
+| **Datos** | 4 fechas de la semana actual, cada una con ≥3 comidas En plan. No registrar un 5.º día bueno. |
+| **Pasos** | 1. Guardar 4 días buenos en la semana (usar DatePicker atrasable).<br>2. Abrir Dashboard y localizar la cuota de **Dieta**. |
+| **UI** | Progreso `4/5 días buenos`; la cuota **no** aparece como cumplida. |
+| **BD** | `SELECT COUNT(*) FROM DietDayLogs WHERE OnPlanCount >= 3 AND DayDate >= <lunes-utc> AND DayDate < <lunes-siguiente-utc>;` → **4**. |
+
+---
+
+### CP-DIE-005 — Guardar sin marcar ninguna comida
+
+| Campo | Detalle |
+|-------|---------|
+| **Prioridad** | Media |
+| **Precondiciones** | Pestaña Dieta; día sin marcas (o pulsar de nuevo En plan/Fuera de plan para dejar «—»). |
+| **Pasos** | 1. Dejar las 4 comidas sin marcar.<br>2. Intentar Guardar día. |
+| **UI** | Banner: «Marque al menos una comida (En plan o Fuera de plan).»; botón deshabilitado o sin efecto. |
+| **BD** | Sin nueva fila en `DietDayLogs` (si el día no existía). |
+
+---
+
+### CP-DIE-006 — Eliminar día de dieta revierte XP
+
+| Campo | Detalle |
+|-------|---------|
+| **Prioridad** | Alta |
+| **Precondiciones** | Al menos un día en el historial de Dieta con XP > 0. Anotar `HobbyProgresses.TotalXp` de Dieta antes. |
+| **Pasos** | 1. En historial, pulsar ✕.<br>2. Confirmar el diálogo. |
+| **UI** | Fila desaparece; XP de Dieta disminuye; saldo canjeable se ajusta. |
+| **BD** | Sin esa fila en `DietDayLogs`. `HobbyProgresses` de Dieta baja el `XpEarned` de ese día. |
+
+---
+
 ## 7. Rompecabezas
 
 ### CP-PUZ-001 — Completar rompecabezas
@@ -405,7 +505,7 @@ UNION ALL SELECT 'Courses', COUNT(*) FROM Courses;
 | **Prioridad** | Media |
 | **Datos** | Nombre: `Castillo`; Piezas: `1000`; marcar completado |
 | **Pasos** | 1. Entretenimiento → Rompecabezas.<br>2. Registrar y marcar completado.<br>3. Opcional: adjuntar foto. |
-| **UI** | +50 XP; entrada en listado. |
+| **UI** | +50 XP; fila en historial tabular (ordenable). |
 | **BD** | `Puzzles`: 1 fila con `Name`, `PieceCount`, `XpEarned = 50`. |
 
 ---
@@ -419,6 +519,17 @@ UNION ALL SELECT 'Courses', COUNT(*) FROM Courses;
 | **Pasos** | 1. Eliminar desde listado.<br>2. Confirmar. |
 | **UI** | Registro eliminado; XP revertido. |
 | **BD** | Sin fila en `Puzzles`. |
+
+---
+
+### CP-PUZ-003 — Filtrar y ordenar historial de rompecabezas
+
+| Campo | Detalle |
+|-------|---------|
+| **Prioridad** | Media |
+| **Precondiciones** | Varios puzzles con distintas categorías y fechas. |
+| **Pasos** | 1. Filtrar por texto, categoría y rango de fechas.<br>2. Pulsar cabeceras (Nombre, Piezas, Categoría, Fecha, XP).<br>3. Limpiar filtros. |
+| **UI** | El listado se reduce según filtros; cabeceras muestran ▲/▼; Limpiar restaura todo. |
 
 ---
 
@@ -445,6 +556,17 @@ UNION ALL SELECT 'Courses', COUNT(*) FROM Courses;
 | **Pasos** | 1. Eliminar desde historial.<br>2. Confirmar. |
 | **UI** | Entrada removida; XP revertido. |
 | **BD** | Sin fila en `MediaEntries`. |
+
+---
+
+### CP-MED-003 — Filtrar y ordenar historial de media
+
+| Campo | Detalle |
+|-------|---------|
+| **Prioridad** | Media |
+| **Precondiciones** | Varias películas/series en distintas fechas. |
+| **Pasos** | 1. Filtrar por título, tipo y fechas.<br>2. Ordenar por cabeceras.<br>3. Limpiar. |
+| **UI** | Listado coherente con filtros; ▲/▼ en cabeceras. |
 
 ---
 
@@ -479,10 +601,21 @@ UNION ALL SELECT 'Courses', COUNT(*) FROM Courses;
 | Campo | Detalle |
 |-------|---------|
 | **Prioridad** | Media |
-| **Precondiciones** | Juego en historial. |
+| **Precondiciones** | Juego en progreso o platinado. |
 | **Pasos** | 1. Eliminar.<br>2. Confirmar. |
-| **UI** | Juego removido; XP revertido. |
+| **UI** | Removido; XP revertido. |
 | **BD** | Sin fila en `VideoGames`. |
+
+---
+
+### CP-VG-004 — Filtrar historial y ordenar platinados
+
+| Campo | Detalle |
+|-------|---------|
+| **Prioridad** | Media |
+| **Precondiciones** | Varios juegos en progreso y platinados. |
+| **Pasos** | 1. Filtrar por título, plataforma y fechas.<br>2. Ordenar tabla de platinados por cabeceras.<br>3. Limpiar. |
+| **UI** | Ambas secciones respetan filtros; platinados ordenables con ▲/▼. |
 
 ---
 
@@ -615,42 +748,54 @@ UNION ALL SELECT 'Courses', COUNT(*) FROM Courses;
 
 ---
 
-### CP-LOG-003 — Canjear premio deduce XP
+### CP-LOG-003 — Canjear premio deduce saldo canjeable
 
 | Campo | Detalle |
 |-------|---------|
 | **Prioridad** | Alta |
-| **Precondiciones** | `TotalXp` ≥ costo del premio (p. ej. ≥ 500). |
+| **Precondiciones** | `SpendableXp` ≥ costo del premio (p. ej. ≥ 500). Anotar también `TotalXp` / `CurrentLevel` globales. |
 | **Datos** | Premio con costo conocido |
-| **Pasos** | 1. Tienda de premios.<br>2. Canjear premio.<br>3. Confirmar. |
-| **UI** | XP disminuye; mensaje de canje. |
-| **BD** | `TotalXp` reducido; transacción negativa en `XpTransactions`. |
+| **Pasos** | 1. Tienda de premios (etiqueta «Saldo canjeable»).<br>2. Canjear premio.<br>3. Confirmar. |
+| **UI** | Saldo canjeable disminuye; nivel/XP de progresión global sin cambios; mensaje de canje. |
+| **BD** | `SpendableXp` reducido; `TotalXp` y `CurrentLevel` intactos; transacción negativa en `XpTransactions`. |
 
 ---
 
-### CP-LOG-004 — Canje rechazado por XP insuficiente
+### CP-LOG-004 — Canje rechazado por saldo insuficiente
 
 | Campo | Detalle |
 |-------|---------|
 | **Prioridad** | Media |
-| **Precondiciones** | `TotalXp` bajo (perfil nuevo o tras reset manual). |
+| **Precondiciones** | `SpendableXp` bajo (perfil nuevo o tras canjes). |
 | **Pasos** | 1. Intentar canjear premio costoso. |
-| **UI** | Mensaje de error; XP sin cambios. |
-| **BD** | `TotalXp` sin cambios. |
+| **UI** | Mensaje de error; saldo sin cambios. |
+| **BD** | `SpendableXp` y `TotalXp` sin cambios. |
+
+---
+
+### CP-LOG-005 — Migración one-shot a saldo canjeable
+
+| Campo | Detalle |
+|-------|---------|
+| **Prioridad** | Alta |
+| **Precondiciones** | BD previa a `AddSpendableXpLedger` con XP en hobbies y/o global (`SpendableLedgerInitialized = 0`). Anotar sumas. |
+| **Pasos** | 1. Arrancar la app (aplica migración + `EnsureSpendableLedgerAsync`).<br>2. Revisar sidebar (nivel 1, saldo) y banners de hobby.<br>3. Cerrar y volver a abrir. |
+| **UI** | Todos los hobbies y el global en nivel 1 / 0 XP de progresión; «Saldo: N» = suma previa de hobbies + global. |
+| **BD** | `SpendableXp` = suma anotada; `SpendableLedgerInitialized = 1`; `SpendableProgressBaselineApplied = 1`; `HobbyProgresses.TotalXp = 0`, `CurrentLevel = 1`; global `TotalXp = 0`, `CurrentLevel = 1`. Segundo arranque: mismos valores (no vuelve a sumar ni a reconstruir desde `XpTransactions`). |
 
 ---
 
 ## 13. XP, nivel y dashboard
 
-### CP-XP-001 — Subida de nivel muestra overlay
+### CP-XP-001 — Subida de nivel de hobby y bonus global
 
 | Campo | Detalle |
 |-------|---------|
 | **Prioridad** | Alta |
-| **Precondiciones** | `TotalXp` cercano al umbral del siguiente nivel (p. ej. 950/1000 con `BaseXpPerLevel=1000`). |
-| **Pasos** | 1. Registrar actividad que cruce el umbral (+50 XP o más).<br>2. Observar overlay. |
-| **UI** | `LevelUpOverlay` visible con animación/confeti; muestra nuevo nivel; botón «Continuar la aventura» cierra overlay. |
-| **BD** | `CurrentLevel` incrementado en 1. |
+| **Precondiciones** | Hobby Running cerca del umbral 1→2 (p. ej. ~950 XP de hobby con `BaseXpPerLevel=1000`). Anotar `TotalXp` global y `SpendableXp`. |
+| **Pasos** | 1. Registrar sesión de running que cruce el umbral del hobby.<br>2. Observar banner de Running y sidebar/dashboard global. |
+| **UI** | Banner del hobby muestra nivel 2; mensaje de logro de hobby; si el global sube, `LevelUpOverlay` con nuevo nivel global; saldo canjeable sube por la actividad **y** por el bonus meta. |
+| **BD** | `HobbyProgresses` (Running): `CurrentLevel` +1; `PlayerProfiles.TotalXp` += `BaseXpPerLevel`; `SpendableXp` += XP de actividad + bonus meta; txs con `IsGlobal=0` (actividad) y `IsGlobal=1` (`HobbyLevelUp`). |
 
 ---
 
@@ -658,11 +803,11 @@ UNION ALL SELECT 'Courses', COUNT(*) FROM Courses;
 
 | Campo | Detalle |
 |-------|---------|
-| **Prioridad** | Media |
+| **Prioridad** | Alta |
 | **Precondiciones** | Varias actividades registradas en la semana. |
-| **Pasos** | 1. Ir al Dashboard.<br>2. Revisar gráficos y sugerencias. |
-| **UI** | Gráfico de XP semanal y distribución por hobby con datos; sugerencias de «subir de nivel» visibles. |
-| **BD** | `XpTransactions` con fechas recientes alimentan los agregados. |
+| **Pasos** | 1. Tras registrar actividades, abrir Dashboard.<br>2. Revisar hero global, sección «Progreso por hobby», gráfico semanal e hitos. |
+| **UI** | Hero = nivel/XP **global**; lista de barras por hobby; gráfico semanal usa XP de actividades (no bonuses globales); sugerencias de «subir de nivel» visibles. |
+| **BD** | `XpTransactions` con fechas recientes alimentan los agregados; `HobbyProgresses` refleja pools por módulo. |
 
 ---
 
@@ -680,16 +825,16 @@ UNION ALL SELECT 'Courses', COUNT(*) FROM Courses;
 
 ## 14. Configuración
 
-### CP-SET-001 — Cambiar XP base por nivel
+### CP-SET-001 — Cambiar XP base (tramo 1→2)
 
 | Campo | Detalle |
 |-------|---------|
 | **Prioridad** | Alta |
-| **Precondiciones** | Perfil con XP acumulado; sidebar → **Configuración**. |
-| **Datos** | XP base: `500` |
-| **Pasos** | 1. Ingresar 500 en «XP base por nivel».<br>2. Pulsar **Guardar**.<br>3. Revisar sidebar y dashboard. |
-| **UI** | Mensaje de confirmación; barra de progreso recalculada según nuevo umbral. |
-| **BD** | `SELECT BaseXpPerLevel, CurrentLevel FROM PlayerProfiles;` → `BaseXpPerLevel = 500`; nivel recalculado coherente con `TotalXp`. |
+| **Precondiciones** | Perfil con XP acumulado y nivel ≥ 2; sidebar → **Configuración**. |
+| **Datos** | XP base (nivel 1→2): `500` |
+| **Pasos** | 1. Anotar `CurrentLevel` y `TotalXp` actuales.<br>2. Ingresar 500 en «XP base (nivel 1→2)».<br>3. Pulsar **Guardar**.<br>4. Revisar sidebar y dashboard. |
+| **UI** | Mensaje de confirmación; nivel y barra recalculados según el XP total y la nueva base. |
+| **BD** | `SELECT BaseXpPerLevel, CurrentLevel, TotalXp FROM PlayerProfiles;` → `BaseXpPerLevel = 500`; `TotalXp` sin cambios; `CurrentLevel` coherente con la fórmula geométrica (`umbral N = Base × (2^(N−1) − 1)`). |
 
 ---
 
@@ -737,6 +882,7 @@ UNION ALL SELECT 'Courses', COUNT(*) FROM Courses;
 | Sidebar / Perfil | `PlayerProfiles` | CP-PER-*, CP-VAL (nombre) |
 | Running | `RunningSessions`, `OfficialRaces` | CP-RUN-* |
 | Gym | `GymWorkouts`, `GymWorkoutEntries`, `Exercises` | CP-GYM-* |
+| Dieta | `DietDayLogs` | CP-DIE-* |
 | Rompecabezas | `Puzzles` | CP-PUZ-* |
 | Media | `MediaEntries` | CP-MED-* |
 | Videojuegos | `VideoGames` | CP-VG-* |
@@ -760,7 +906,7 @@ UNION ALL SELECT 'Courses', COUNT(*) FROM Courses;
 
 ## 17. Notas para el analista
 
-1. **Aislamiento:** para casos de primera ejecución o avatar, conviene renombrar `%LocalAppData%\HobbyXP` a `HobbyXP_backup_YYYYMMDD` antes de probar.
+1. **Aislamiento:** `dotnet run` (Debug) usa `%LocalAppData%\HobbyXP-Dev\`; el exe de producción usa `%LocalAppData%\HobbyXP\`. No mezclar. Para casos de primera ejecución, renombrar `HobbyXP-Dev` a `HobbyXP-Dev_backup_YYYYMMDD`.
 2. **Cerrar la app** antes de inspeccionar o modificar `hobbyxp.db` para evitar bloqueos de archivo.
 3. **Eliminaciones:** todos los flujos de borrado deben mostrar diálogo de confirmación; si el botón no responde, verificar que se está en la pestaña correcta y que el listado tiene foco.
 4. **XP exacto:** el monto puede variar si se editaron reglas en CP-LOG-002; anotar reglas activas antes de validar montos.
