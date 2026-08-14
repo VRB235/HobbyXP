@@ -1,0 +1,16 @@
+---
+description: Flujo obligatorio de despliegue a producción (publish, README, merge a main)
+alwaysApply: true
+---
+
+# Despliegue a producción
+
+Cuando el usuario pida pasar a producción, release, publicar o desplegar, **no basta** con el ZIP local ni con push de `develop`. El flujo completo es:
+
+1. **Publish Release** autocontenido (`scripts/package-portable.ps1`).
+2. **Commit en la rama actual** (normalmente `develop`): feat/fix + `chore: bump versión` si cambia el número (csproj, Inno, MSIX).
+3. **README**: documentar **todos** los cambios de esa rama que **aún no están en `main`/`master`** (funcionalidades, flujos, tabla «Mejoras recientes», versión, distribución).
+4. **Merge a `main`** (o `master` si es la rama de producción) y **push** de la rama de trabajo y de `main`.
+5. **Tag anotado + GitHub Release** (`vX.Y.Z`) con el ZIP adjunto, misma convención que releases previos.
+
+No omitir el merge a `main`. No incluir `*.pubxml.user`. No force-push a `main`.
