@@ -19,5 +19,9 @@ public enum AchievementActionType
     RewardRedeemed = 11,
     CourseSessionCompleted = 12,
     /// <summary>Bonus al XP global al subir de nivel un hobby.</summary>
-    HobbyLevelUp = 13
+    HobbyLevelUp = 13,
+    /// <summary>Capítulo de serie visionado.</summary>
+    MediaChapterWatched = 14,
+    /// <summary>Castigo o restauración por cuota semanal de disciplina.</summary>
+    WeeklyQuotaPenalty = 15
 }

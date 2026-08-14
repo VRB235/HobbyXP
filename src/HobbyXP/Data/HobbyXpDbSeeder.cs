@@ -139,6 +139,16 @@ internal static class HobbyXpDbSeeder
                 PointsPerUnit = 10m,
                 IsActive = true,
                 CreatedAt = SeedTimestamp
+            },
+            new AchievementRule
+            {
+                Id = 13,
+                ActionType = AchievementActionType.MediaChapterWatched,
+                DisplayName = "Capítulo de serie",
+                UnitLabel = "capítulo",
+                PointsPerUnit = 5m,
+                IsActive = true,
+                CreatedAt = SeedTimestamp
             });
     }
 

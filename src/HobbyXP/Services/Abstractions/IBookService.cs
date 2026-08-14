@@ -18,5 +18,12 @@ public interface IBookService
     Task<OperationResult<Book>> UpdatePagesReadAsync(
         int bookId,
         int pagesRead,
+        DateTime? readingDate = null,
+        CancellationToken cancellationToken = default);
+
+    Task<Book?> UpdateMetadataAsync(
+        int bookId,
+        string title,
+        string author,
         CancellationToken cancellationToken = default);
 }

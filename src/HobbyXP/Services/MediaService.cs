@@ -1,4 +1,5 @@
 using HobbyXP.Data;
+using HobbyXP.Helpers;
 using HobbyXP.Models.Entertainment;
 using HobbyXP.Models.Enums;
 using HobbyXP.Services.Abstractions;
@@ -12,15 +13,18 @@ public sealed class MediaService : IMediaService
     private readonly IDbContextFactory<HobbyXpDbContext> _dbContextFactory;
     private readonly IXpService _xpService;
     private readonly IAchievementEngineService _achievementEngine;
+    private readonly IWeeklyQuotaService _weeklyQuotaService;
 
     public MediaService(
         IDbContextFactory<HobbyXpDbContext> dbContextFactory,
         IXpService xpService,
-        IAchievementEngineService achievementEngine)
+        IAchievementEngineService achievementEngine,
+        IWeeklyQuotaService weeklyQuotaService)
     {
         _dbContextFactory = dbContextFactory;
         _xpService = xpService;
         _achievementEngine = achievementEngine;
+        _weeklyQuotaService = weeklyQuotaService;
     }
 
     public async Task<IReadOnlyList<MediaEntry>> GetHistoryAsync(CancellationToken cancellationToken = default)
@@ -29,6 +33,16 @@ public sealed class MediaService : IMediaService
         return await db.MediaEntries
             .AsNoTracking()
             .OrderByDescending(m => m.CompletedAt)
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<MediaSeries>> GetInProgressSeriesAsync(CancellationToken cancellationToken = default)
+    {
+        await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        return await db.MediaSeries
+            .AsNoTracking()
+            .Where(s => s.Status == MediaSeriesStatus.InProgress)
+            .OrderByDescending(s => s.UpdatedAt ?? s.CreatedAt)
             .ToListAsync(cancellationToken);
     }
 
@@ -103,7 +117,144 @@ public sealed class MediaService : IMediaService
 
         events.AddRange(medalEvents);
 
+        var activityLocal = (completedAt ?? DateTime.UtcNow).ToLocalTime().Date;
+        await _weeklyQuotaService.NotifyActivityAsync(MilestoneSourceType.Media, activityLocal, cancellationToken);
+
         return OperationResult<MediaEntry>.WithEvents(entry, events.ToArray());
+    }
+
+    public async Task<MediaSeries> RegisterSeriesAsync(
+        string title,
+        int totalChapters,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(title))
+            throw new ArgumentException("El título es obligatorio.", nameof(title));
+
+        if (totalChapters < 1)
+            throw new ArgumentOutOfRangeException(nameof(totalChapters));
+
+        await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+
+        var series = new MediaSeries
+        {
+            Title = title.Trim(),
+            TotalChapters = totalChapters,
+            ChaptersWatched = 0,
+            Status = MediaSeriesStatus.InProgress
+        };
+
+        db.MediaSeries.Add(series);
+        await db.SaveChangesAsync(cancellationToken);
+        return series;
+    }
+
+    public async Task<OperationResult<MediaSeries>> LogChaptersAsync(
+        int seriesId,
+        DateTime watchDate,
+        int chaptersDone,
+        CancellationToken cancellationToken = default)
+    {
+        if (chaptersDone <= 0)
+            throw new ArgumentOutOfRangeException(nameof(chaptersDone));
+
+        await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var series = await db.MediaSeries.FindAsync([seriesId], cancellationToken)
+            ?? throw new InvalidOperationException($"No existe la serie con Id {seriesId}.");
+
+        if (series.Status == MediaSeriesStatus.Completed)
+            return OperationResult<MediaSeries>.Empty(series);
+
+        var remaining = series.TotalChapters - series.ChaptersWatched;
+        var applied = Math.Min(chaptersDone, remaining);
+        if (applied == 0)
+            return OperationResult<MediaSeries>.Empty(series);
+
+        db.MediaSeriesChapterLogs.Add(new MediaSeriesChapterLog
+        {
+            MediaSeriesId = series.Id,
+            WatchDate = DateTimeHelper.ToUtcFromLocalDate(watchDate),
+            ChaptersDone = applied
+        });
+
+        series.ChaptersWatched += applied;
+        series.UpdatedAt = DateTime.UtcNow;
+
+        var events = new List<AchievementEvent>();
+
+        var chapterXp = await _xpService.AwardXpAsync(
+            AchievementActionType.MediaChapterWatched,
+            applied,
+            $"Serie: {series.Title} (+{applied} capítulos)",
+            MilestoneSourceType.Media,
+            nameof(MediaSeries),
+            series.Id,
+            $"Serie: {series.Title}",
+            cancellationToken);
+
+        series.XpEarned += chapterXp.AmountAwarded;
+
+        if (chapterXp.Milestone is not null)
+        {
+            events.Add(new AchievementEvent(
+                chapterXp.Milestone.Title,
+                chapterXp.Milestone.Description ?? series.Title,
+                chapterXp.AmountAwarded,
+                MilestoneSourceType.Media));
+        }
+
+        if (series.ChaptersWatched >= series.TotalChapters)
+        {
+            series.Status = MediaSeriesStatus.Completed;
+            series.CompletedAt = DateTime.UtcNow;
+
+            var historyEntry = new MediaEntry
+            {
+                Title = series.Title,
+                MediaType = MediaType.Series,
+                CompletedAt = series.CompletedAt.Value
+            };
+
+            db.MediaEntries.Add(historyEntry);
+            await db.SaveChangesAsync(cancellationToken);
+
+            series.CompletedMediaEntryId = historyEntry.Id;
+
+            var completeXp = await _xpService.AwardXpAsync(
+                AchievementActionType.MediaCompleted,
+                1,
+                $"Serie terminada: {series.Title}",
+                MilestoneSourceType.Media,
+                nameof(MediaEntry),
+                historyEntry.Id,
+                $"Serie: {series.Title}",
+                cancellationToken);
+
+            series.XpEarned += completeXp.AmountAwarded;
+            historyEntry.XpEarned = completeXp.AmountAwarded;
+
+            if (completeXp.Milestone is not null)
+            {
+                events.Add(new AchievementEvent(
+                    completeXp.Milestone.Title,
+                    completeXp.Milestone.Description ?? series.Title,
+                    completeXp.AmountAwarded,
+                    MilestoneSourceType.Media));
+            }
+
+            events.AddRange(await _achievementEngine.TryAwardMilestonesForTrackAsync(
+                MedalMilestoneTrack.MediaCompleted,
+                MilestoneSourceType.Media,
+                nameof(MediaEntry),
+                historyEntry.Id,
+                cancellationToken));
+        }
+
+        await db.SaveChangesAsync(cancellationToken);
+
+        await _weeklyQuotaService.NotifyActivityAsync(MilestoneSourceType.Media, watchDate.Date, cancellationToken);
+
+        return OperationResult<MediaSeries>.WithEvents(series, events.ToArray());
     }
 
     public async Task<bool> DeleteAsync(int entryId, CancellationToken cancellationToken = default)

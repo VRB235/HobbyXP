@@ -87,12 +87,7 @@ internal static class LevelUpSuggestionBuilder
                 "Rompecabezas",
                 xpRemaining,
                 "Marque un rompecabezas como completado."),
-            MilestoneSourceType.Media => BuildFromRule(
-                rules,
-                AchievementActionType.MediaCompleted,
-                "Series/Películas",
-                xpRemaining,
-                "Finalice una serie o película por cada unidad."),
+            MilestoneSourceType.Media => BuildMediaSuggestion(xpRemaining, rules),
             MilestoneSourceType.VideoGame => BuildVideoGameSuggestion(xpRemaining, rules),
             MilestoneSourceType.Book => BuildBookSuggestion(xpRemaining, rules),
             MilestoneSourceType.Course => BuildCourseSuggestion(xpRemaining, rules),
@@ -177,6 +172,23 @@ internal static class LevelUpSuggestionBuilder
             : null;
     }
 
+    private static LevelUpSuggestion? BuildMediaSuggestion(int xpRemaining, IReadOnlyList<AchievementRule> rules)
+    {
+        var chapterRule = rules.FirstOrDefault(r => r.ActionType == AchievementActionType.MediaChapterWatched);
+        if (chapterRule is { PointsPerUnit: > 0 })
+        {
+            return BuildFromRule(rules, AchievementActionType.MediaChapterWatched, "Series/Películas", xpRemaining,
+                "Registre capítulos vistos en una serie activa.");
+        }
+
+        return BuildFromRule(
+            rules,
+            AchievementActionType.MediaCompleted,
+            "Series/Películas",
+            xpRemaining,
+            "Finalice una serie o película por cada unidad.");
+    }
+
     private static LevelUpSuggestion? BuildCourseSuggestion(int xpRemaining, IReadOnlyList<AchievementRule> rules)
     {
         var sessionRule = rules.FirstOrDefault(r => r.ActionType == AchievementActionType.CourseSessionCompleted);
@@ -243,6 +255,7 @@ internal static class LevelUpSuggestionBuilder
             "km" => "km",
             "página" => "páginas",
             "sesión" => "sesiones",
+            "capítulo" => "capítulos",
             "rompecabezas" => "rompecabezas",
             "obra" => "obras",
             "%" => "%",

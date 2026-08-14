@@ -14,14 +14,38 @@
             Margin="0,0,0,8"
             Background="{StaticResource BgCardBrush}">
         <StackPanel>
-            <StackPanel Margin="0,0,0,10">
-                <TextBlock Text="{Binding Title}" FontWeight="SemiBold" />
-                <TextBlock Text="{Binding Author}" />
-                <TextBlock Text="{Binding XpEarnedDisplay}"
-                           Foreground="{StaticResource AccentGreenBrush}"
-                           FontSize="12"
-                           Margin="0,2,0,0" />
-            </StackPanel>
+            <Grid Margin="0,0,0,10">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                    <TextBlock Text="Título" Style="{StaticResource MutedText}" FontSize="11" />
+                    <TextBox Text="{Binding EditTitle, UpdateSourceTrigger=PropertyChanged}" />
+                </StackPanel>
+
+                <StackPanel Grid.Column="1" Margin="0,0,8,0">
+                    <TextBlock Text="Autor" Style="{StaticResource MutedText}" FontSize="11" />
+                    <TextBox Text="{Binding EditAuthor, UpdateSourceTrigger=PropertyChanged}" />
+                </StackPanel>
+
+                <Button Grid.Column="2"
+                        Content="Guardar datos"
+                        Style="{StaticResource PrimaryButton}"
+                        Padding="10,4"
+                        VerticalAlignment="Bottom"
+                        Command="{Binding SaveMetadataCommand}"
+                        ToolTip="Actualizar título y autor" />
+            </Grid>
+
+            <controls:FormValidationBanner Message="{Binding MetadataValidationMessage}" Margin="0,0,0,8" />
+
+            <TextBlock Text="{Binding XpEarnedDisplay}"
+                       Foreground="{StaticResource AccentGreenBrush}"
+                       FontSize="12"
+                       Margin="0,0,0,10" />
 
             <TextBlock Text="{Binding ProgressSummary}"
                        Style="{StaticResource MutedText}"
@@ -36,6 +60,7 @@
 
             <Grid>
                 <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="130" />
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="104" />
                     <ColumnDefinition Width="Auto" />
@@ -43,7 +68,12 @@
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
 
-                <Slider Grid.Column="0"
+                <DatePicker Grid.Column="0"
+                            SelectedDate="{Binding ReadingDate}"
+                            Margin="0,0,8,0"
+                            ToolTip="Fecha en que leyó (permite atrasar para disciplina semanal)" />
+
+                <Slider Grid.Column="1"
                         Minimum="0"
                         Maximum="100"
                         Value="{Binding TargetPercent, Mode=TwoWay}"
@@ -51,13 +81,13 @@
                         Margin="0,0,8,0"
                         IsMoveToPointEnabled="True" />
 
-                <controls:NumericStepper Grid.Column="1"
+                <controls:NumericStepper Grid.Column="2"
                                          Value="{Binding TargetPagesRead, Converter={StaticResource FlexibleNumber}}"
                                          Minimum="{Binding CurrentPagesRead}"
                                          Maximum="{Binding TotalPages}"
                                          Margin="0,0,8,0" />
 
-                <Button Grid.Column="2"
+                <Button Grid.Column="3"
                         Content="+10"
                         Style="{StaticResource PrimaryButton}"
                         Padding="8,4"
@@ -66,7 +96,7 @@
                         CommandParameter="10"
                         ToolTip="Sumar 10 páginas al objetivo" />
 
-                <Button Grid.Column="3"
+                <Button Grid.Column="4"
                         Content="Terminar"
                         Style="{StaticResource PrimaryButton}"
                         Padding="8,4"
@@ -74,7 +104,7 @@
                         Command="{Binding SetCompleteCommand}"
                         ToolTip="Marcar todas las páginas como leídas" />
 
-                <Button Grid.Column="4"
+                <Button Grid.Column="5"
                         Content="Aplicar"
                         Style="{StaticResource AccentButton}"
                         Padding="10,4"

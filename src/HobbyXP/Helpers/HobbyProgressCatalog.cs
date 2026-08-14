@@ -40,6 +40,7 @@ public static class HobbyProgressCatalog
         AchievementActionType.OfficialRaceCompleted => MilestoneSourceType.OfficialRace,
         AchievementActionType.PuzzleCompleted => MilestoneSourceType.Puzzle,
         AchievementActionType.MediaCompleted => MilestoneSourceType.Media,
+        AchievementActionType.MediaChapterWatched => MilestoneSourceType.Media,
         AchievementActionType.VideoGamePercent => MilestoneSourceType.VideoGame,
         AchievementActionType.VideoGamePlatinum => MilestoneSourceType.VideoGame,
         AchievementActionType.BookPageRead => MilestoneSourceType.Book,

@@ -24,15 +24,16 @@ public sealed class BooksViewModel : AchievementAwareViewModel
     public BooksViewModel(
         IBookService bookService,
         IXpService xpService,
+        IWeeklyQuotaService weeklyQuotaService,
         IProfileRefreshMessenger profileRefreshMessenger,
         IAchievementMessenger achievementMessenger)
         : base(achievementMessenger)
     {
         _bookService = bookService;
         _profileRefreshMessenger = profileRefreshMessenger;
-        HobbyXp = new HobbyProgressPresenter(xpService, MilestoneSourceType.Book);
+        HobbyXp = new HobbyProgressPresenter(xpService, MilestoneSourceType.Book, weeklyQuotaService);
         ReadingRows = new ObservableCollection<BookReadingRowViewModel>();
-        CompletedBooks = new ObservableCollection<Book>();
+        CompletedRows = new ObservableCollection<BookCompletedRowViewModel>();
         RegisterCommand = new AsyncRelayCommand(RegisterAsync, CanRegister);
         ClearCompletedDateFilterCommand = new RelayCommand(ClearCompletedDateFilter);
         RefreshRegisterValidation();
@@ -42,7 +43,7 @@ public sealed class BooksViewModel : AchievementAwareViewModel
 
     public ObservableCollection<BookReadingRowViewModel> ReadingRows { get; }
 
-    public ObservableCollection<Book> CompletedBooks { get; }
+    public ObservableCollection<BookCompletedRowViewModel> CompletedRows { get; }
 
     public string Title
     {
@@ -112,11 +113,11 @@ public sealed class BooksViewModel : AchievementAwareViewModel
     {
         ReadingRows.Clear();
         foreach (var book in _allReading)
-            ReadingRows.Add(new BookReadingRowViewModel(book, ApplyPagesAsync));
+            ReadingRows.Add(new BookReadingRowViewModel(book, ApplyPagesAsync, UpdateMetadataAsync));
 
-        CompletedBooks.Clear();
+        CompletedRows.Clear();
         foreach (var book in _allCompleted.Where(MatchesCompletedDateFilter))
-            CompletedBooks.Add(book);
+            CompletedRows.Add(new BookCompletedRowViewModel(book, UpdateMetadataAsync));
     }
 
     private bool MatchesCompletedDateFilter(Book book) =>
@@ -167,15 +168,29 @@ public sealed class BooksViewModel : AchievementAwareViewModel
         }, "Registrando libro...");
     }
 
-    private async Task ApplyPagesAsync(Book book, int targetPagesRead)
+    private async Task ApplyPagesAsync(Book book, int targetPagesRead, DateTime readingDate)
     {
         await RunBusyAsync(async () =>
         {
-            var result = await _bookService.UpdatePagesReadAsync(book.Id, targetPagesRead);
+            var result = await _bookService.UpdatePagesReadAsync(book.Id, targetPagesRead, readingDate);
             PublishAchievements(result.Events);
             await ReloadAsync();
             _profileRefreshMessenger.RequestRefresh();
             StatusMessage = $"{result.Value.Title}: {result.Value.PagesRead}/{result.Value.TotalPages} páginas";
         }, "Actualizando lectura...");
+    }
+
+    private async Task UpdateMetadataAsync(Book book, string title, string author)
+    {
+        await RunBusyAsync(async () =>
+        {
+            var updated = await _bookService.UpdateMetadataAsync(book.Id, title, author);
+            if (updated is null)
+                return;
+
+            book.Title = updated.Title;
+            book.Author = updated.Author;
+            StatusMessage = $"Datos actualizados: «{updated.Title}» · {updated.Author}";
+        }, "Actualizando libro...");
     }
 }
