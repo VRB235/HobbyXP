@@ -862,16 +862,16 @@ XP de referencia: 15 XP por comida en plan; +40 XP si el día queda 4/4. Fuera d
 
 ---
 
-### CP-SET-004 — Restablecer todos los datos
+### CP-SET-004 — Restablecer progreso (conserva catálogo de ejercicios)
 
 | Campo | Detalle |
 |-------|---------|
 | **Prioridad** | Alta |
-| **Precondiciones** | Perfil con actividades, XP y medallas; **exportar copia antes** si se desea conservar historial. |
-| **Pasos** | 1. Configuración → **Restablecer todos los datos**.<br>2. Confirmar en diálogo.<br>3. Revisar dashboard y secciones. |
-| **UI** | Vuelve a «Aventurero», nivel 1, 0 XP; listas vacías; reglas de XP seed intactas en editor. |
-| **BD** | `PlayerProfiles`: 1 fila inicial; `RunningSessions`, `Books`, etc. en 0 filas; `AchievementRules` con seed. |
-| **Archivos** | Carpetas `Avatar\` y `PuzzlePhotos\` eliminadas o vacías. |
+| **Precondiciones** | Perfil con actividades, XP, medallas y al menos un ejercicio en catálogo gym; **exportar copia antes** si se desea conservar historial. |
+| **Pasos** | 1. Anotar nombres del catálogo `Exercises` y el `DisplayName` del perfil.<br>2. Configuración → **Restablecer progreso**.<br>3. Confirmar en diálogo.<br>4. Revisar dashboard, gym (catálogo) y secciones de historial. |
+| **UI** | Nivel 1 / 0 XP (global y hobbies); listas de actividades vacías; catálogo de ejercicios intacto; nombre/avatar y XP base sin cambio; reglas de XP y definiciones de medallas intactas; premios canjeados vuelven a «Disponible». |
+| **BD** | `Exercises` sin pérdida de filas; `GymWorkouts`/`GymWorkoutEntries`/`RunningSessions`/`Books`/etc. en 0; `XpTransactions`/`EarnedMedals`/`Milestones` en 0; `PlayerProfiles.TotalXp=0`, `CurrentLevel=1`, `SpendableXp=0`; `HobbyProgresses` en nivel 1 / 0 XP. |
+| **Archivos** | `PuzzlePhotos\` eliminada o vacía; `Avatar\` se conserva. |
 
 ---
 

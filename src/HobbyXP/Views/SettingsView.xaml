@@ -57,10 +57,10 @@
             <Border Style="{StaticResource DarkCard}" Padding="20" BorderBrush="{StaticResource DangerBrush}">
                 <StackPanel>
                     <TextBlock Text="Zona de peligro" Style="{StaticResource SectionTitleText}" Margin="0,0,0,4" />
-                    <TextBlock Text="Restablece la aplicación como si fuera la primera vez: borra actividades, XP, medallas ganadas y personalización del perfil. Exporte una copia antes si necesita conservar el historial."
+                    <TextBlock Text="Borra historial, XP y niveles para empezar de cero. Conserva el catálogo de ejercicios, reglas/medallas y la personalización del perfil. Exporte una copia antes si necesita conservar el historial."
                                Style="{StaticResource MutedText}" TextWrapping="Wrap" Margin="0,0,0,16" />
 
-                    <Button Content="Restablecer todos los datos"
+                    <Button Content="Restablecer progreso"
                             Command="{Binding ResetApplicationDataCommand}"
                             Style="{StaticResource DangerButton}"
                             HorizontalAlignment="Left" />

@@ -152,10 +152,10 @@ public sealed class SettingsViewModel : LoadableViewModelBase
     private async Task ResetApplicationDataAsync()
     {
         if (!_messageDialogService.Confirm(
-                "Se eliminarán todas las actividades, XP, medallas ganadas, premios canjeados y el perfil volverá a su estado inicial.\n\n" +
-                "Las reglas de XP y definiciones de medallas se conservan.\n\n" +
+                "Se eliminarán el historial de actividades, el XP, los niveles (global y por hobby) y las medallas ganadas.\n\n" +
+                "Se conservan: catálogo de ejercicios, reglas de XP, definiciones de medallas, premios (vuelven a disponibles) y nombre/avatar/XP base.\n\n" +
                 "Esta acción no se puede deshacer.",
-                "Restablecer todos los datos"))
+                "Restablecer progreso"))
         {
             return;
         }
@@ -167,8 +167,8 @@ public sealed class SettingsViewModel : LoadableViewModelBase
             _applicationDataResetMessenger.NotifyReset();
             IsLoaded = false;
             await LoadAsync();
-            StatusMessage = "Aplicación restablecida al estado inicial.";
-        }, "Restableciendo datos…");
+            StatusMessage = "Progreso restablecido. El catálogo de ejercicios se conservó.";
+        }, "Restableciendo progreso…");
     }
 
     private bool CanSaveBaseXpPerLevel() =>
