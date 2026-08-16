@@ -176,7 +176,7 @@ src/HobbyXP/
 |----------|---------------|
 | `IXpService` | Otorgar/deducir XP, progreso de nivel, XP diario para gráficos |
 | `IPlayerProfileService` | Perfil, progreso, nombre, avatar, XP base por nivel |
-| `IDatabaseMaintenanceService` | Exportar BD, restablecer datos de la aplicación |
+| `IDatabaseMaintenanceService` | Exportar BD; restablecer progreso (historial/XP/niveles) conservando catálogo `Exercises`, reglas, medallas y perfil |
 | `IDashboardService` | Resumen agregado para dashboard |
 | `IRunningService` | Sesiones y carreras oficiales |
 | `IGymService` | Workouts, ejercicios, PR |
