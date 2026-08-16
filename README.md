@@ -2,7 +2,7 @@
 
 Aplicativo de escritorio **WPF (.NET 8)** para gamificar hobbies personales (running, gimnasio, **dieta**, entretenimiento, libros/cursos) con sistema de **XP, niveles, medallas, premios y disciplina semanal**.
 
-**Versión actual: 1.2.0** (producción: rama `main`, tag [`v1.2.0`](https://github.com/VRB235/HobbyXP/releases/tag/v1.2.0)).
+**Versión actual: 1.2.1** (producción: rama `main`, tag [`v1.2.1`](https://github.com/VRB235/HobbyXP/releases/tag/v1.2.1)).
 
 - **Plataforma**: Windows 10/11, `net8.0-windows10.0.19041`.
 - **Arquitectura**: MVVM con inyección de dependencias (`Microsoft.Extensions.Hosting`).
@@ -54,6 +54,7 @@ El `README.md` se mantiene como **vista ejecutiva y técnica resumida** del esta
   - Historiales de actividad física con **altura mínima** para ~10 filas visibles y scroll de página si no caben formularios + tablas.
   - Fechas atrasables al registrar (running, gym, dieta, lecturas, etc.) para disciplina semanal.
   - En Debug, título de ventana `HobbyXP [DEV]` para distinguir el entorno de desarrollo.
+  - Configuración: **Restablecer progreso** (borra historial/XP/niveles; conserva catálogo de ejercicios y personalización del perfil).
 
 Para un listado completo de entidades, servicios y controles reutilizables, ver secciones 5–8 de `docs/ESTADO-PROYECTO.md`.
 
@@ -104,23 +105,12 @@ Copy-Item "$env:LOCALAPPDATA\HobbyXP\*" "$env:LOCALAPPDATA\HobbyXP-Dev\" -Recurs
 
 ---
 
-## Mejoras en `develop` respecto a `main` (incluidas en 1.2.0)
+## Mejoras en `develop` respecto a `main` (incluidas en 1.2.1)
 
 | Área | Qué cambió |
 |------|------------|
-| **Ambientes** | Datos Debug en `HobbyXP-Dev`; Release/prod en `HobbyXP`. Override `HOBBYXP_DATA_DIR`. Título `[DEV]` en Debug. |
-| **Tablas físico** | Historiales de running/gimnasio con más alto útil (~10 filas) y scroll de página. |
-| **Ordenación** | Clic en cabeceras de historiales (y catálogos de logros) para ordenar Asc/Desc (`GridViewSortHelper`). |
-| **Gimnasio / músculos** | Grupo muscular (incl. **glúteos**); paneles ☰ colapsables; tipos de ejercicio en español; filtro historial por grupo; ★ de récord; **renombrar** ejercicios; **preservar filas** al filtrar el catálogo; carga de **último entreno** como referencia. |
-| **Running / tipo sesión** | Tipos Regenerativa, Umbral y Tirada larga; columna/filtro; asignar tipo a sesiones legacy. |
-| **Fechas atrasables** | DatePicker en running, gym y demás logs para registrar actividad de días anteriores (disciplina semanal). |
-| **UX post-guardado** | Tras guardar sesión/entreno se abre el historial del acordeón (y se limpian filtros) para ver la fila nueva. |
-| **XP / progresión** | Pool de XP **por hobby**, títulos alegóricos por nivel, bonus global al subir hobby, **saldo canjeable** y baseline tras prestige (sin re-backfill indebido). |
-| **Entretenimiento** | Filtros y ordenación de historiales; **capítulos de series** (`MediaSeries` + logs). |
-| **Libros** | Edición de metadatos del libro en progreso. |
-| **Disciplina semanal** | Cuotas lun–dom por hobby; castigo (baja 1 nivel) / restauración si se registra actividad atrasada; dashboard compacto de cuotas. |
-| **Dieta (1.2.0)** | Tab en Actividades Físicas: 4 comidas En plan / Fuera de plan; día bueno ≥ 3/4; cuota 5 días buenos/semana; upsert del día; medallas de días buenos/perfectos. |
-| **Versión** | 1.1.0 → **1.2.0** (csproj, Inno Setup, manifiesto MSIX). |
+| **Configuración / reset** | «Restablecer progreso» limpia historial, XP, niveles y medallas ganadas **sin** borrar el catálogo `Exercises`; conserva reglas, definiciones de medallas, premios (revierten canjes), nombre/avatar/XP base; limpia `PuzzlePhotos`. |
+| **Versión** | 1.2.0 → **1.2.1** (csproj, Inno Setup, manifiesto MSIX). |
 
 ---
 
@@ -145,7 +135,7 @@ Para generar un ZIP portable autocontenido:
 .\scripts\package-portable.ps1
 ```
 
-Salida: `artifacts\HobbyXP-win-x64-Release.zip`. Release GitHub: [`v1.2.0`](https://github.com/VRB235/HobbyXP/releases/tag/v1.2.0).
+Salida: `artifacts\HobbyXP-win-x64-Release.zip`. Release GitHub: [`v1.2.1`](https://github.com/VRB235/HobbyXP/releases/tag/v1.2.1).
 
 MSIX e instalador Inno Setup: ver [`docs/DISTRIBUCION.md`](docs/DISTRIBUCION.md).
 
