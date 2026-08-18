@@ -480,5 +480,11 @@ internal sealed class RewardConfiguration : IEntityTypeConfiguration<Reward>
             .IsRequired();
 
         builder.HasIndex(r => r.Status);
+
+        builder.Property(r => r.SourceType)
+            .HasConversion<string>()
+            .HasMaxLength(32);
+
+        builder.HasIndex(r => r.SourceType);
     }
 }

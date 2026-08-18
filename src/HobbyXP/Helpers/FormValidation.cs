@@ -25,6 +25,10 @@ public static class FormValidation
     public static ValidationResult RequireText(string? value, string fieldLabel) =>
         string.IsNullOrWhiteSpace(value) ? ValidationResult.Fail($"Indique {fieldLabel}.") : ValidationResult.Ok();
 
+    public static ValidationResult RequireValue<T>(T? value, string fieldLabel)
+        where T : class =>
+        value is null ? ValidationResult.Fail($"Indique {fieldLabel}.") : ValidationResult.Ok();
+
     public static ValidationResult RequirePositiveInt(string? text, string fieldLabel, out int parsed)
     {
         parsed = 0;

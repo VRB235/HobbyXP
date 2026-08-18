@@ -2,7 +2,7 @@
 
 Aplicativo de escritorio **WPF (.NET 8)** para gamificar hobbies personales (running, gimnasio, **dieta**, entretenimiento, libros/cursos) con sistema de **XP, niveles, medallas, premios y disciplina semanal**.
 
-**Versión actual: 1.3.0** (producción: rama `main`, tag [`v1.3.0`](https://github.com/VRB235/HobbyXP/releases/tag/v1.3.0)).
+**Versión actual: 1.4.0** (producción: rama `main`, tag [`v1.4.0`](https://github.com/VRB235/HobbyXP/releases/tag/v1.4.0)).
 
 - **Plataforma**: Windows 10/11, `net8.0-windows10.0.19041`.
 - **Arquitectura**: MVVM con inyección de dependencias (`Microsoft.Extensions.Hosting`).
@@ -39,7 +39,7 @@ El `README.md` se mantiene como **vista ejecutiva y técnica resumida** del esta
 - **Gamificación**:
   - Registro de actividades por dominio (running, gym, **dieta**, puzzles, media/series, videojuegos, libros, cursos).
   - **Pools de XP por hobby** + nivel global meta (`HobbyLevelUp`); títulos alegóricos por nivel (`HobbyLevelTitles`).
-  - **Saldo canjeable** (`SpendableXp`) independiente del XP de progresión; tienda de premios con **inventario**, **equipar reliquia** y costo **base × nivel**.
+  - **Saldo canjeable** (`SpendableXp`) independiente del XP de progresión; tienda de premios **por módulo** (Running, Gimnasio, …), inventario, equipar reliquia y costo **base × nivel**.
   - **Logros visibles**: siguiente medalla en cada hobby, widget en Dashboard, overlay al desbloquear, badge en sidebar. Cada medalla otorga saldo, título de honor e **inmunidad de disciplina 7 días**.
   - **Disciplina semanal** (lun–dom): cuota por hobby; incumplimiento baja un nivel del hobby; actividad atrasada puede restaurar el castigo. Libros: ≥20% de páginas del libro actual (o terminarlo). Cursos: 5 sesiones. Series: 1 serie terminada si hay serie en progreso, más 2 películas.
   - Gimnasio: ejercicios con **grupo muscular** opcional (Pecho, Tríceps, Bíceps, Hombros, Core, Espalda, Cuádriceps, Gemelos, Glúteos, Abductores, Aductores, Isquiotibiales); catálogo agrupado, filtro al armar el entrenamiento, **preservar ejercicios al filtrar**, carga de referencia del último entreno y asignación a ejercicios legacy.
@@ -107,15 +107,12 @@ Copy-Item "$env:LOCALAPPDATA\HobbyXP\*" "$env:LOCALAPPDATA\HobbyXP-Dev\" -Recurs
 
 ---
 
-## Mejoras en `develop` respecto a `main` (incluidas en 1.3.0)
+## Mejoras en `develop` respecto a `main` (incluidas en 1.4.0)
 
 | Área | Qué cambió |
 |------|------------|
-| **Disciplina semanal** | Libros: ≥20 % de páginas del libro actual (terminarlo también cumple). Cursos: 5 sesiones. Series: hay que **terminar** al menos una si hay serie en progreso (+ 2 películas). Sin libro/curso/serie activa la cuota queda **No aplica**. Medalla nueva otorga inmunidad 7 días (`WeeklyQuotaStatus.Waived`). |
-| **Logros** | Siguiente medalla en cada hobby; hub en Dashboard; overlay y badge en sidebar. Desbloquear medalla otorga saldo `max(50, umbral×10)`, título de honor e inmunidad. |
-| **Premios** | Tienda con Disponibles + Inventario; equipar reliquia; costo efectivo = base × nivel global. |
-| **Vitrina** | Secciones por hobby, desbloqueadas primero; cada hobby es un menú colapsable (abiertas las que tienen progreso). |
-| **Versión** | 1.2.1 → **1.3.0** (csproj, Inno Setup, manifiesto MSIX). |
+| **Premios** | Cada premio se vincula a un hobby (Running, Gimnasio, Carrera oficial, …). La tienda agrupa Disponibles e Inventario en menús colapsables. Premios antiguos sin módulo aparecen en **General**; se pueden reasignar. |
+| **Versión** | 1.3.0 → **1.4.0** (csproj, Inno Setup, manifiesto MSIX). |
 
 ---
 
@@ -140,7 +137,7 @@ Para generar un ZIP portable autocontenido:
 .\scripts\package-portable.ps1
 ```
 
-Salida: `artifacts\HobbyXP-win-x64-Release.zip`. Release GitHub: [`v1.3.0`](https://github.com/VRB235/HobbyXP/releases/tag/v1.3.0).
+Salida: `artifacts\HobbyXP-win-x64-Release.zip`. Release GitHub: [`v1.4.0`](https://github.com/VRB235/HobbyXP/releases/tag/v1.4.0).
 
 MSIX e instalador Inno Setup: ver [`docs/DISTRIBUCION.md`](docs/DISTRIBUCION.md).
 

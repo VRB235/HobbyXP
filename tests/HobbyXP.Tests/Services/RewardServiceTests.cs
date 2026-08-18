@@ -26,19 +26,48 @@ public sealed class RewardServiceTests : IDisposable
     [Fact]
     public async Task CreateAsync_WhenNameEmpty_Throws()
     {
-        await Assert.ThrowsAsync<ArgumentException>(() => _sut.CreateAsync("  ", 100));
+        await Assert.ThrowsAsync<ArgumentException>(() => _sut.CreateAsync("  ", 100, MilestoneSourceType.Gym));
     }
 
     [Fact]
     public async Task CreateAsync_WhenCostNotPositive_Throws()
     {
-        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => _sut.CreateAsync("Premio", 0));
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => _sut.CreateAsync("Premio", 0, MilestoneSourceType.Gym));
+    }
+
+    [Fact]
+    public async Task CreateAsync_WhenSourceTypeIsNotAHobby_Throws()
+    {
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(
+            () => _sut.CreateAsync("Premio", 100, MilestoneSourceType.Reward));
+    }
+
+    [Fact]
+    public async Task CreateAsync_PersistsHobbyModule()
+    {
+        var reward = await _sut.CreateAsync("Zapatillas", 400, MilestoneSourceType.Running);
+
+        Assert.Equal(MilestoneSourceType.Running, reward.SourceType);
+
+        await using var db = _factory.CreateDbContext();
+        Assert.Equal(MilestoneSourceType.Running, (await db.Rewards.SingleAsync()).SourceType);
+    }
+
+    [Fact]
+    public async Task UpdateSourceTypeAsync_MovesRewardToAnotherHobby()
+    {
+        var reward = await _sut.CreateAsync("Batido", 200, MilestoneSourceType.Gym);
+
+        await _sut.UpdateSourceTypeAsync(reward.Id, MilestoneSourceType.Diet);
+
+        await using var db = _factory.CreateDbContext();
+        Assert.Equal(MilestoneSourceType.Diet, (await db.Rewards.SingleAsync()).SourceType);
     }
 
     [Fact]
     public async Task CanRedeemAsync_WhenBalanceInsufficient_ReturnsFalse()
     {
-        var reward = await _sut.CreateAsync("Café", 500);
+        var reward = await _sut.CreateAsync("Café", 500, MilestoneSourceType.Gym);
 
         var canRedeem = await _sut.CanRedeemAsync(reward.Id);
 
@@ -57,7 +86,7 @@ public sealed class RewardServiceTests : IDisposable
             await db.SaveChangesAsync();
         }
 
-        var reward = await _sut.CreateAsync("Día libre", 300, "Descanso merecido");
+        var reward = await _sut.CreateAsync("Día libre", 300, MilestoneSourceType.Gym, "Descanso merecido");
         Assert.True(await _sut.CanRedeemAsync(reward.Id));
 
         var result = await _sut.RedeemAsync(reward.Id);
@@ -88,7 +117,7 @@ public sealed class RewardServiceTests : IDisposable
             await db.SaveChangesAsync();
         }
 
-        var reward = await _sut.CreateAsync("Café", 100);
+        var reward = await _sut.CreateAsync("Café", 100, MilestoneSourceType.Gym);
         await _sut.RedeemAsync(reward.Id);
         await _sut.EquipAsync(reward.Id);
 
@@ -100,14 +129,14 @@ public sealed class RewardServiceTests : IDisposable
     [Fact]
     public async Task EquipAsync_WhenNotRedeemed_Throws()
     {
-        var reward = await _sut.CreateAsync("Viaje", 200);
+        var reward = await _sut.CreateAsync("Viaje", 200, MilestoneSourceType.Running);
         await Assert.ThrowsAsync<InvalidOperationException>(() => _sut.EquipAsync(reward.Id));
     }
 
     [Fact]
     public async Task RedeemAsync_WhenInsufficientXp_Throws()
     {
-        var reward = await _sut.CreateAsync("Viaje", 2000);
+        var reward = await _sut.CreateAsync("Viaje", 2000, MilestoneSourceType.OfficialRace);
 
         await Assert.ThrowsAsync<InvalidOperationException>(() => _sut.RedeemAsync(reward.Id));
     }

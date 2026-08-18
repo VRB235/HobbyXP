@@ -265,7 +265,7 @@
             </TabItem>
 
             <TabItem Header="Tienda">
-                <ScrollViewer DataContext="{Binding Rewards}">
+                <ScrollViewer x:Name="RewardShopScroll" DataContext="{Binding Rewards}">
                     <StackPanel Margin="8">
                         <TextBlock Text="{Binding BalanceText}" Style="{StaticResource SubsectionTitleText}" Margin="0,0,0,12" />
 
@@ -273,31 +273,43 @@
                             <StackPanel>
                                 <Grid Margin="0,0,0,4">
                                     <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="180" />
                                         <ColumnDefinition Width="200" />
                                         <ColumnDefinition Width="100" />
-                                        <ColumnDefinition Width="*" MinWidth="180" />
+                                        <ColumnDefinition Width="*" MinWidth="140" />
                                         <ColumnDefinition Width="Auto" />
                                     </Grid.ColumnDefinitions>
 
                                     <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                                        <TextBlock Text="Módulo" Style="{StaticResource MutedText}" />
+                                        <ComboBox ItemsSource="{Binding ModuleOptions}"
+                                                  SelectedItem="{Binding SelectedModule}"
+                                                  DisplayMemberPath="Label" />
+                                    </StackPanel>
+
+                                    <StackPanel Grid.Column="1" Margin="0,0,8,0">
                                         <TextBlock Text="Nombre" Style="{StaticResource MutedText}" />
                                         <TextBox Text="{Binding Name}" HorizontalAlignment="Stretch" />
                                     </StackPanel>
 
-                                    <StackPanel Grid.Column="1" Margin="0,0,8,0">
+                                    <StackPanel Grid.Column="2" Margin="0,0,8,0">
                                         <TextBlock Text="Costo base (XP)" Style="{StaticResource MutedText}" />
                                         <TextBox Text="{Binding CostInPoints}" HorizontalAlignment="Stretch" />
                                     </StackPanel>
 
-                                    <StackPanel Grid.Column="2" Margin="0,0,8,0">
+                                    <StackPanel Grid.Column="3" Margin="0,0,8,0">
                                         <TextBlock Text="Descripción (opcional)" Style="{StaticResource MutedText}" />
                                         <TextBox Text="{Binding Description}" HorizontalAlignment="Stretch" />
                                     </StackPanel>
 
-                                    <Button Grid.Column="3" Content="Crear" Command="{Binding CreateRewardCommand}"
-                                            Style="{StaticResource PrimaryButton}" VerticalAlignment="Bottom" />
+                                    <StackPanel Grid.Column="4" Orientation="Horizontal" VerticalAlignment="Bottom">
+                                        <Button Content="Crear" Command="{Binding CreateRewardCommand}"
+                                                Style="{StaticResource PrimaryButton}" Margin="0,0,8,0" />
+                                        <Button Content="Asignar módulo" Command="{Binding AssignModuleCommand}"
+                                                Style="{StaticResource AccentButton}" />
+                                    </StackPanel>
                                 </Grid>
-                                <TextBlock Text="Al canjear se cobra base × nivel global actual."
+                                <TextBlock Text="Al canjear se cobra base × nivel global actual. Los premios se agrupan por hobby; «Asignar módulo» mueve el seleccionado."
                                            Style="{StaticResource MutedText}" FontSize="12" />
                                 <controls:FormValidationBanner Message="{Binding ValidationMessage}" />
                             </StackPanel>
@@ -305,20 +317,44 @@
 
                         <GroupBox Header="Disponibles" Padding="12" Margin="0,0,0,12">
                             <StackPanel>
-                                <ListView ItemsSource="{Binding AvailableRewards}"
-                                          SelectedItem="{Binding SelectedAvailable}"
-                                          Height="160"
-                                          Margin="0,0,0,8"
-                                          helpers:GridViewStretchHelper.StretchColumns="True"
-                                          helpers:GridViewSortHelper.EnableSort="True">
-                                    <ListView.View>
-                                        <GridView>
-                                            <GridViewColumn Header="Nombre" DisplayMemberBinding="{Binding Name}" Width="180" />
-                                            <GridViewColumn Header="Costo efectivo" DisplayMemberBinding="{Binding CostLabel}" Width="220" />
-                                            <GridViewColumn Header="Estado" DisplayMemberBinding="{Binding StatusLabel}" Width="100" />
-                                        </GridView>
-                                    </ListView.View>
-                                </ListView>
+                                <ItemsControl ItemsSource="{Binding AvailableSections}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Expander Header="{Binding}"
+                                                      IsExpanded="{Binding IsExpanded, Mode=TwoWay}"
+                                                      Margin="0,0,0,8">
+                                                <Expander.HeaderTemplate>
+                                                    <DataTemplate>
+                                                        <DockPanel>
+                                                            <TextBlock DockPanel.Dock="Right"
+                                                                       Text="{Binding ProgressText}"
+                                                                       Style="{StaticResource MutedText}"
+                                                                       FontWeight="Normal"
+                                                                       VerticalAlignment="Center"
+                                                                       Margin="16,0,0,0" />
+                                                            <TextBlock Text="{Binding DisplayName}" VerticalAlignment="Center" />
+                                                        </DockPanel>
+                                                    </DataTemplate>
+                                                </Expander.HeaderTemplate>
+                                                <ListView ItemsSource="{Binding Rewards}"
+                                                          SelectedItem="{Binding DataContext.SelectedAvailable, ElementName=RewardShopScroll}"
+                                                          MinHeight="48"
+                                                          MaxHeight="180"
+                                                          Margin="0,4,0,0"
+                                                          helpers:GridViewStretchHelper.StretchColumns="True"
+                                                          helpers:GridViewSortHelper.EnableSort="True">
+                                                    <ListView.View>
+                                                        <GridView>
+                                                            <GridViewColumn Header="Nombre" DisplayMemberBinding="{Binding Name}" Width="180" />
+                                                            <GridViewColumn Header="Costo efectivo" DisplayMemberBinding="{Binding CostLabel}" Width="220" />
+                                                            <GridViewColumn Header="Estado" DisplayMemberBinding="{Binding StatusLabel}" Width="100" />
+                                                        </GridView>
+                                                    </ListView.View>
+                                                </ListView>
+                                            </Expander>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
                                 <TextBlock Text="{Binding SelectedRewardRedeemHint}" Margin="0,0,0,8" />
                                 <Button Content="Canjear" Command="{Binding RedeemRewardCommand}" HorizontalAlignment="Left"
                                         Style="{StaticResource AccentButton}" />
@@ -327,21 +363,45 @@
 
                         <GroupBox Header="Inventario (canjeados)" Padding="12">
                             <StackPanel>
-                                <ListView ItemsSource="{Binding InventoryRewards}"
-                                          SelectedItem="{Binding SelectedInventory}"
-                                          Height="160"
-                                          Margin="0,0,0,8"
-                                          helpers:GridViewStretchHelper.StretchColumns="True"
-                                          helpers:GridViewSortHelper.EnableSort="True">
-                                    <ListView.View>
-                                        <GridView>
-                                            <GridViewColumn Header="Nombre" DisplayMemberBinding="{Binding Name}" Width="180" />
-                                            <GridViewColumn Header="Canje" DisplayMemberBinding="{Binding CostLabel}" Width="160" />
-                                            <GridViewColumn Header="Equipo" DisplayMemberBinding="{Binding EquipButtonLabel}" Width="100" />
-                                        </GridView>
-                                    </ListView.View>
-                                </ListView>
-                                <StackPanel Orientation="Horizontal">
+                                <ItemsControl ItemsSource="{Binding InventorySections}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Expander Header="{Binding}"
+                                                      IsExpanded="{Binding IsExpanded, Mode=TwoWay}"
+                                                      Margin="0,0,0,8">
+                                                <Expander.HeaderTemplate>
+                                                    <DataTemplate>
+                                                        <DockPanel>
+                                                            <TextBlock DockPanel.Dock="Right"
+                                                                       Text="{Binding ProgressText}"
+                                                                       Style="{StaticResource MutedText}"
+                                                                       FontWeight="Normal"
+                                                                       VerticalAlignment="Center"
+                                                                       Margin="16,0,0,0" />
+                                                            <TextBlock Text="{Binding DisplayName}" VerticalAlignment="Center" />
+                                                        </DockPanel>
+                                                    </DataTemplate>
+                                                </Expander.HeaderTemplate>
+                                                <ListView ItemsSource="{Binding Rewards}"
+                                                          SelectedItem="{Binding DataContext.SelectedInventory, ElementName=RewardShopScroll}"
+                                                          MinHeight="48"
+                                                          MaxHeight="180"
+                                                          Margin="0,4,0,0"
+                                                          helpers:GridViewStretchHelper.StretchColumns="True"
+                                                          helpers:GridViewSortHelper.EnableSort="True">
+                                                    <ListView.View>
+                                                        <GridView>
+                                                            <GridViewColumn Header="Nombre" DisplayMemberBinding="{Binding Name}" Width="180" />
+                                                            <GridViewColumn Header="Canje" DisplayMemberBinding="{Binding CostLabel}" Width="160" />
+                                                            <GridViewColumn Header="Equipo" DisplayMemberBinding="{Binding EquipButtonLabel}" Width="100" />
+                                                        </GridView>
+                                                    </ListView.View>
+                                                </ListView>
+                                            </Expander>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
                                     <Button Content="Equipar reliquia" Command="{Binding EquipRewardCommand}"
                                             Style="{StaticResource AccentButton}" Margin="0,0,8,0" />
                                     <Button Content="Desequipar" Command="{Binding UnequipRewardCommand}"

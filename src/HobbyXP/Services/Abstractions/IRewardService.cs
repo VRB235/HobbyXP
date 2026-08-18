@@ -1,4 +1,5 @@
 using HobbyXP.Models.Achievements;
+using HobbyXP.Models.Enums;
 using HobbyXP.Services.Results;
 
 namespace HobbyXP.Services.Abstractions;
@@ -10,7 +11,13 @@ public interface IRewardService
     Task<Reward> CreateAsync(
         string name,
         int costInPoints,
+        MilestoneSourceType sourceType,
         string? description = null,
+        CancellationToken cancellationToken = default);
+
+    Task UpdateSourceTypeAsync(
+        int rewardId,
+        MilestoneSourceType sourceType,
         CancellationToken cancellationToken = default);
 
     Task<OperationResult<Reward>> RedeemAsync(

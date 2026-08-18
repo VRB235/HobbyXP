@@ -21,6 +21,9 @@ public class Reward : EntityBase
     /// <summary>XP canjeable realmente descontado al canjear (costo efectivo por nivel).</summary>
     public int? RedeemedCostInPoints { get; set; }
 
+    /// <summary>Módulo al que pertenece el premio (Running, Gimnasio, …). Nulo = sin asignar (General).</summary>
+    public MilestoneSourceType? SourceType { get; set; }
+
     public string StatusLabel => Status switch
     {
         RewardStatus.Available => "Disponible",

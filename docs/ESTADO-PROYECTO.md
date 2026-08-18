@@ -162,7 +162,7 @@ src/HobbyXP/
 
 ### Logros
 
-- `MedalDefinition`, `EarnedMedal`, `AchievementRule`, `Reward` (tienda: inventario, `RedeemedCostInPoints`, reliquia equipable).
+- `MedalDefinition`, `EarnedMedal`, `AchievementRule`, `Reward` (tienda por módulo `SourceType`, inventario, `RedeemedCostInPoints`, reliquia equipable).
 
 ### Enum importante: `AchievementActionType`
 
@@ -188,7 +188,7 @@ src/HobbyXP/
 | `IAchievementEngineService` | Motor de medallas y reglas (bonus de saldo, título e inmunidad al desbloquear) |
 | `IAchievementProgressService` | Siguiente medalla por hobby y snapshot del hub |
 | `IMedalService` | Vitrina seccionada por hobby (desbloqueadas primero) |
-| `IRewardService` | Premios, inventario, equipar, costo base × nivel |
+| `IRewardService` | Premios por hobby, inventario, equipar, costo base × nivel |
 | `IWeeklyQuotaService` | Cuotas lun–dom, castigo, restauración, inmunidad |
 | `IFileDialogService` | Selector de imagen para avatar |
 
@@ -227,7 +227,7 @@ Al arrancar: `EnsureHobbyProgressRowsAsync` + `EnsureHobbyXpBackfillAsync` (migr
 | Físico | `PhysicalActivitiesView` | Running (sesiones + **alta de carreras oficiales** + completar carrera), Gimnasio |
 | Entretenimiento | `EntertainmentView` | Rompecabezas, Media, Videojuegos (historial con búsqueda/filtros y ordenación por columnas; platinados en `ListView`) |
 | Crecimiento | `PersonalGrowthView` | Libros, Cursos |
-| Logros | `AchievementsView` | Vitrina por hobby (Expander), editor de medallas, reglas, tienda (disponibles + inventario) |
+| Logros | `AchievementsView` | Vitrina por hobby (Expander), editor de medallas, reglas, tienda (disponibles + inventario por módulo) |
 | Configuración | `SettingsView` | XP base por nivel, exportar BD, restablecer datos |
 
 ### Controles reutilizables
@@ -281,6 +281,7 @@ DataContext = _scope.GetRequiredService<MainViewModel>();
 | `20260707222215_InitialCreate` | Esquema completo + seed medallas/reglas |
 | `20260708003429_AddPlayerProfileCustomization` | `DisplayName`, `AvatarPath` en `PlayerProfiles` |
 | `20260818185808_AddAchievementHub` | Título de honor, reliquia equipada, inmunidad; `Reward.RedeemedCostInPoints` |
+| `20260818211150_AddRewardSourceType` | `Rewards.SourceType` (módulo/hobby del premio) |
 
 **Comandos útiles** (desde `src/HobbyXP`):
 
@@ -393,7 +394,7 @@ dotnet build
 ### Baja prioridad — ingeniería
 
 - [x] Evaluar estabilizar LiveCharts (salir de RC) o fijar versión estable → **2.0.4** GA + TFM `net8.0-windows10.0.19041` (SkiaSharp 3 nativo, sin NU1701).
-- [x] Tests unitarios: `XpLevelCalculator`, `XpService` (cálculo de puntos), servicios críticos (`AchievementEngineService`, `PlayerProfileService`, `RewardService`, cuotas, hub de logros) → `tests/HobbyXP.Tests` (119 pruebas, xUnit + SQLite in-memory).
+- [x] Tests unitarios: `XpLevelCalculator`, `XpService` (cálculo de puntos), servicios críticos (`AchievementEngineService`, `PlayerProfileService`, `RewardService`, cuotas, hub de logros) → `tests/HobbyXP.Tests` (124 pruebas, xUnit + SQLite in-memory).
 - [x] **GitLab CI:** `dotnet build` en pipeline (`.gitlab-ci.yml`: build + test en runner `windows`).
 - [x] Empaquetado (MSIX / instalador) si se desea distribución → ver [`docs/DISTRIBUCION.md`](DISTRIBUCION.md): MSIX (`HobbyXP.Package`), portable ZIP e Inno Setup.
 - [x] `global.json` para fijar SDK 8.0.x (evita compilar `net8.0` con SDK 10 por defecto); ver sección 17.

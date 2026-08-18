@@ -51,4 +51,9 @@ public sealed record AchievementHubSnapshot(
         FeaturedReward is null
             ? string.Empty
             : $"{FeaturedEffectiveCost:N0} XP (base {FeaturedReward.CostInPoints:N0} × nivel)";
+
+    public string FeaturedModuleName =>
+        FeaturedReward is null
+            ? string.Empty
+            : RewardShopCatalog.GetModuleDisplayName(FeaturedReward.SourceType);
 }

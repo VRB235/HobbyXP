@@ -37,6 +37,7 @@ public sealed class RewardService : IRewardService
     public async Task<Reward> CreateAsync(
         string name,
         int costInPoints,
+        MilestoneSourceType sourceType,
         string? description = null,
         CancellationToken cancellationToken = default)
     {
@@ -46,6 +47,8 @@ public sealed class RewardService : IRewardService
         if (costInPoints <= 0)
             throw new ArgumentOutOfRangeException(nameof(costInPoints));
 
+        EnsureTrackedHobby(sourceType);
+
         await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
 
         var reward = new Reward
@@ -53,12 +56,35 @@ public sealed class RewardService : IRewardService
             Name = name.Trim(),
             Description = description,
             CostInPoints = costInPoints,
+            SourceType = sourceType,
             Status = RewardStatus.Available
         };
 
         db.Rewards.Add(reward);
         await db.SaveChangesAsync(cancellationToken);
         return reward;
+    }
+
+    public async Task UpdateSourceTypeAsync(
+        int rewardId,
+        MilestoneSourceType sourceType,
+        CancellationToken cancellationToken = default)
+    {
+        EnsureTrackedHobby(sourceType);
+
+        await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var reward = await db.Rewards.FindAsync([rewardId], cancellationToken)
+            ?? throw new InvalidOperationException($"No existe el premio con Id {rewardId}.");
+
+        reward.SourceType = sourceType;
+        reward.UpdatedAt = DateTime.UtcNow;
+        await db.SaveChangesAsync(cancellationToken);
+    }
+
+    private static void EnsureTrackedHobby(MilestoneSourceType sourceType)
+    {
+        if (!HobbyProgressCatalog.IsTrackedHobby(sourceType))
+            throw new ArgumentOutOfRangeException(nameof(sourceType), "Indique un módulo válido.");
     }
 
     public async Task<bool> CanRedeemAsync(int rewardId, CancellationToken cancellationToken = default)

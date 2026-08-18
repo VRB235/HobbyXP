@@ -842,9 +842,9 @@ XP de referencia: 15 XP por comida en plan; +40 XP si el día queda 4/4. Fuera d
 |-------|---------|
 | **Prioridad** | Alta |
 | **Precondiciones** | Nivel global ≥ 2; `SpendableXp` suficiente; premio base `300` XP. |
-| **Pasos** | 1. Logros → **Tienda**.<br>2. Verificar costo efectivo `600` (300 × 2).<br>3. Canjear.<br>4. En **Inventario**, seleccionar y **Equipar reliquia**. |
+| **Pasos** | 1. Logros → **Tienda**.<br>2. Elegir módulo (p. ej. Gimnasio) al crear el premio base `300` XP si aún no existe.<br>3. Verificar costo efectivo `600` (300 × 2) en la sección del hobby.<br>4. Canjear.<br>5. En **Inventario**, abrir el mismo hobby, seleccionar y **Equipar reliquia**. |
 | **UI** | Premio pasa a inventario; sidebar muestra marco dorado del avatar y «Reliquia: …». |
-| **BD** | `Rewards.Status = Redeemed`; `RedeemedCostInPoints = 600`; `PlayerProfiles.EquippedRewardId` = id del premio. |
+| **BD** | `Rewards.Status = Redeemed`; `RedeemedCostInPoints = 600`; `Rewards.SourceType` = hobby elegido (p. ej. `Gym`); `PlayerProfiles.EquippedRewardId` = id del premio. |
 
 ---
 
@@ -854,7 +854,19 @@ XP de referencia: 15 XP por comida en plan; +40 XP si el día queda 4/4. Fuera d
 |-------|---------|
 | **Prioridad** | Media |
 | **Pasos** | 1. Abrir Dashboard: bloque **Logros y premios** (última medalla, siguiente logro, premio destacado).<br>2. Ir a Crecimiento → Libros y revisar el banner XP. |
-| **UI** | Hub con datos; banner de libros muestra «Siguiente logro: … (n/m …)» y barra. Botón **Abrir módulo** navega a Logros. |
+| **UI** | Hub con datos; banner de libros muestra «Siguiente logro: … (n/m …)» y barra. Botón **Abrir módulo** navega a Logros. El premio destacado indica el hobby. |
+
+---
+
+### CP-LOG-011 — Premios agrupados por módulo
+
+| Campo | Detalle |
+|-------|---------|
+| **Prioridad** | Media |
+| **Precondiciones** | Al menos un premio de Gimnasio y otro de Running (crearlos en Tienda si hace falta). |
+| **Pasos** | 1. Logros → **Tienda**.<br>2. Verificar secciones colapsables **Gimnasio** y **Running** en Disponibles.<br>3. Seleccionar un premio y **Asignar módulo** a Dieta.<br>4. Confirmar que desaparece de la sección original y aparece en **Dieta**. |
+| **UI** | Cabecera `n premios`. El ComboBox **Módulo** es obligatorio al crear. Premios sin módulo (si los hay) están en **General**. Dashboard «Premio destacado» muestra el nombre del hobby. |
+| **BD** | `SELECT Id, Name, SourceType, Status FROM Rewards;` — `SourceType` coherente con la sección (valores: `Running`, `Gym`, `OfficialRace`, `Puzzle`, `Media`, `VideoGame`, `Book`, `Course`, `Diet` o NULL). |
 
 ---
 
