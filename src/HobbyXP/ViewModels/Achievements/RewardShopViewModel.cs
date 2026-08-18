@@ -1,6 +1,5 @@
 using System.Collections.ObjectModel;
 using HobbyXP.Helpers;
-using HobbyXP.Models.Enums;
 using HobbyXP.Services.Abstractions;
 using HobbyXP.Services.Messaging;
 using HobbyXP.ViewModels.Common;
@@ -16,6 +15,7 @@ public sealed class RewardShopViewModel : AchievementAwareViewModel
     private string _name = string.Empty;
     private string _costInPoints = "500";
     private string? _description;
+    private HobbyModuleOption? _selectedModule;
     private int _availableXp;
     private int _currentLevel = 1;
     private int? _equippedRewardId;
@@ -32,19 +32,36 @@ public sealed class RewardShopViewModel : AchievementAwareViewModel
         _rewardService = rewardService;
         _playerProfileService = playerProfileService;
         _profileRefreshMessenger = profileRefreshMessenger;
-        AvailableRewards = new ObservableCollection<RewardRowViewModel>();
-        InventoryRewards = new ObservableCollection<RewardRowViewModel>();
+        AvailableSections = new ObservableCollection<RewardShopSectionViewModel>();
+        InventorySections = new ObservableCollection<RewardShopSectionViewModel>();
+        _selectedModule = ModuleOptions[0];
 
         CreateRewardCommand = new AsyncRelayCommand(CreateRewardAsync, CanCreateReward);
+        AssignModuleCommand = new AsyncRelayCommand(AssignModuleAsync, CanAssignModule);
         RedeemRewardCommand = new AsyncRelayCommand(RedeemRewardAsync, CanRedeemSelected);
         EquipRewardCommand = new AsyncRelayCommand(EquipRewardAsync, CanEquipSelected);
         UnequipRewardCommand = new AsyncRelayCommand(UnequipRewardAsync, CanUnequip);
         RefreshCreateValidation();
     }
 
-    public ObservableCollection<RewardRowViewModel> AvailableRewards { get; }
+    public IReadOnlyList<HobbyModuleOption> ModuleOptions => HobbyModuleOption.Catalog;
 
-    public ObservableCollection<RewardRowViewModel> InventoryRewards { get; }
+    public ObservableCollection<RewardShopSectionViewModel> AvailableSections { get; }
+
+    public ObservableCollection<RewardShopSectionViewModel> InventorySections { get; }
+
+    public HobbyModuleOption? SelectedModule
+    {
+        get => _selectedModule;
+        set
+        {
+            if (SetProperty(ref _selectedModule, value))
+            {
+                RefreshCreateValidation();
+                AssignModuleCommand.RaiseCanExecuteChanged();
+            }
+        }
+    }
 
     public string Name
     {
@@ -99,6 +116,8 @@ public sealed class RewardShopViewModel : AchievementAwareViewModel
                 OnPropertyChanged(nameof(CanAffordSelected));
                 OnPropertyChanged(nameof(SelectedRewardRedeemHint));
                 RedeemRewardCommand.RaiseCanExecuteChanged();
+                AssignModuleCommand.RaiseCanExecuteChanged();
+                SyncModuleFromSelection(value);
             }
         }
     }
@@ -112,6 +131,9 @@ public sealed class RewardShopViewModel : AchievementAwareViewModel
             {
                 EquipRewardCommand.RaiseCanExecuteChanged();
                 UnequipRewardCommand.RaiseCanExecuteChanged();
+                AssignModuleCommand.RaiseCanExecuteChanged();
+                if (value is not null)
+                    SyncModuleFromSelection(value);
             }
         }
     }
@@ -137,6 +159,8 @@ public sealed class RewardShopViewModel : AchievementAwareViewModel
 
     public AsyncRelayCommand CreateRewardCommand { get; }
 
+    public AsyncRelayCommand AssignModuleCommand { get; }
+
     public AsyncRelayCommand RedeemRewardCommand { get; }
 
     public AsyncRelayCommand EquipRewardCommand { get; }
@@ -152,22 +176,27 @@ public sealed class RewardShopViewModel : AchievementAwareViewModel
         OnPropertyChanged(nameof(BalanceText));
 
         var rewards = await _rewardService.GetAllAsync();
-        AvailableRewards.Clear();
-        InventoryRewards.Clear();
+        var available = new List<RewardRowViewModel>();
+        var inventory = new List<RewardRowViewModel>();
         foreach (var reward in rewards)
         {
             var row = new RewardRowViewModel(reward, _currentLevel, _equippedRewardId ?? 0);
             if (row.IsAvailable)
-                AvailableRewards.Add(row);
+                available.Add(row);
             else
-                InventoryRewards.Add(row);
+                inventory.Add(row);
         }
 
+        ReplaceSections(AvailableSections, available);
+        ReplaceSections(InventorySections, inventory);
+
         UnequipRewardCommand.RaiseCanExecuteChanged();
+        AssignModuleCommand.RaiseCanExecuteChanged();
     }
 
     private ValidationResult ValidateCreateForm() =>
         FormValidation.FirstFailure(
+            FormValidation.RequireValue(SelectedModule, "el módulo del premio"),
             FormValidation.RequireText(Name, "el nombre del premio"),
             FormValidation.RequirePositiveInt(CostInPoints, "El costo en XP", out _));
 
@@ -182,25 +211,69 @@ public sealed class RewardShopViewModel : AchievementAwareViewModel
 
     private bool CanUnequip() => _equippedRewardId is > 0;
 
+    private bool CanAssignModule()
+    {
+        var selected = SelectedAvailable ?? SelectedInventory;
+        return SelectedModule is not null
+            && selected is not null
+            && selected.SourceType != SelectedModule.Value;
+    }
+
+    private void SyncModuleFromSelection(RewardRowViewModel? row)
+    {
+        if (row?.SourceType is not { } source)
+            return;
+
+        var match = ModuleOptions.FirstOrDefault(option => option.Value == source);
+        if (match is not null)
+            SelectedModule = match;
+    }
+
+    private static void ReplaceSections(
+        ObservableCollection<RewardShopSectionViewModel> target,
+        IReadOnlyList<RewardRowViewModel> rows)
+    {
+        target.Clear();
+        foreach (var section in RewardShopCatalog.Group(rows, row => row.SourceType))
+            target.Add(new RewardShopSectionViewModel(section));
+    }
+
     private async Task CreateRewardAsync()
     {
-        if (!ValidateCreateForm().IsValid)
+        if (!ValidateCreateForm().IsValid || SelectedModule is null)
         {
             RefreshCreateValidation();
             return;
         }
 
         var cost = int.Parse(CostInPoints);
+        var module = SelectedModule.Value;
         await RunBusyAsync(async () =>
         {
-            await _rewardService.CreateAsync(Name, cost, Description);
+            await _rewardService.CreateAsync(Name, cost, module, Description);
             Name = string.Empty;
             CostInPoints = "500";
             Description = null;
             ClearValidation();
             await LoadCoreAsync();
-            StatusMessage = "Premio creado en el catálogo.";
+            StatusMessage = $"Premio creado en {HobbyProgressCatalog.GetDisplayName(module)}.";
         }, "Creando premio...");
+    }
+
+    private async Task AssignModuleAsync()
+    {
+        var selected = SelectedAvailable ?? SelectedInventory;
+        if (selected is null || SelectedModule is null)
+            return;
+
+        var rewardId = selected.Id;
+        var module = SelectedModule.Value;
+        await RunBusyAsync(async () =>
+        {
+            await _rewardService.UpdateSourceTypeAsync(rewardId, module);
+            await LoadCoreAsync();
+            StatusMessage = $"Premio asignado a {HobbyProgressCatalog.GetDisplayName(module)}.";
+        }, "Asignando módulo...");
     }
 
     private async Task RedeemRewardAsync()

@@ -57,4 +57,8 @@ public sealed class RewardRowViewModel : ViewModelBase
         : $"{EffectiveCost:N0} XP (base {BaseCost:N0} × niv. {CurrentLevel})";
 
     public string EquipButtonLabel => IsEquipped ? "Equipado" : "Equipar";
+
+    public MilestoneSourceType? SourceType => Reward.SourceType;
+
+    public string ModuleLabel => RewardShopCatalog.GetModuleDisplayName(SourceType);
 }

@@ -98,6 +98,9 @@
                             <TextBlock Text="Premio destacado" Style="{StaticResource MutedText}" FontSize="12" />
                             <TextBlock Text="{Binding AchievementHub.FeaturedReward.Name, FallbackValue=Cree un premio en la tienda}"
                                        FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,4,0,0" />
+                            <TextBlock Text="{Binding AchievementHub.FeaturedModuleName}"
+                                       Style="{StaticResource MutedText}" FontSize="12" Margin="0,2,0,0"
+                                       Visibility="{Binding AchievementHub.HasFeaturedReward, Converter={StaticResource BoolToVisibilityConverter}}" />
                             <TextBlock Text="{Binding AchievementHub.FeaturedCostText}"
                                        Style="{StaticResource MutedText}" FontSize="12" Margin="0,4,0,0"
                                        Visibility="{Binding AchievementHub.HasFeaturedReward, Converter={StaticResource BoolToVisibilityConverter}}" />

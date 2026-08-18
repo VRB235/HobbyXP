@@ -73,6 +73,7 @@ public sealed class DatabaseMaintenanceServiceTests : IDisposable
             {
                 Name = "Café",
                 CostInPoints = 100,
+                SourceType = MilestoneSourceType.Gym,
                 Status = RewardStatus.Redeemed,
                 RedeemedAt = DateTime.UtcNow
             });
@@ -114,5 +115,6 @@ public sealed class DatabaseMaintenanceServiceTests : IDisposable
         var reward = await db.Rewards.SingleAsync();
         Assert.Equal(RewardStatus.Available, reward.Status);
         Assert.Null(reward.RedeemedAt);
+        Assert.Equal(MilestoneSourceType.Gym, reward.SourceType);
     }
 }
