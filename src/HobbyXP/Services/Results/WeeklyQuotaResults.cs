@@ -23,9 +23,24 @@ public sealed record WeeklyQuotaProgress(
     WeeklyQuotaStatus? LastClosedStatus,
     string? ActivePenaltyReminder)
 {
-    public string ProgressText => RequiredSecondary > 0
-        ? $"{ActualPrimary}/{RequiredPrimary} {PrimaryUnitLabel} · {ActualSecondary}/{RequiredSecondary} {SecondaryUnitLabel}"
-        : $"{ActualPrimary}/{RequiredPrimary} {PrimaryUnitLabel}";
+    public bool IsApplicable => RequiredPrimary > 0 || RequiredSecondary > 0;
+
+    public string ProgressText
+    {
+        get
+        {
+            if (!IsApplicable)
+                return "Sin actividad activa esta semana";
+
+            if (RequiredPrimary > 0 && RequiredSecondary > 0)
+                return $"{ActualPrimary}/{RequiredPrimary} {PrimaryUnitLabel} · {ActualSecondary}/{RequiredSecondary} {SecondaryUnitLabel}";
+
+            if (RequiredSecondary > 0)
+                return $"{ActualSecondary}/{RequiredSecondary} {SecondaryUnitLabel}";
+
+            return $"{ActualPrimary}/{RequiredPrimary} {PrimaryUnitLabel}";
+        }
+    }
 
     public bool HasActivePenalty => !string.IsNullOrWhiteSpace(ActivePenaltyReminder);
 }

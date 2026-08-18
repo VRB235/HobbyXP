@@ -24,10 +24,10 @@ public static class WeeklyQuotaPenaltyMessages
             MilestoneSourceType.Running => "no registraste entrenamientos",
             MilestoneSourceType.Gym => "no registraste entrenamientos",
             MilestoneSourceType.Puzzle => "no registraste rompecabezas",
-            MilestoneSourceType.Media => "no registraste series/películas",
+            MilestoneSourceType.Media => "no terminaste una serie o no registraste 2 películas",
             MilestoneSourceType.VideoGame => "no registraste progreso",
-            MilestoneSourceType.Book => "no registraste lectura",
-            MilestoneSourceType.Course => "no registraste sesiones",
+            MilestoneSourceType.Book => "no leíste el 20% del libro actual",
+            MilestoneSourceType.Course => "no registraste 5 sesiones",
             MilestoneSourceType.Diet => "no alcanzaste 5 días buenos",
             _ => "no registraste progreso"
         };

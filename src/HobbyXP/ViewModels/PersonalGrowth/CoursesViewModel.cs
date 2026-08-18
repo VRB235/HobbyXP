@@ -26,12 +26,13 @@ public sealed class CoursesViewModel : AchievementAwareViewModel
         IXpService xpService,
         IWeeklyQuotaService weeklyQuotaService,
         IProfileRefreshMessenger profileRefreshMessenger,
-        IAchievementMessenger achievementMessenger)
+        IAchievementMessenger achievementMessenger,
+        IAchievementProgressService achievementProgress)
         : base(achievementMessenger)
     {
         _courseService = courseService;
         _profileRefreshMessenger = profileRefreshMessenger;
-        HobbyXp = new HobbyProgressPresenter(xpService, MilestoneSourceType.Course, weeklyQuotaService);
+        HobbyXp = new HobbyProgressPresenter(xpService, MilestoneSourceType.Course, weeklyQuotaService, achievementProgress);
         InProgressRows = new ObservableCollection<CourseProgressRowViewModel>();
         CompletedCourses = new ObservableCollection<Course>();
         RegisterCommand = new AsyncRelayCommand(RegisterAsync, CanRegister);

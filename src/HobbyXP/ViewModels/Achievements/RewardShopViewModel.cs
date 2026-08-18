@@ -1,8 +1,8 @@
 using System.Collections.ObjectModel;
 using HobbyXP.Helpers;
-using HobbyXP.Models.Achievements;
 using HobbyXP.Models.Enums;
 using HobbyXP.Services.Abstractions;
+using HobbyXP.Services.Messaging;
 using HobbyXP.ViewModels.Common;
 using HobbyXP.ViewModels.Messaging;
 
@@ -12,28 +12,39 @@ public sealed class RewardShopViewModel : AchievementAwareViewModel
 {
     private readonly IRewardService _rewardService;
     private readonly IPlayerProfileService _playerProfileService;
+    private readonly IProfileRefreshMessenger _profileRefreshMessenger;
     private string _name = string.Empty;
     private string _costInPoints = "500";
     private string? _description;
     private int _availableXp;
-    private Reward? _selectedReward;
+    private int _currentLevel = 1;
+    private int? _equippedRewardId;
+    private RewardRowViewModel? _selectedAvailable;
+    private RewardRowViewModel? _selectedInventory;
 
     public RewardShopViewModel(
         IRewardService rewardService,
         IPlayerProfileService playerProfileService,
+        IProfileRefreshMessenger profileRefreshMessenger,
         IAchievementMessenger achievementMessenger)
         : base(achievementMessenger)
     {
         _rewardService = rewardService;
         _playerProfileService = playerProfileService;
-        Rewards = new ObservableCollection<Reward>();
+        _profileRefreshMessenger = profileRefreshMessenger;
+        AvailableRewards = new ObservableCollection<RewardRowViewModel>();
+        InventoryRewards = new ObservableCollection<RewardRowViewModel>();
 
         CreateRewardCommand = new AsyncRelayCommand(CreateRewardAsync, CanCreateReward);
         RedeemRewardCommand = new AsyncRelayCommand(RedeemRewardAsync, CanRedeemSelected);
+        EquipRewardCommand = new AsyncRelayCommand(EquipRewardAsync, CanEquipSelected);
+        UnequipRewardCommand = new AsyncRelayCommand(UnequipRewardAsync, CanUnequip);
         RefreshCreateValidation();
     }
 
-    public ObservableCollection<Reward> Rewards { get; }
+    public ObservableCollection<RewardRowViewModel> AvailableRewards { get; }
+
+    public ObservableCollection<RewardRowViewModel> InventoryRewards { get; }
 
     public string Name
     {
@@ -51,10 +62,7 @@ public sealed class RewardShopViewModel : AchievementAwareViewModel
         set
         {
             if (SetProperty(ref _costInPoints, value))
-            {
                 RefreshCreateValidation();
-                OnPropertyChanged(nameof(CanAffordSelected));
-            }
         }
     }
 
@@ -73,49 +81,89 @@ public sealed class RewardShopViewModel : AchievementAwareViewModel
             {
                 OnPropertyChanged(nameof(CanAffordSelected));
                 OnPropertyChanged(nameof(BalanceText));
+                RedeemRewardCommand.RaiseCanExecuteChanged();
             }
         }
     }
 
-    public string BalanceText => $"Saldo canjeable: {AvailableXp:N0} XP";
+    public string BalanceText =>
+        $"Saldo canjeable: {AvailableXp:N0} XP · nivel {_currentLevel} (el costo = base × nivel)";
 
-    public Reward? SelectedReward
+    public RewardRowViewModel? SelectedAvailable
     {
-        get => _selectedReward;
+        get => _selectedAvailable;
         set
         {
-            if (SetProperty(ref _selectedReward, value))
+            if (SetProperty(ref _selectedAvailable, value))
             {
                 OnPropertyChanged(nameof(CanAffordSelected));
                 OnPropertyChanged(nameof(SelectedRewardRedeemHint));
+                RedeemRewardCommand.RaiseCanExecuteChanged();
+            }
+        }
+    }
+
+    public RewardRowViewModel? SelectedInventory
+    {
+        get => _selectedInventory;
+        set
+        {
+            if (SetProperty(ref _selectedInventory, value))
+            {
+                EquipRewardCommand.RaiseCanExecuteChanged();
+                UnequipRewardCommand.RaiseCanExecuteChanged();
             }
         }
     }
 
     public bool CanAffordSelected =>
-        SelectedReward is { Status: RewardStatus.Available } &&
-        AvailableXp >= SelectedReward.CostInPoints;
+        SelectedAvailable is { IsAvailable: true } selected &&
+        AvailableXp >= selected.EffectiveCost;
 
-    public string SelectedRewardRedeemHint =>
-        SelectedReward is null
-            ? "Seleccione un premio."
-            : CanAffordSelected
-                ? "¡Puedes canjear este premio!"
-                : $"Necesitas {SelectedReward.CostInPoints:N0} XP (te faltan {SelectedReward.CostInPoints - AvailableXp:N0}).";
+    public string SelectedRewardRedeemHint
+    {
+        get
+        {
+            if (SelectedAvailable is null)
+                return "Seleccione un premio disponible.";
+
+            if (CanAffordSelected)
+                return $"Puede canjearlo por {SelectedAvailable.EffectiveCost:N0} XP.";
+
+            var missing = SelectedAvailable.EffectiveCost - AvailableXp;
+            return $"Necesita {SelectedAvailable.EffectiveCost:N0} XP (faltan {missing:N0}).";
+        }
+    }
 
     public AsyncRelayCommand CreateRewardCommand { get; }
 
     public AsyncRelayCommand RedeemRewardCommand { get; }
 
+    public AsyncRelayCommand EquipRewardCommand { get; }
+
+    public AsyncRelayCommand UnequipRewardCommand { get; }
+
     protected override async Task LoadCoreAsync()
     {
         var profile = await _playerProfileService.GetProfileAsync();
         AvailableXp = profile.SpendableXp;
+        _currentLevel = profile.CurrentLevel;
+        _equippedRewardId = profile.EquippedRewardId;
+        OnPropertyChanged(nameof(BalanceText));
 
         var rewards = await _rewardService.GetAllAsync();
-        Rewards.Clear();
+        AvailableRewards.Clear();
+        InventoryRewards.Clear();
         foreach (var reward in rewards)
-            Rewards.Add(reward);
+        {
+            var row = new RewardRowViewModel(reward, _currentLevel, _equippedRewardId ?? 0);
+            if (row.IsAvailable)
+                AvailableRewards.Add(row);
+            else
+                InventoryRewards.Add(row);
+        }
+
+        UnequipRewardCommand.RaiseCanExecuteChanged();
     }
 
     private ValidationResult ValidateCreateForm() =>
@@ -130,6 +178,10 @@ public sealed class RewardShopViewModel : AchievementAwareViewModel
 
     private bool CanRedeemSelected() => CanAffordSelected;
 
+    private bool CanEquipSelected() => SelectedInventory is { IsRedeemed: true, IsEquipped: false };
+
+    private bool CanUnequip() => _equippedRewardId is > 0;
+
     private async Task CreateRewardAsync()
     {
         if (!ValidateCreateForm().IsValid)
@@ -141,36 +193,55 @@ public sealed class RewardShopViewModel : AchievementAwareViewModel
         var cost = int.Parse(CostInPoints);
         await RunBusyAsync(async () =>
         {
-            var reward = await _rewardService.CreateAsync(Name, cost, Description);
-            Rewards.Insert(0, reward);
-
+            await _rewardService.CreateAsync(Name, cost, Description);
             Name = string.Empty;
             CostInPoints = "500";
             Description = null;
             ClearValidation();
-            StatusMessage = $"Premio '{reward.Name}' creado.";
+            await LoadCoreAsync();
+            StatusMessage = "Premio creado en el catálogo.";
         }, "Creando premio...");
     }
 
     private async Task RedeemRewardAsync()
     {
-        if (SelectedReward is null || !CanAffordSelected)
+        if (SelectedAvailable is null || !CanAffordSelected)
             return;
 
+        var rewardId = SelectedAvailable.Id;
         await RunBusyAsync(async () =>
         {
-            var result = await _rewardService.RedeemAsync(SelectedReward.Id);
+            var result = await _rewardService.RedeemAsync(rewardId);
             PublishAchievements(result.Events);
-
-            var index = Rewards.IndexOf(SelectedReward);
-            if (index >= 0)
-                Rewards[index] = result.Value;
-
-            SelectedReward = result.Value;
-            var profile = await _playerProfileService.GetProfileAsync();
-            AvailableXp = profile.SpendableXp;
-
-            StatusMessage = $"Premio canjeado: {result.Value.Name}";
+            await LoadCoreAsync();
+            _profileRefreshMessenger.RequestRefresh();
+            StatusMessage = $"Premio canjeado: {result.Value.Name}. Ya está en el inventario.";
         }, "Canjeando premio...");
+    }
+
+    private async Task EquipRewardAsync()
+    {
+        if (SelectedInventory is null)
+            return;
+
+        var rewardId = SelectedInventory.Id;
+        await RunBusyAsync(async () =>
+        {
+            await _rewardService.EquipAsync(rewardId);
+            await LoadCoreAsync();
+            _profileRefreshMessenger.RequestRefresh();
+            StatusMessage = "Reliquia equipada. Se muestra en el perfil.";
+        }, "Equipando premio...");
+    }
+
+    private async Task UnequipRewardAsync()
+    {
+        await RunBusyAsync(async () =>
+        {
+            await _rewardService.UnequipAsync();
+            await LoadCoreAsync();
+            _profileRefreshMessenger.RequestRefresh();
+            StatusMessage = "Reliquia desequipada.";
+        }, "Quitando reliquia...");
     }
 }

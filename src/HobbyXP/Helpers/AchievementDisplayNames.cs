@@ -25,6 +25,7 @@ public static class AchievementDisplayNames
         AchievementActionType.HobbyLevelUp => "Bonus global — nivel de hobby",
         AchievementActionType.DietMealOnPlan => "Dieta — comida en plan",
         AchievementActionType.DietPerfectDay => "Dieta — día perfecto",
+        AchievementActionType.MedalPrivilegeBonus => "Medalla — bonus de saldo",
         _ => actionType.ToString()
     };
 

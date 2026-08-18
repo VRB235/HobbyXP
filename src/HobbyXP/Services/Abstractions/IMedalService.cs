@@ -7,6 +7,8 @@ public interface IMedalService
 {
     Task<IReadOnlyList<MedalShowcaseItem>> GetShowcaseAsync(CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyList<MedalShowcaseSection>> GetShowcaseSectionsAsync(CancellationToken cancellationToken = default);
+
     Task<IReadOnlyList<EarnedMedal>> GetEarnedMedalsAsync(CancellationToken cancellationToken = default);
 
     Task<IReadOnlyList<MedalDefinition>> GetAllDefinitionsAsync(CancellationToken cancellationToken = default);

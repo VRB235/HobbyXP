@@ -1,4 +1,5 @@
 using HobbyXP.Data;
+using HobbyXP.Helpers;
 using HobbyXP.Models.Achievements;
 using HobbyXP.Models.Enums;
 using HobbyXP.Services.Abstractions;
@@ -71,7 +72,8 @@ public sealed class RewardService : IRewardService
             return false;
 
         var profile = await _playerProfileService.GetProfileAsync(cancellationToken);
-        return profile.SpendableXp >= reward.CostInPoints;
+        var cost = RewardCostCalculator.GetEffectiveCost(reward.CostInPoints, profile.CurrentLevel);
+        return profile.SpendableXp >= cost;
     }
 
     public async Task<OperationResult<Reward>> RedeemAsync(
@@ -85,9 +87,12 @@ public sealed class RewardService : IRewardService
         if (reward.Status != RewardStatus.Available)
             throw new InvalidOperationException("El premio ya fue reclamado.");
 
+        var profile = await _playerProfileService.GetProfileAsync(cancellationToken);
+        var effectiveCost = RewardCostCalculator.GetEffectiveCost(reward.CostInPoints, profile.CurrentLevel);
+
         var deducted = await _xpService.TryDeductXpAsync(
-            reward.CostInPoints,
-            $"Canje de premio: {reward.Name}",
+            effectiveCost,
+            $"Canje de premio: {reward.Name} ({effectiveCost:N0} XP)",
             cancellationToken);
 
         if (!deducted)
@@ -95,14 +100,15 @@ public sealed class RewardService : IRewardService
 
         reward.Status = RewardStatus.Redeemed;
         reward.RedeemedAt = DateTime.UtcNow;
+        reward.RedeemedCostInPoints = effectiveCost;
         reward.UpdatedAt = DateTime.UtcNow;
         await db.SaveChangesAsync(cancellationToken);
 
         var milestone = new Models.Core.Milestone
         {
             Title = $"Premio canjeado: {reward.Name}",
-            Description = $"Gastaste {reward.CostInPoints} XP.",
-            PointsEarned = -reward.CostInPoints,
+            Description = $"Gastaste {effectiveCost:N0} XP (base {reward.CostInPoints:N0} × nivel {profile.CurrentLevel}).",
+            PointsEarned = -effectiveCost,
             SourceType = MilestoneSourceType.Reward,
             SourceEntityId = reward.Id,
             CompletedAt = DateTime.UtcNow
@@ -114,9 +120,34 @@ public sealed class RewardService : IRewardService
         var achievementEvent = new AchievementEvent(
             milestone.Title,
             milestone.Description ?? reward.Name,
-            -reward.CostInPoints,
+            -effectiveCost,
             MilestoneSourceType.Reward);
 
         return OperationResult<Reward>.WithEvents(reward, achievementEvent);
+    }
+
+    public async Task EquipAsync(int rewardId, CancellationToken cancellationToken = default)
+    {
+        await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var reward = await db.Rewards.AsNoTracking()
+            .FirstOrDefaultAsync(r => r.Id == rewardId, cancellationToken)
+            ?? throw new InvalidOperationException($"No existe el premio con Id {rewardId}.");
+
+        if (reward.Status != RewardStatus.Redeemed)
+            throw new InvalidOperationException("Solo se pueden equipar premios ya canjeados.");
+
+        var profile = await db.PlayerProfiles.FirstAsync(cancellationToken);
+        profile.EquippedRewardId = reward.Id;
+        profile.UpdatedAt = DateTime.UtcNow;
+        await db.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task UnequipAsync(CancellationToken cancellationToken = default)
+    {
+        await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var profile = await db.PlayerProfiles.FirstAsync(cancellationToken);
+        profile.EquippedRewardId = null;
+        profile.UpdatedAt = DateTime.UtcNow;
+        await db.SaveChangesAsync(cancellationToken);
     }
 }

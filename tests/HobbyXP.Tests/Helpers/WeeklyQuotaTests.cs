@@ -34,13 +34,14 @@ public sealed class WeekDateHelperTests
 public sealed class WeeklyQuotaRulesTests
 {
     [Fact]
-    public void Media_RequiresSeriesAndMovies()
+    public void Media_RequiresCompletedSeriesAndMovies()
     {
         var (primary, secondary) = WeeklyQuotaRules.GetRequired(Models.Enums.MilestoneSourceType.Media);
         Assert.Equal(1, primary);
         Assert.Equal(2, secondary);
         Assert.False(WeeklyQuotaRules.IsMet(1, 1, 2, 1));
         Assert.True(WeeklyQuotaRules.IsMet(1, 1, 2, 2));
+        Assert.Contains("serie terminada", WeeklyQuotaRules.FormatRequirement(Models.Enums.MilestoneSourceType.Media), StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -51,6 +52,33 @@ public sealed class WeeklyQuotaRulesTests
         Assert.Equal(0, secondary);
         Assert.False(WeeklyQuotaRules.IsMet(5, 4, 0, 0));
         Assert.True(WeeklyQuotaRules.IsMet(5, 5, 0, 0));
+    }
+
+    [Fact]
+    public void Course_RequiresFiveSessions()
+    {
+        var (primary, secondary) = WeeklyQuotaRules.GetRequired(Models.Enums.MilestoneSourceType.Course);
+        Assert.Equal(5, primary);
+        Assert.Equal(0, secondary);
+    }
+
+    [Theory]
+    [InlineData(0, 0)]
+    [InlineData(1, 1)]
+    [InlineData(100, 20)]
+    [InlineData(101, 21)]
+    [InlineData(4, 1)]
+    public void Book_RequiredPages_IsTwentyPercentCeiling(int totalPages, int expected)
+    {
+        Assert.Equal(expected, WeeklyQuotaRules.GetBookRequiredPages(totalPages));
+    }
+
+    [Fact]
+    public void Book_CompletingBook_MeetsQuotaEvenIfPagesBelowTwentyPercent()
+    {
+        Assert.True(WeeklyQuotaRules.IsBookQuotaMet(100, 10, completedBookThisWeek: true));
+        Assert.False(WeeklyQuotaRules.IsBookQuotaMet(100, 10, completedBookThisWeek: false));
+        Assert.True(WeeklyQuotaRules.IsBookQuotaMet(100, 100, completedBookThisWeek: false));
     }
 }
 

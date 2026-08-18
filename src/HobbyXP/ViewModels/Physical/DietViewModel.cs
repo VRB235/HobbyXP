@@ -32,13 +32,14 @@ public sealed class DietViewModel : AchievementAwareViewModel
         IWeeklyQuotaService weeklyQuotaService,
         IMessageDialogService messageDialogService,
         IProfileRefreshMessenger profileRefreshMessenger,
-        IAchievementMessenger achievementMessenger)
+        IAchievementMessenger achievementMessenger,
+        IAchievementProgressService achievementProgress)
         : base(achievementMessenger)
     {
         _dietService = dietService;
         _messageDialogService = messageDialogService;
         _profileRefreshMessenger = profileRefreshMessenger;
-        HobbyXp = new HobbyProgressPresenter(xpService, MilestoneSourceType.Diet, weeklyQuotaService);
+        HobbyXp = new HobbyProgressPresenter(xpService, MilestoneSourceType.Diet, weeklyQuotaService, achievementProgress);
         History = new ObservableCollection<DietDayLog>();
         Meals =
         [

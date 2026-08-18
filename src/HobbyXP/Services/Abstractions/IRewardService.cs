@@ -18,4 +18,8 @@ public interface IRewardService
         CancellationToken cancellationToken = default);
 
     Task<bool> CanRedeemAsync(int rewardId, CancellationToken cancellationToken = default);
+
+    Task EquipAsync(int rewardId, CancellationToken cancellationToken = default);
+
+    Task UnequipAsync(CancellationToken cancellationToken = default);
 }

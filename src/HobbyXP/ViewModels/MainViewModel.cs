@@ -20,6 +20,8 @@ public sealed class MainViewModel : ViewModelBase
     private readonly IFileDialogService _fileDialogService;
     private readonly IProfileRefreshMessenger _profileRefreshMessenger;
     private readonly IApplicationDataResetMessenger _applicationDataResetMessenger;
+    private readonly IAchievementProgressService _achievementProgress;
+    private readonly Queue<AchievementEvent> _pendingMedalCelebrations = new();
     private object? _currentViewModel;
     private NavigationSection _currentSection = NavigationSection.Dashboard;
     private string? _latestAchievementMessage;
@@ -34,6 +36,15 @@ public sealed class MainViewModel : ViewModelBase
     private bool _isLevelUpVisible;
     private int _celebrationLevel = 1;
     private int _celebrationTotalXp;
+    private bool _isMedalUnlockVisible;
+    private string _celebrationMedalName = string.Empty;
+    private string _celebrationMedalDescription = string.Empty;
+    private string? _celebrationMedalIconPath;
+    private int _celebrationMedalBonus;
+    private string? _honorTitle;
+    private string? _equippedRewardName;
+    private bool _hasEquippedReward;
+    private string? _immunityText;
 
     public MainViewModel(
         INavigationService navigationService,
@@ -42,7 +53,8 @@ public sealed class MainViewModel : ViewModelBase
         IPlayerProfileService playerProfileService,
         IFileDialogService fileDialogService,
         IProfileRefreshMessenger profileRefreshMessenger,
-        IApplicationDataResetMessenger applicationDataResetMessenger)
+        IApplicationDataResetMessenger applicationDataResetMessenger,
+        IAchievementProgressService achievementProgress)
     {
         _navigationService = navigationService;
         _achievementMessenger = achievementMessenger;
@@ -51,6 +63,7 @@ public sealed class MainViewModel : ViewModelBase
         _fileDialogService = fileDialogService;
         _profileRefreshMessenger = profileRefreshMessenger;
         _applicationDataResetMessenger = applicationDataResetMessenger;
+        _achievementProgress = achievementProgress;
 
         NavigationItems = new ObservableCollection<NavigationItem>(new[]
         {
@@ -66,6 +79,8 @@ public sealed class MainViewModel : ViewModelBase
         PickAvatarCommand = new AsyncRelayCommand(PickAvatarAsync);
         SaveDisplayNameCommand = new AsyncRelayCommand(SaveDisplayNameAsync, CanSaveDisplayName);
         DismissLevelUpCommand = new RelayCommand(DismissLevelUp);
+        DismissMedalUnlockCommand = new RelayCommand(DismissMedalUnlock);
+        OpenAchievementsFromMedalCommand = new AsyncRelayCommand(OpenAchievementsFromMedalAsync);
 
         RefreshDisplayNameValidation();
 
@@ -193,6 +208,76 @@ public sealed class MainViewModel : ViewModelBase
 
     public RelayCommand DismissLevelUpCommand { get; }
 
+    public RelayCommand DismissMedalUnlockCommand { get; }
+
+    public AsyncRelayCommand OpenAchievementsFromMedalCommand { get; }
+
+    public bool IsMedalUnlockVisible
+    {
+        get => _isMedalUnlockVisible;
+        private set => SetProperty(ref _isMedalUnlockVisible, value);
+    }
+
+    public string CelebrationMedalName
+    {
+        get => _celebrationMedalName;
+        private set => SetProperty(ref _celebrationMedalName, value);
+    }
+
+    public string CelebrationMedalDescription
+    {
+        get => _celebrationMedalDescription;
+        private set => SetProperty(ref _celebrationMedalDescription, value);
+    }
+
+    public string? CelebrationMedalIconPath
+    {
+        get => _celebrationMedalIconPath;
+        private set => SetProperty(ref _celebrationMedalIconPath, value);
+    }
+
+    public int CelebrationMedalBonus
+    {
+        get => _celebrationMedalBonus;
+        private set => SetProperty(ref _celebrationMedalBonus, value);
+    }
+
+    public string? HonorTitle
+    {
+        get => _honorTitle;
+        private set
+        {
+            if (SetProperty(ref _honorTitle, value))
+                OnPropertyChanged(nameof(HasHonorTitle));
+        }
+    }
+
+    public bool HasHonorTitle => !string.IsNullOrWhiteSpace(HonorTitle);
+
+    public string? EquippedRewardName
+    {
+        get => _equippedRewardName;
+        private set => SetProperty(ref _equippedRewardName, value);
+    }
+
+    public bool HasEquippedReward
+    {
+        get => _hasEquippedReward;
+        private set => SetProperty(ref _hasEquippedReward, value);
+    }
+
+    public string? ImmunityText
+    {
+        get => _immunityText;
+        private set
+        {
+            if (SetProperty(ref _immunityText, value))
+                OnPropertyChanged(nameof(HasImmunity));
+        }
+    }
+
+    public bool HasImmunity => !string.IsNullOrWhiteSpace(ImmunityText);
+
     public async Task InitializeAsync()
     {
         await RefreshProfileAsync();
@@ -217,7 +302,24 @@ public sealed class MainViewModel : ViewModelBase
         OnPropertyChanged(nameof(SidebarXpSummary));
         OnPropertyChanged(nameof(SidebarSpendableSummary));
 
+        await RefreshUnseenBadgeAsync();
         await RefreshDashboardAsync();
+    }
+
+    private async Task RefreshUnseenBadgeAsync()
+    {
+        var unseen = await _achievementProgress.GetUnseenMedalCountAsync();
+        var hub = await _achievementProgress.GetHubSnapshotAsync();
+        HonorTitle = hub.HonorTitle;
+        EquippedRewardName = string.IsNullOrWhiteSpace(hub.EquippedRewardName)
+            ? null
+            : $"Reliquia: {hub.EquippedRewardName}";
+        HasEquippedReward = !string.IsNullOrWhiteSpace(hub.EquippedRewardName);
+        ImmunityText = hub.IsImmune ? hub.ImmunityText : null;
+
+        var achievementsNav = NavigationItems.FirstOrDefault(i => i.Section == NavigationSection.Achievements);
+        if (achievementsNav is not null)
+            achievementsNav.BadgeCount = unseen;
     }
 
     private async Task PickAvatarAsync()
@@ -272,8 +374,15 @@ public sealed class MainViewModel : ViewModelBase
 
     private async Task NavigateAsync(object? parameter)
     {
-        if (parameter is NavigationSection section)
-            await _navigationService.NavigateAsync(section);
+        if (parameter is not NavigationSection section)
+            return;
+
+        await _navigationService.NavigateAsync(section);
+        if (section == NavigationSection.Achievements)
+        {
+            await _achievementProgress.MarkMedalsSeenAsync();
+            await RefreshUnseenBadgeAsync();
+        }
     }
 
     private void SyncNavigationState()
@@ -289,8 +398,14 @@ public sealed class MainViewModel : ViewModelBase
     {
         var medal = e.MedalUnlocked.HasValue ? $" · Medalla: {e.MedalUnlocked}" : string.Empty;
         LatestAchievementMessage = e.RequiresCelebration
-            ? $"🎉 {e.Title} (+{e.PointsEarned} XP){medal}"
-            : $"{e.Title} (+{e.PointsEarned} XP){medal}";
+            ? $"🎉 {e.Title} (+{e.PointsEarned:N0} XP){medal}"
+            : $"{e.Title} (+{e.PointsEarned:N0} XP){medal}";
+
+        if (e.MedalUnlocked.HasValue && e.RequiresCelebration)
+        {
+            _pendingMedalCelebrations.Enqueue(e);
+            TryShowNextMedalCelebration();
+        }
 
         await RefreshProfileAsync();
     }
@@ -318,7 +433,41 @@ public sealed class MainViewModel : ViewModelBase
             await dashboard.LoadAsync();
     }
 
-    private void DismissLevelUp() => IsLevelUpVisible = false;
+    private void DismissLevelUp()
+    {
+        IsLevelUpVisible = false;
+        TryShowNextMedalCelebration();
+    }
+
+    private void DismissMedalUnlock()
+    {
+        IsMedalUnlockVisible = false;
+        TryShowNextMedalCelebration();
+    }
+
+    private async Task OpenAchievementsFromMedalAsync()
+    {
+        IsMedalUnlockVisible = false;
+        _pendingMedalCelebrations.Clear();
+        await _navigationService.NavigateAsync(NavigationSection.Achievements);
+        await _achievementProgress.MarkMedalsSeenAsync();
+        await RefreshUnseenBadgeAsync();
+    }
+
+    private void TryShowNextMedalCelebration()
+    {
+        if (IsLevelUpVisible || IsMedalUnlockVisible || _pendingMedalCelebrations.Count == 0)
+            return;
+
+        var next = _pendingMedalCelebrations.Dequeue();
+        CelebrationMedalName = next.Title;
+        CelebrationMedalDescription = next.Description;
+        CelebrationMedalBonus = next.PointsEarned;
+        CelebrationMedalIconPath = next.MedalUnlocked.HasValue
+            ? MedalIconPaths.ForMedalCode(next.MedalUnlocked.Value)
+            : null;
+        IsMedalUnlockVisible = true;
+    }
 
     private static double ClampProgress(double value) =>
         double.IsNaN(value) || double.IsInfinity(value) ? 0d : Math.Clamp(value, 0d, 100d);

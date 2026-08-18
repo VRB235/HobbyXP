@@ -12,5 +12,8 @@ public enum WeeklyQuotaStatus
     Restored = 2,
 
     /// <summary>No se pudo bajar de nivel (ya en piso: nivel 1 y 0 XP).</summary>
-    SkippedFloor = 3
+    SkippedFloor = 3,
+
+    /// <summary>Incumplida, pero había inmunidad de disciplina activa.</summary>
+    Waived = 4
 }

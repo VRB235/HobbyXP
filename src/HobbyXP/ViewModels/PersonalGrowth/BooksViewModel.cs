@@ -26,12 +26,13 @@ public sealed class BooksViewModel : AchievementAwareViewModel
         IXpService xpService,
         IWeeklyQuotaService weeklyQuotaService,
         IProfileRefreshMessenger profileRefreshMessenger,
-        IAchievementMessenger achievementMessenger)
+        IAchievementMessenger achievementMessenger,
+        IAchievementProgressService achievementProgress)
         : base(achievementMessenger)
     {
         _bookService = bookService;
         _profileRefreshMessenger = profileRefreshMessenger;
-        HobbyXp = new HobbyProgressPresenter(xpService, MilestoneSourceType.Book, weeklyQuotaService);
+        HobbyXp = new HobbyProgressPresenter(xpService, MilestoneSourceType.Book, weeklyQuotaService, achievementProgress);
         ReadingRows = new ObservableCollection<BookReadingRowViewModel>();
         CompletedRows = new ObservableCollection<BookCompletedRowViewModel>();
         RegisterCommand = new AsyncRelayCommand(RegisterAsync, CanRegister);

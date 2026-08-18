@@ -12,6 +12,7 @@ public sealed class HobbyProgressPresenter : ViewModelBase
 {
     private readonly IXpService _xpService;
     private readonly IWeeklyQuotaService? _weeklyQuotaService;
+    private readonly IAchievementProgressService? _achievementProgress;
     private readonly MilestoneSourceType _sourceType;
     private string _title;
     private int _currentLevel = 1;
@@ -20,14 +21,18 @@ public sealed class HobbyProgressPresenter : ViewModelBase
     private int _xpRequiredForNextLevel = 1;
     private double _progressPercentage;
     private string? _penaltyReminder;
+    private string? _nextMedalText;
+    private double _nextMedalPercent;
 
     public HobbyProgressPresenter(
         IXpService xpService,
         MilestoneSourceType sourceType,
-        IWeeklyQuotaService? weeklyQuotaService = null)
+        IWeeklyQuotaService? weeklyQuotaService = null,
+        IAchievementProgressService? achievementProgress = null)
     {
         _xpService = xpService;
         _weeklyQuotaService = weeklyQuotaService;
+        _achievementProgress = achievementProgress;
         _sourceType = sourceType;
         _title = HobbyProgressCatalog.GetDisplayName(sourceType);
     }
@@ -82,6 +87,24 @@ public sealed class HobbyProgressPresenter : ViewModelBase
 
     public bool HasPenaltyReminder => !string.IsNullOrWhiteSpace(PenaltyReminder);
 
+    public string? NextMedalText
+    {
+        get => _nextMedalText;
+        private set
+        {
+            if (SetProperty(ref _nextMedalText, value))
+                OnPropertyChanged(nameof(HasNextMedal));
+        }
+    }
+
+    public double NextMedalPercent
+    {
+        get => _nextMedalPercent;
+        private set => SetProperty(ref _nextMedalPercent, value);
+    }
+
+    public bool HasNextMedal => !string.IsNullOrWhiteSpace(NextMedalText);
+
     public string LevelText => HobbyLevelTitles.FormatLevelLabel(_sourceType, CurrentLevel);
 
     public string LevelTitle => HobbyLevelTitles.GetTitle(_sourceType, CurrentLevel);
@@ -109,6 +132,18 @@ public sealed class HobbyProgressPresenter : ViewModelBase
         else
         {
             PenaltyReminder = null;
+        }
+
+        if (_achievementProgress is not null)
+        {
+            var next = await _achievementProgress.GetNextMedalAsync(_sourceType, cancellationToken);
+            NextMedalText = next?.BannerText;
+            NextMedalPercent = next?.Percent ?? 0;
+        }
+        else
+        {
+            NextMedalText = null;
+            NextMedalPercent = 0;
         }
 
         OnPropertyChanged(nameof(LevelText));

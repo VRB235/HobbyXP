@@ -77,6 +77,7 @@ public sealed class DatabaseMaintenanceService : IDatabaseMaintenanceService
         {
             reward.Status = RewardStatus.Available;
             reward.RedeemedAt = null;
+            reward.RedeemedCostInPoints = null;
             reward.UpdatedAt = DateTime.UtcNow;
         }
 
@@ -91,6 +92,10 @@ public sealed class DatabaseMaintenanceService : IDatabaseMaintenanceService
             profile.TotalXp = 0;
             profile.SpendableXp = 0;
             profile.WeeklyQuotaTrackingStartedAtUtc = null;
+            profile.HonorTitle = null;
+            profile.EquippedRewardId = null;
+            profile.DisciplineImmunityUntilUtc = null;
+            profile.LastSeenEarnedMedalCount = 0;
             profile.SpendableLedgerInitialized = true;
             profile.SpendableProgressBaselineApplied = true;
             profile.UpdatedAt = now;
