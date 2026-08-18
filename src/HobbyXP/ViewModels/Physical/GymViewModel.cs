@@ -44,13 +44,14 @@ public sealed class GymViewModel : AchievementAwareViewModel
         IWeeklyQuotaService weeklyQuotaService,
         IMessageDialogService messageDialogService,
         IProfileRefreshMessenger profileRefreshMessenger,
-        IAchievementMessenger achievementMessenger)
+        IAchievementMessenger achievementMessenger,
+        IAchievementProgressService achievementProgress)
         : base(achievementMessenger)
     {
         _gymService = gymService;
         _messageDialogService = messageDialogService;
         _profileRefreshMessenger = profileRefreshMessenger;
-        HobbyXp = new HobbyProgressPresenter(xpService, MilestoneSourceType.Gym, weeklyQuotaService);
+        HobbyXp = new HobbyProgressPresenter(xpService, MilestoneSourceType.Gym, weeklyQuotaService, achievementProgress);
 
         MuscleGroupCatalogOptions = MuscleGroupOption.CreateCatalogOptions();
         MuscleGroupFilterOptions = MuscleGroupOption.CreateFilterOptions();

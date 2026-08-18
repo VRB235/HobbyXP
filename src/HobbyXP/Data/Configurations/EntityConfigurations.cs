@@ -39,6 +39,12 @@ internal sealed class PlayerProfileConfiguration : IEntityTypeConfiguration<Play
 
         builder.Property(p => p.WeeklyQuotaTrackingStartedAtUtc)
             .IsRequired(false);
+
+        builder.Property(p => p.HonorTitle)
+            .HasMaxLength(120);
+
+        builder.Property(p => p.LastSeenEarnedMedalCount)
+            .HasDefaultValue(0);
     }
 }
 

@@ -34,7 +34,12 @@
                             <Grid Width="52" Height="52" Margin="0,0,12,0">
                                 <Ellipse Fill="#2A3347"
                                          Stroke="{StaticResource AccentPurpleBrush}"
-                                         StrokeThickness="2" />
+                                         StrokeThickness="2"
+                                         Visibility="{Binding HasEquippedReward, Converter={StaticResource InverseBoolToVisibilityConverter}}" />
+                                <Ellipse Fill="#2A3347"
+                                         Stroke="{StaticResource AccentGoldBrush}"
+                                         StrokeThickness="3"
+                                         Visibility="{Binding HasEquippedReward, Converter={StaticResource BoolToVisibilityConverter}}" />
                                 <Ellipse Margin="3"
                                          Visibility="{Binding HasCustomAvatar, Converter={StaticResource BoolToVisibilityConverter}}">
                                     <Ellipse.Fill>
@@ -55,8 +60,24 @@
                                 </TextBox>
                                 <controls:FormValidationBanner Message="{Binding DisplayNameValidationMessage}" Margin="0,2,0,0" />
                                 <TextBlock Text="{Binding SidebarLevelText}" Style="{StaticResource MutedText}" FontSize="12" Margin="0,2,0,0" />
+                                <TextBlock Text="{Binding HonorTitle}"
+                                           Foreground="{StaticResource AccentGoldBrush}"
+                                           FontSize="11"
+                                           FontWeight="SemiBold"
+                                           TextWrapping="Wrap"
+                                           Visibility="{Binding HasHonorTitle, Converter={StaticResource BoolToVisibilityConverter}}" />
+                                <TextBlock Text="{Binding EquippedRewardName}"
+                                           Foreground="{StaticResource AccentCyanBrush}"
+                                           FontSize="11"
+                                           TextWrapping="Wrap"
+                                           Visibility="{Binding HasEquippedReward, Converter={StaticResource BoolToVisibilityConverter}}" />
                                 <TextBlock Text="{Binding SidebarXpSummary}" Style="{StaticResource MutedText}" FontSize="11" />
                                 <TextBlock Text="{Binding SidebarSpendableSummary}" Style="{StaticResource MutedText}" FontSize="11" />
+                                <TextBlock Text="{Binding ImmunityText}"
+                                           Foreground="{StaticResource AccentGreenBrush}"
+                                           FontSize="10"
+                                           TextWrapping="Wrap"
+                                           Visibility="{Binding HasImmunity, Converter={StaticResource BoolToVisibilityConverter}}" />
                             </StackPanel>
                         </Grid>
 
@@ -79,7 +100,16 @@
                                     CommandParameter="{Binding Section}"
                                     DataContext="{Binding}">
                                 <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="{Binding IconGlyph}" FontSize="16" Width="28" />
+                                    <Grid Width="28">
+                                        <TextBlock Text="{Binding IconGlyph}" FontSize="16" />
+                                        <Border HorizontalAlignment="Right" VerticalAlignment="Top"
+                                                Background="{StaticResource AccentGoldBrush}"
+                                                CornerRadius="8" Padding="4,0" MinWidth="16"
+                                                Visibility="{Binding HasBadge, Converter={StaticResource BoolToVisibilityConverter}}">
+                                            <TextBlock Text="{Binding BadgeText}" FontSize="9" FontWeight="Bold"
+                                                       Foreground="#1A1208" HorizontalAlignment="Center" />
+                                        </Border>
+                                    </Grid>
                                     <TextBlock Text="{Binding Title}" VerticalAlignment="Center" FontSize="14" />
                                 </StackPanel>
                             </Button>
@@ -106,5 +136,6 @@
         </Grid>
 
         <controls:LevelUpOverlay Grid.ColumnSpan="2" DataContext="{Binding}" Panel.ZIndex="1000" />
+        <controls:MedalUnlockOverlay Grid.ColumnSpan="2" DataContext="{Binding}" Panel.ZIndex="1001" />
     </Grid>
 </Window>

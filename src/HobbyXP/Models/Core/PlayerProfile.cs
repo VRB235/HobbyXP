@@ -49,6 +49,18 @@ public class PlayerProfile : EntityBase
     /// </summary>
     public DateTime? WeeklyQuotaTrackingStartedAtUtc { get; set; }
 
+    /// <summary>Título de honor de la última medalla desbloqueada.</summary>
+    public string? HonorTitle { get; set; }
+
+    /// <summary>Premio canjeado que el jugador tiene equipado (marco/reliquia).</summary>
+    public int? EquippedRewardId { get; set; }
+
+    /// <summary>Hasta esta fecha UTC no se aplican castigos de disciplina semanal.</summary>
+    public DateTime? DisciplineImmunityUntilUtc { get; set; }
+
+    /// <summary>Conteo de medallas ganadas la última vez que se abrió Logros (para el badge).</summary>
+    public int LastSeenEarnedMedalCount { get; set; }
+
     public ICollection<XpTransaction> Transactions { get; set; } = [];
 
     public ICollection<HobbyProgress> HobbyProgresses { get; set; } = [];

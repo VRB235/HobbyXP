@@ -35,13 +35,14 @@ public sealed class MediaViewModel : AchievementAwareViewModel
         IWeeklyQuotaService weeklyQuotaService,
         IMessageDialogService messageDialogService,
         IProfileRefreshMessenger profileRefreshMessenger,
-        IAchievementMessenger achievementMessenger)
+        IAchievementMessenger achievementMessenger,
+        IAchievementProgressService achievementProgress)
         : base(achievementMessenger)
     {
         _mediaService = mediaService;
         _messageDialogService = messageDialogService;
         _profileRefreshMessenger = profileRefreshMessenger;
-        HobbyXp = new HobbyProgressPresenter(xpService, MilestoneSourceType.Media, weeklyQuotaService);
+        HobbyXp = new HobbyProgressPresenter(xpService, MilestoneSourceType.Media, weeklyQuotaService, achievementProgress);
         History = new ObservableCollection<MediaEntry>();
         InProgressSeriesRows = new ObservableCollection<SeriesProgressRowViewModel>();
         MediaTypeFilterOptions = EnumFilterOption<MediaType>.Create(

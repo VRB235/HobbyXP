@@ -10,4 +10,15 @@ public sealed record MedalShowcaseItem(
     string UnlockHint,
     string? IconPath,
     bool IsEarned,
-    DateTime? EarnedAt);
+    DateTime? EarnedAt,
+    MilestoneSourceType SourceType);
+
+public sealed record MedalShowcaseSection(
+    MilestoneSourceType SourceType,
+    string DisplayName,
+    IReadOnlyList<MedalShowcaseItem> Medals)
+{
+    public int EarnedCount => Medals.Count(m => m.IsEarned);
+
+    public string ProgressText => $"{EarnedCount}/{Medals.Count} desbloqueadas";
+}

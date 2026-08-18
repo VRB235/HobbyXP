@@ -71,9 +71,37 @@ public sealed class RewardServiceTests : IDisposable
         var profileAfter = await verifyDb.PlayerProfiles.SingleAsync();
         Assert.Equal(1000, profileAfter.TotalXp);
         Assert.Equal(2, profileAfter.CurrentLevel);
-        Assert.Equal(700, profileAfter.SpendableXp);
-        Assert.Equal(-300, await verifyDb.XpTransactions.Select(t => t.Amount).SingleAsync());
+        Assert.Equal(400, profileAfter.SpendableXp);
+        Assert.Equal(600, result.Value.RedeemedCostInPoints);
+        Assert.Equal(-600, await verifyDb.XpTransactions.Select(t => t.Amount).SingleAsync());
         Assert.Single(await verifyDb.Milestones.Where(m => m.SourceType == MilestoneSourceType.Reward).ToListAsync());
+    }
+
+    [Fact]
+    public async Task EquipAsync_SetsEquippedRewardOnProfile()
+    {
+        await using (var db = _factory.CreateDbContext())
+        {
+            var profile = await db.PlayerProfiles.SingleAsync();
+            profile.SpendableXp = 500;
+            profile.CurrentLevel = 1;
+            await db.SaveChangesAsync();
+        }
+
+        var reward = await _sut.CreateAsync("Café", 100);
+        await _sut.RedeemAsync(reward.Id);
+        await _sut.EquipAsync(reward.Id);
+
+        await using var verify = _factory.CreateDbContext();
+        var profileAfter = await verify.PlayerProfiles.SingleAsync();
+        Assert.Equal(reward.Id, profileAfter.EquippedRewardId);
+    }
+
+    [Fact]
+    public async Task EquipAsync_WhenNotRedeemed_Throws()
+    {
+        var reward = await _sut.CreateAsync("Viaje", 200);
+        await Assert.ThrowsAsync<InvalidOperationException>(() => _sut.EquipAsync(reward.Id));
     }
 
     [Fact]

@@ -2,6 +2,7 @@ using HobbyXP.Data;
 using HobbyXP.Helpers;
 using HobbyXP.Models.Core;
 using HobbyXP.Models.Enums;
+using HobbyXP.Models.PersonalGrowth;
 using HobbyXP.Services.Abstractions;
 using HobbyXP.Services.Results;
 using Microsoft.EntityFrameworkCore;
@@ -114,8 +115,12 @@ public sealed class WeeklyQuotaService : IWeeklyQuotaService
         var result = new List<WeeklyQuotaProgress>();
         foreach (var source in WeeklyQuotaRules.TrackedSources)
         {
-            var (requiredPrimary, requiredSecondary) = WeeklyQuotaRules.GetRequired(source);
+            var need = await ResolveRequirementAsync(source, weekStartLocal, cancellationToken);
             var (actualPrimary, actualSecondary) = counts[source];
+            var met = await IsQuotaMetAsync(source, need, actualPrimary, actualSecondary, weekStartLocal, cancellationToken);
+            if (source == MilestoneSourceType.Book && met && actualPrimary < need.Primary && need.Primary > 0)
+                actualPrimary = need.Primary;
+
             var weekStartUtc = WeekDateHelper.GetWeekStartUtc(weekStartLocal);
             var lastClosed = await db.WeeklyQuotaEvaluations
                 .AsNoTracking()
@@ -139,14 +144,14 @@ public sealed class WeeklyQuotaService : IWeeklyQuotaService
             result.Add(new WeeklyQuotaProgress(
                 source,
                 HobbyProgressCatalog.GetDisplayName(source),
-                WeeklyQuotaRules.FormatRequirement(source),
-                requiredPrimary,
+                need.Label,
+                need.Primary,
                 actualPrimary,
-                WeeklyQuotaRules.GetPrimaryUnitLabel(source),
-                requiredSecondary,
+                need.PrimaryUnit,
+                need.Secondary,
                 actualSecondary,
-                WeeklyQuotaRules.GetSecondaryUnitLabel(source),
-                WeeklyQuotaRules.IsMet(requiredPrimary, actualPrimary, requiredSecondary, actualSecondary),
+                need.SecondaryUnit,
+                met,
                 lastClosed,
                 reminder));
         }
@@ -179,8 +184,8 @@ public sealed class WeeklyQuotaService : IWeeklyQuotaService
         bool applyPenaltyIfNeeded,
         CancellationToken cancellationToken)
     {
-        var (requiredPrimary, requiredSecondary) = WeeklyQuotaRules.GetRequired(sourceType);
-        if (requiredPrimary <= 0)
+        var need = await ResolveRequirementAsync(sourceType, weekStartLocal, cancellationToken);
+        if (need.Primary <= 0 && need.Secondary <= 0)
             return null;
 
         if (!await ShouldEvaluateSourceWeekAsync(sourceType, weekStartLocal, cancellationToken))
@@ -188,7 +193,9 @@ public sealed class WeeklyQuotaService : IWeeklyQuotaService
 
         var weekStartUtc = DateTimeHelper.ToUtcFromLocalDate(weekStartLocal);
         var counts = await CountActivityForSourceAsync(sourceType, weekStartLocal, cancellationToken);
-        var met = WeeklyQuotaRules.IsMet(requiredPrimary, counts.Primary, requiredSecondary, counts.Secondary);
+        var met = await IsQuotaMetAsync(sourceType, need, counts.Primary, counts.Secondary, weekStartLocal, cancellationToken);
+        var requiredPrimary = need.Primary;
+        var requiredSecondary = need.Secondary;
 
         await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
         var evaluation = await db.WeeklyQuotaEvaluations
@@ -216,6 +223,26 @@ public sealed class WeeklyQuotaService : IWeeklyQuotaService
 
             if (!applyPenaltyIfNeeded)
                 return null;
+
+            if (await HasActiveImmunityAsync(cancellationToken))
+            {
+                db.WeeklyQuotaEvaluations.Add(new WeeklyQuotaEvaluation
+                {
+                    SourceType = sourceType,
+                    WeekStartUtc = weekStartUtc,
+                    RequiredPrimary = requiredPrimary,
+                    RequiredSecondary = requiredSecondary,
+                    ActualPrimary = counts.Primary,
+                    ActualSecondary = counts.Secondary,
+                    Status = WeeklyQuotaStatus.Waived,
+                    PenalizedAt = DateTime.UtcNow
+                });
+                await db.SaveChangesAsync(cancellationToken);
+                return new EvaluationTick(
+                    JustPenalized: false,
+                    JustRestored: false,
+                    $"Inmunidad: {HobbyProgressCatalog.GetDisplayName(sourceType)} no recibió castigo.");
+            }
 
             evaluation = new WeeklyQuotaEvaluation
             {
@@ -252,7 +279,7 @@ public sealed class WeeklyQuotaService : IWeeklyQuotaService
         }
 
         // No cumplida
-        if (evaluation.Status is WeeklyQuotaStatus.Penalized or WeeklyQuotaStatus.SkippedFloor)
+        if (evaluation.Status is WeeklyQuotaStatus.Penalized or WeeklyQuotaStatus.SkippedFloor or WeeklyQuotaStatus.Waived)
         {
             await db.SaveChangesAsync(cancellationToken);
             return null;
@@ -276,10 +303,37 @@ public sealed class WeeklyQuotaService : IWeeklyQuotaService
         return await ApplyPenaltyAsync(evaluation, cancellationToken);
     }
 
+    private async Task<bool> HasActiveImmunityAsync(CancellationToken cancellationToken)
+    {
+        await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var until = await db.PlayerProfiles
+            .Select(p => p.DisciplineImmunityUntilUtc)
+            .FirstOrDefaultAsync(cancellationToken);
+        return MedalPrivilegeRules.IsActive(until, DateTime.UtcNow);
+    }
+
     private async Task<EvaluationTick> ApplyPenaltyAsync(
         WeeklyQuotaEvaluation evaluation,
         CancellationToken cancellationToken)
     {
+        if (await HasActiveImmunityAsync(cancellationToken))
+        {
+            await using var immuneDb = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+            var trackedImmune = await immuneDb.WeeklyQuotaEvaluations.FindAsync([evaluation.Id], cancellationToken)
+                ?? evaluation;
+            trackedImmune.Status = WeeklyQuotaStatus.Waived;
+            trackedImmune.HobbyXpRevoked = 0;
+            trackedImmune.GlobalXpRevoked = 0;
+            trackedImmune.PenalizedAt = DateTime.UtcNow;
+            trackedImmune.UpdatedAt = DateTime.UtcNow;
+            await immuneDb.SaveChangesAsync(cancellationToken);
+
+            return new EvaluationTick(
+                JustPenalized: false,
+                JustRestored: false,
+                $"Inmunidad: {HobbyProgressCatalog.GetDisplayName(evaluation.SourceType)} no recibió castigo.");
+        }
+
         var weekLabel = evaluation.WeekStartUtc.ToLocalTime().Date.ToString("dd/MM/yyyy");
         var description =
             $"Castigo semanal ({HobbyProgressCatalog.GetDisplayName(evaluation.SourceType)}) · semana del {weekLabel}";
@@ -461,23 +515,12 @@ public sealed class WeeklyQuotaService : IWeeklyQuotaService
         HobbyXpDbContext db,
         DateTime startUtc,
         DateTime endUtc,
-        CancellationToken cancellationToken)
-    {
-        var chapters = await db.MediaSeriesChapterLogs
-            .Where(l => l.WatchDate >= startUtc && l.WatchDate < endUtc)
-            .SumAsync(l => l.ChaptersDone, cancellationToken);
-
-        if (chapters > 0)
-            return 1;
-
-        var completedSeries = await db.MediaEntries.CountAsync(
+        CancellationToken cancellationToken) =>
+        await db.MediaEntries.CountAsync(
             m => m.MediaType == MediaType.Series &&
                  m.CompletedAt >= startUtc &&
                  m.CompletedAt < endUtc,
             cancellationToken);
-
-        return completedSeries > 0 ? 1 : 0;
-    }
 
     private static async Task<int> CountBookActivityAsync(
         HobbyXpDbContext db,
@@ -485,21 +528,202 @@ public sealed class WeeklyQuotaService : IWeeklyQuotaService
         DateTime endUtc,
         CancellationToken cancellationToken)
     {
-        var pages = await db.BookReadingLogs
-            .Where(l => l.ReadDate >= startUtc && l.ReadDate < endUtc)
-            .SumAsync(l => l.PagesDone, cancellationToken);
+        var current = await FindCurrentReadingBookAsync(db, startUtc, endUtc, cancellationToken);
+        var query = db.BookReadingLogs.Where(l => l.ReadDate >= startUtc && l.ReadDate < endUtc);
+        if (current is not null)
+            query = query.Where(l => l.BookId == current.Id);
 
-        if (pages > 0)
-            return 1;
-
-        var completed = await db.Books.CountAsync(
-            b => b.CompletedAt != null &&
-                 b.CompletedAt >= startUtc &&
-                 b.CompletedAt < endUtc,
-            cancellationToken);
-
-        return completed > 0 ? 1 : 0;
+        return await query.SumAsync(l => (int?)l.PagesDone, cancellationToken) ?? 0;
     }
+
+    private async Task<bool> IsQuotaMetAsync(
+        MilestoneSourceType sourceType,
+        QuotaNeed need,
+        int actualPrimary,
+        int actualSecondary,
+        DateTime weekStartLocal,
+        CancellationToken cancellationToken)
+    {
+        if (sourceType == MilestoneSourceType.Book)
+        {
+            var completed = await AnyBookCompletedInWeekAsync(weekStartLocal, cancellationToken);
+            return WeeklyQuotaRules.IsBookQuotaMet(need.Primary, actualPrimary, completed);
+        }
+
+        return WeeklyQuotaRules.IsMet(need.Primary, actualPrimary, need.Secondary, actualSecondary);
+    }
+
+    private async Task<QuotaNeed> ResolveRequirementAsync(
+        MilestoneSourceType sourceType,
+        DateTime weekStartLocal,
+        CancellationToken cancellationToken)
+    {
+        var startUtc = DateTimeHelper.ToUtcFromLocalDate(weekStartLocal);
+        var endUtc = WeekDateHelper.GetWeekEndExclusiveUtc(startUtc);
+        var (staticPrimary, staticSecondary) = WeeklyQuotaRules.GetRequired(sourceType);
+
+        if (sourceType == MilestoneSourceType.Book)
+            return await ResolveBookNeedAsync(startUtc, endUtc, cancellationToken);
+
+        if (sourceType == MilestoneSourceType.Course)
+        {
+            var hasCourse = await HasActiveCourseAsync(startUtc, endUtc, cancellationToken);
+            var primary = hasCourse ? WeeklyQuotaRules.CourseSessionsRequired : 0;
+            return new QuotaNeed(
+                primary,
+                0,
+                WeeklyQuotaRules.FormatRequirement(sourceType, primary, 0),
+                WeeklyQuotaRules.GetPrimaryUnitLabel(sourceType),
+                string.Empty);
+        }
+
+        if (sourceType == MilestoneSourceType.Media)
+        {
+            var hasSeries = await HasSeriesObligationAsync(startUtc, endUtc, cancellationToken);
+            var primary = hasSeries ? WeeklyQuotaRules.SeriesCompletedRequired : 0;
+            return new QuotaNeed(
+                primary,
+                WeeklyQuotaRules.MoviesRequired,
+                WeeklyQuotaRules.FormatRequirement(sourceType, primary, WeeklyQuotaRules.MoviesRequired),
+                WeeklyQuotaRules.GetPrimaryUnitLabel(sourceType),
+                WeeklyQuotaRules.GetSecondaryUnitLabel(sourceType));
+        }
+
+        return new QuotaNeed(
+            staticPrimary,
+            staticSecondary,
+            WeeklyQuotaRules.FormatRequirement(sourceType, staticPrimary, staticSecondary),
+            WeeklyQuotaRules.GetPrimaryUnitLabel(sourceType),
+            WeeklyQuotaRules.GetSecondaryUnitLabel(sourceType));
+    }
+
+    private async Task<QuotaNeed> ResolveBookNeedAsync(
+        DateTime startUtc,
+        DateTime endUtc,
+        CancellationToken cancellationToken)
+    {
+        await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var current = await FindCurrentReadingBookAsync(db, startUtc, endUtc, cancellationToken);
+        if (current is not null)
+        {
+            var required = WeeklyQuotaRules.GetBookRequiredPages(current.TotalPages);
+            return new QuotaNeed(
+                required,
+                0,
+                $"20% de «{current.Title}» ({required} páginas) / semana",
+                WeeklyQuotaRules.GetPrimaryUnitLabel(MilestoneSourceType.Book),
+                string.Empty);
+        }
+
+        var completed = await db.Books
+            .AsNoTracking()
+            .Where(b => b.CompletedAt != null && b.CompletedAt >= startUtc && b.CompletedAt < endUtc)
+            .OrderByDescending(b => b.CompletedAt)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (completed is not null)
+        {
+            var required = WeeklyQuotaRules.GetBookRequiredPages(completed.TotalPages);
+            return new QuotaNeed(
+                required,
+                0,
+                $"Libro terminado: «{completed.Title}»",
+                WeeklyQuotaRules.GetPrimaryUnitLabel(MilestoneSourceType.Book),
+                string.Empty);
+        }
+
+        return new QuotaNeed(
+            0,
+            0,
+            WeeklyQuotaRules.FormatRequirement(MilestoneSourceType.Book, 0, 0),
+            WeeklyQuotaRules.GetPrimaryUnitLabel(MilestoneSourceType.Book),
+            string.Empty);
+    }
+
+    private async Task<bool> AnyBookCompletedInWeekAsync(
+        DateTime weekStartLocal,
+        CancellationToken cancellationToken)
+    {
+        var startUtc = DateTimeHelper.ToUtcFromLocalDate(weekStartLocal);
+        var endUtc = WeekDateHelper.GetWeekEndExclusiveUtc(startUtc);
+        await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        return await db.Books.AnyAsync(
+            b => b.CompletedAt != null && b.CompletedAt >= startUtc && b.CompletedAt < endUtc,
+            cancellationToken);
+    }
+
+    private static async Task<Book?> FindCurrentReadingBookAsync(
+        HobbyXpDbContext db,
+        DateTime startUtc,
+        DateTime endUtc,
+        CancellationToken cancellationToken)
+    {
+        var inProgress = await db.Books
+            .AsNoTracking()
+            .Where(b => b.Status == BookStatus.Reading && b.CreatedAt < endUtc)
+            .ToListAsync(cancellationToken);
+
+        if (inProgress.Count == 0)
+            return null;
+
+        if (inProgress.Count == 1)
+            return inProgress[0];
+
+        var pagesByBook = await db.BookReadingLogs
+            .AsNoTracking()
+            .Where(l => l.ReadDate >= startUtc && l.ReadDate < endUtc)
+            .GroupBy(l => l.BookId)
+            .Select(g => new { BookId = g.Key, Pages = g.Sum(x => x.PagesDone) })
+            .ToListAsync(cancellationToken);
+
+        return inProgress
+            .OrderByDescending(b => pagesByBook.FirstOrDefault(p => p.BookId == b.Id)?.Pages ?? 0)
+            .ThenByDescending(b => b.UpdatedAt ?? b.CreatedAt)
+            .First();
+    }
+
+    private async Task<bool> HasActiveCourseAsync(
+        DateTime startUtc,
+        DateTime endUtc,
+        CancellationToken cancellationToken)
+    {
+        await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var inProgress = await db.Courses.AnyAsync(
+            c => c.Status == CourseStatus.InProgress && c.CreatedAt < endUtc,
+            cancellationToken);
+        if (inProgress)
+            return true;
+
+        return await db.CourseSessionLogs.AnyAsync(
+            l => l.SessionDate >= startUtc && l.SessionDate < endUtc,
+            cancellationToken);
+    }
+
+    private async Task<bool> HasSeriesObligationAsync(
+        DateTime startUtc,
+        DateTime endUtc,
+        CancellationToken cancellationToken)
+    {
+        await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var inProgress = await db.MediaSeries.AnyAsync(
+            s => s.Status == MediaSeriesStatus.InProgress && s.CreatedAt < endUtc,
+            cancellationToken);
+        if (inProgress)
+            return true;
+
+        return await db.MediaEntries.AnyAsync(
+            m => m.MediaType == MediaType.Series &&
+                 m.CompletedAt >= startUtc &&
+                 m.CompletedAt < endUtc,
+            cancellationToken);
+    }
+
+    private readonly record struct QuotaNeed(
+        int Primary,
+        int Secondary,
+        string Label,
+        string PrimaryUnit,
+        string SecondaryUnit);
 
     private readonly record struct EvaluationTick(bool JustPenalized, bool JustRestored, string Message);
 }

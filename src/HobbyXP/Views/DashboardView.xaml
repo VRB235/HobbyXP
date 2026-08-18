@@ -3,7 +3,8 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:lvc="clr-namespace:LiveChartsCore.SkiaSharpView.WPF;assembly=LiveChartsCore.SkiaSharpView.WPF"
              xmlns:conv="clr-namespace:HobbyXP.Converters"
-             xmlns:controls="clr-namespace:HobbyXP.Views.Controls">
+             xmlns:controls="clr-namespace:HobbyXP.Views.Controls"
+             xmlns:nav="clr-namespace:HobbyXP.ViewModels.Navigation">
     <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="24,20">
         <StackPanel MaxWidth="1200">
 
@@ -41,12 +42,79 @@
                 </Grid>
             </Border>
 
+            <!-- Hub de logros y premios -->
+            <Border Style="{StaticResource DarkCard}" Margin="0,0,0,16" Padding="16">
+                <DockPanel>
+                    <Grid DockPanel.Dock="Top" Margin="0,0,0,12">
+                        <TextBlock Text="Logros y premios" Style="{StaticResource SubsectionTitleText}" />
+                        <Button Content="Abrir módulo"
+                                Command="{Binding DataContext.NavigateCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                CommandParameter="{x:Static nav:NavigationSection.Achievements}"
+                                Style="{StaticResource PrimaryButton}"
+                                HorizontalAlignment="Right"
+                                Padding="12,4" FontSize="12" />
+                    </Grid>
+                    <TextBlock DockPanel.Dock="Top"
+                               Text="{Binding AchievementHub.HonorTitle, StringFormat=Título de honor: {0}}"
+                               Foreground="{StaticResource AccentGoldBrush}"
+                               FontWeight="SemiBold"
+                               Margin="0,0,0,8"
+                               Visibility="{Binding AchievementHub.HonorTitle, Converter={StaticResource NullToVisibilityConverter}}" />
+                    <TextBlock DockPanel.Dock="Top"
+                               Text="{Binding AchievementHub.ImmunityText}"
+                               Foreground="{StaticResource AccentCyanBrush}"
+                               FontSize="12"
+                               Margin="0,0,0,12"
+                               Visibility="{Binding AchievementHub.IsImmune, Converter={StaticResource BoolToVisibilityConverter}}" />
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel Grid.Column="0" Margin="0,0,10,0">
+                            <TextBlock Text="Última medalla" Style="{StaticResource MutedText}" FontSize="12" />
+                            <TextBlock Text="{Binding AchievementHub.LatestEarned.Name, FallbackValue=Aún no hay medallas}"
+                                       FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,4,0,0" />
+                            <TextBlock Text="{Binding AchievementHub.LatestEarned.Description}"
+                                       Style="{StaticResource MutedText}" FontSize="12" TextWrapping="Wrap" Margin="0,4,0,0"
+                                       Visibility="{Binding AchievementHub.HasLatestEarned, Converter={StaticResource BoolToVisibilityConverter}}" />
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="1" Margin="0,0,10,0">
+                            <TextBlock Text="Siguiente logro" Style="{StaticResource MutedText}" FontSize="12" />
+                            <TextBlock Text="{Binding AchievementHub.ClosestNext.Name, FallbackValue=Catálogo completado}"
+                                       FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,4,0,0"
+                                       Foreground="{StaticResource AccentGoldBrush}" />
+                            <TextBlock Text="{Binding AchievementHub.ClosestNext.ProgressText}"
+                                       Style="{StaticResource MutedText}" FontSize="12" Margin="0,4,0,4"
+                                       Visibility="{Binding AchievementHub.HasClosestNext, Converter={StaticResource BoolToVisibilityConverter}}" />
+                            <controls:XpProgressBar Value="{Binding AchievementHub.ClosestNext.Percent}" Height="8"
+                                                    Visibility="{Binding AchievementHub.HasClosestNext, Converter={StaticResource BoolToVisibilityConverter}}" />
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="2">
+                            <TextBlock Text="Premio destacado" Style="{StaticResource MutedText}" FontSize="12" />
+                            <TextBlock Text="{Binding AchievementHub.FeaturedReward.Name, FallbackValue=Cree un premio en la tienda}"
+                                       FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,4,0,0" />
+                            <TextBlock Text="{Binding AchievementHub.FeaturedCostText}"
+                                       Style="{StaticResource MutedText}" FontSize="12" Margin="0,4,0,0"
+                                       Visibility="{Binding AchievementHub.HasFeaturedReward, Converter={StaticResource BoolToVisibilityConverter}}" />
+                            <TextBlock Text="¡Puede canjearlo!"
+                                       Foreground="{StaticResource AccentGreenBrush}" FontSize="12" Margin="0,4,0,0"
+                                       Visibility="{Binding AchievementHub.CanAffordFeatured, Converter={StaticResource BoolToVisibilityConverter}}" />
+                        </StackPanel>
+                    </Grid>
+                </DockPanel>
+            </Border>
+
             <!-- Disciplina semanal -->
             <Expander Header="Disciplina semanal (lunes–domingo)"
                       IsExpanded="{Binding IsDisciplineExpanded, Mode=TwoWay}"
                       Margin="0,0,0,12">
                 <StackPanel>
-                    <TextBlock Text="Si no cumple la cuota al cerrar la semana, baja 1 nivel del hobby. Al abrir la app se revisan hasta 26 semanas desde que activó la disciplina; si luego registra actividad atrasada de esa semana, se restaura el XP."
+                    <TextBlock Text="Si no cumple la cuota al cerrar la semana, baja 1 nivel del hobby. Libros: 20% de páginas del libro actual (terminarlo también cumple). Cursos: 5 sesiones. Series: hay que terminar al menos una en la semana si hay serie en progreso. Al abrir la app se revisan hasta 26 semanas; actividad atrasada puede restaurar el XP."
                                Style="{StaticResource MutedText}" Margin="0,0,0,12" TextWrapping="Wrap" />
                     <ItemsControl ItemsSource="{Binding WeeklyQuotaItems}">
                         <ItemsControl.ItemTemplate>
@@ -86,6 +154,10 @@
                                                         <DataTrigger Binding="{Binding IsMet}" Value="True">
                                                             <Setter Property="Text" Value="Cumplida" />
                                                             <Setter Property="Foreground" Value="{StaticResource AccentGreenBrush}" />
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding IsApplicable}" Value="False">
+                                                            <Setter Property="Text" Value="No aplica" />
+                                                            <Setter Property="Foreground" Value="{StaticResource TextMutedBrush}" />
                                                         </DataTrigger>
                                                         <DataTrigger Binding="{Binding HasActivePenalty}" Value="True">
                                                             <Setter Property="Text" Value="Castigo" />

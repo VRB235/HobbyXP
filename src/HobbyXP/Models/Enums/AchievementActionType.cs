@@ -27,5 +27,7 @@ public enum AchievementActionType
     /// <summary>Comida marcada como en plan.</summary>
     DietMealOnPlan = 16,
     /// <summary>Día con las 4 comidas en plan.</summary>
-    DietPerfectDay = 17
+    DietPerfectDay = 17,
+    /// <summary>Bonus de saldo canjeable al desbloquear una medalla.</summary>
+    MedalPrivilegeBonus = 18
 }

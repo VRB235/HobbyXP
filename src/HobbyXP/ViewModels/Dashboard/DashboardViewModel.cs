@@ -6,7 +6,6 @@ using HobbyXP.Services.Abstractions;
 using HobbyXP.Services.Messaging;
 using HobbyXP.Services.Results;
 using HobbyXP.ViewModels.Common;
-using HobbyXP.ViewModels.Navigation;
 using LiveChartsCore;
 using LiveChartsCore.Kernel.Sketches;
 using LiveChartsCore.SkiaSharpView;
@@ -25,6 +24,7 @@ public sealed class DashboardViewModel : LoadableViewModelBase
     private readonly IPlayerProfileService _playerProfileService;
     private readonly IXpService _xpService;
     private readonly IWeeklyQuotaService _weeklyQuotaService;
+    private readonly IAchievementProgressService _achievementProgress;
     private int _currentLevel = 1;
     private int _totalXp;
     private int _xpIntoCurrentLevel;
@@ -44,18 +44,21 @@ public sealed class DashboardViewModel : LoadableViewModelBase
     private bool _isHobbyProgressExpanded;
     private bool _isChartsExpanded;
     private bool _isSuggestionsExpanded = true;
+    private AchievementHubSnapshot? _achievementHub;
 
     public DashboardViewModel(
         IDashboardService dashboardService,
         IPlayerProfileService playerProfileService,
         IXpService xpService,
         IWeeklyQuotaService weeklyQuotaService,
+        IAchievementProgressService achievementProgress,
         IApplicationDataResetMessenger applicationDataResetMessenger)
     {
         _dashboardService = dashboardService;
         _playerProfileService = playerProfileService;
         _xpService = xpService;
         _weeklyQuotaService = weeklyQuotaService;
+        _achievementProgress = achievementProgress;
         RecentMilestones = new ObservableCollection<Milestone>();
         SuggestedActivities = new ObservableCollection<LevelUpSuggestion>();
         HobbyProgressItems = new ObservableCollection<HobbyProgressInfo>();
@@ -160,6 +163,18 @@ public sealed class DashboardViewModel : LoadableViewModelBase
 
     public AsyncRelayCommand RefreshCommand { get; }
 
+    public AchievementHubSnapshot? AchievementHub
+    {
+        get => _achievementHub;
+        private set
+        {
+            if (SetProperty(ref _achievementHub, value))
+                OnPropertyChanged(nameof(HasAchievementHub));
+        }
+    }
+
+    public bool HasAchievementHub => AchievementHub is not null;
+
     public string SuggestionsSummary
     {
         get => _suggestionsSummary;
@@ -211,6 +226,7 @@ public sealed class DashboardViewModel : LoadableViewModelBase
         BuildSuggestions(summary);
         await LoadHobbyProgressAsync();
         await LoadWeeklyQuotasAsync();
+        AchievementHub = await _achievementProgress.GetHubSnapshotAsync();
 
         RecentMilestones.Clear();
         foreach (var milestone in summary.RecentMilestones)

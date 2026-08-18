@@ -1028,6 +1028,8 @@
                             <ToggleButton DockPanel.Dock="Top"
                                           IsChecked="{Binding IsExpanded, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
                                           Content="{TemplateBinding Header}"
+                                          ContentTemplate="{TemplateBinding HeaderTemplate}"
+                                          ContentTemplateSelector="{TemplateBinding HeaderTemplateSelector}"
                                           Cursor="Hand"
                                           Background="Transparent"
                                           BorderThickness="0"
@@ -1054,6 +1056,8 @@
                                                            Foreground="{StaticResource AccentCyanBrush}" />
                                                 <ContentPresenter Grid.Column="1"
                                                                   Content="{TemplateBinding Content}"
+                                                                  ContentTemplate="{TemplateBinding ContentTemplate}"
+                                                                  ContentTemplateSelector="{TemplateBinding ContentTemplateSelector}"
                                                                   VerticalAlignment="Center"
                                                                   RecognizesAccessKey="True" />
                                                 <Path x:Name="Arrow"

@@ -1,5 +1,6 @@
 using HobbyXP.Data;
 using HobbyXP.Helpers;
+using HobbyXP.Models.Enums;
 using HobbyXP.Services.Abstractions;
 using HobbyXP.Services.Results;
 using Microsoft.EntityFrameworkCore;
@@ -33,10 +34,16 @@ public sealed class MedalService : IMedalService
             .GroupBy(m => m.MedalDefinitionId)
             .ToDictionary(g => g.Key, g => g.OrderByDescending(x => x.EarnedAt).First());
 
+        var catalogByCode = MedalCatalog.Entries.ToDictionary(e => e.Code);
+
         return definitions
             .Select(definition =>
             {
                 earnedLookup.TryGetValue(definition.Id, out var instance);
+                catalogByCode.TryGetValue(definition.Code, out var catalog);
+                var source = catalog is null
+                    ? MilestoneSourceType.System
+                    : MedalTrackMap.SourceFor(catalog.Track) ?? MilestoneSourceType.System;
                 return new MedalShowcaseItem(
                     definition.Id,
                     definition.Code,
@@ -45,8 +52,35 @@ public sealed class MedalService : IMedalService
                     definition.UnlockHint,
                     ResolveIconPath(definition),
                     instance is not null,
-                    instance?.EarnedAt);
+                    instance?.EarnedAt,
+                    source);
             })
+            .ToList();
+    }
+
+    public async Task<IReadOnlyList<MedalShowcaseSection>> GetShowcaseSectionsAsync(
+        CancellationToken cancellationToken = default)
+    {
+        var items = await GetShowcaseAsync(cancellationToken);
+        var catalogByCode = MedalCatalog.Entries.ToDictionary(e => e.Code);
+
+        return HobbyProgressCatalog.TrackedHobbies
+            .Select(source =>
+            {
+                var medals = items
+                    .Where(item => item.SourceType == source)
+                    .OrderByDescending(item => item.IsEarned)
+                    .ThenByDescending(item => item.EarnedAt)
+                    .ThenBy(item => catalogByCode.TryGetValue(item.Code, out var entry) ? entry.Threshold : int.MaxValue)
+                    .ThenBy(item => item.MedalDefinitionId)
+                    .ToList();
+
+                return new MedalShowcaseSection(
+                    source,
+                    HobbyProgressCatalog.GetDisplayName(source),
+                    medals);
+            })
+            .Where(section => section.Medals.Count > 0)
             .ToList();
     }
 

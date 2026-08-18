@@ -87,6 +87,12 @@ public sealed class AchievementEngineServiceTests : IDisposable
 
         await using var verifyDb = _factory.CreateDbContext();
         Assert.Single(await verifyDb.EarnedMedals.ToListAsync());
+        var profile = await verifyDb.PlayerProfiles.SingleAsync();
+        Assert.Equal("Lector Voraz", profile.HonorTitle);
+        Assert.Equal(50, profile.SpendableXp);
+        Assert.NotNull(profile.DisciplineImmunityUntilUtc);
+        Assert.True(profile.DisciplineImmunityUntilUtc > DateTime.UtcNow);
+        Assert.Equal(50, first.PointsEarned);
     }
 
     [Fact]

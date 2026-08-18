@@ -1,6 +1,6 @@
 # HobbyXP — Documentación de estado del proyecto
 
-> **Última actualización:** 7 de julio de 2026  
+> **Última actualización:** 18 de agosto de 2026  
 > **Propósito de este documento:** punto de partida para retomar el desarrollo. Resume qué se construyó, cómo está organizado, qué funciona hoy y qué queda pendiente.
 
 ---
@@ -143,7 +143,7 @@ src/HobbyXP/
 
 ### Perfil y progresión
 
-- **`PlayerProfile`**: `CurrentLevel`, `TotalXp` (progresión global), `SpendableXp` (saldo canjeable), `SpendableLedgerInitialized`, `SpendableProgressBaselineApplied`, `BaseXpPerLevel`, `DisplayName`, `AvatarPath`.
+- **`PlayerProfile`**: `CurrentLevel`, `TotalXp` (progresión global), `SpendableXp` (saldo canjeable), `SpendableLedgerInitialized`, `SpendableProgressBaselineApplied`, `BaseXpPerLevel`, `DisplayName`, `AvatarPath`, `HonorTitle`, `EquippedRewardId`, `DisciplineImmunityUntilUtc`, `LastSeenEarnedMedalCount`.
 - **`XpTransaction`**: historial de movimientos de XP.
 - **`Milestone`**: hitos narrativos mostrados en dashboard.
 
@@ -162,7 +162,7 @@ src/HobbyXP/
 
 ### Logros
 
-- `MedalDefinition`, `EarnedMedal`, `AchievementRule`, `Reward` (tienda de canje por XP).
+- `MedalDefinition`, `EarnedMedal`, `AchievementRule`, `Reward` (tienda: inventario, `RedeemedCostInPoints`, reliquia equipable).
 
 ### Enum importante: `AchievementActionType`
 
@@ -185,9 +185,11 @@ src/HobbyXP/
 | `IVideoGameService` | Videojuegos en progreso/platino |
 | `IBookService` | Libros y páginas |
 | `ICourseService` | Cursos completados |
-| `IAchievementEngineService` | Motor de medallas y reglas |
-| `IMedalService` | Vitrina de medallas |
-| `IRewardService` | Premios y canje |
+| `IAchievementEngineService` | Motor de medallas y reglas (bonus de saldo, título e inmunidad al desbloquear) |
+| `IAchievementProgressService` | Siguiente medalla por hobby y snapshot del hub |
+| `IMedalService` | Vitrina seccionada por hobby (desbloqueadas primero) |
+| `IRewardService` | Premios, inventario, equipar, costo base × nivel |
+| `IWeeklyQuotaService` | Cuotas lun–dom, castigo, restauración, inmunidad |
 | `IFileDialogService` | Selector de imagen para avatar |
 
 ### Fórmula de nivel (actual)
@@ -214,17 +216,18 @@ Al arrancar: `EnsureHobbyProgressRowsAsync` + `EnsureHobbyXpBackfillAsync` (migr
 
 - Sidebar: branding, tarjeta de perfil (avatar, nombre editable, nivel, XP de progresión, saldo canjeable, barra `XpProgressBar`), botones avatar/nombre, navegación con indicador verde activo.
 - Área principal: `GeometricBackground`, barra de último logro, `ContentControl` con ViewModel actual.
-- Overlay global: `LevelUpOverlay` (`Panel.ZIndex=1000`).
+- Overlay global: `LevelUpOverlay` y `MedalUnlockOverlay` (`Panel.ZIndex=1000`).
+- Sidebar: badge de medalla nueva en Logros.
 
 ### Secciones
 
 | Sección | View | Tabs / contenido |
 |---------|------|------------------|
-| Dashboard | `DashboardView` | Hero XP, gráficos, sugerencias para subir de nivel, hitos |
+| Dashboard | `DashboardView` | Hero XP, hub de logros/premios, disciplina semanal (expanders), gráficos, sugerencias, hitos |
 | Físico | `PhysicalActivitiesView` | Running (sesiones + **alta de carreras oficiales** + completar carrera), Gimnasio |
 | Entretenimiento | `EntertainmentView` | Rompecabezas, Media, Videojuegos (historial con búsqueda/filtros y ordenación por columnas; platinados en `ListView`) |
 | Crecimiento | `PersonalGrowthView` | Libros, Cursos |
-| Logros | `AchievementsView` | Vitrina, Reglas, Tienda premios |
+| Logros | `AchievementsView` | Vitrina por hobby (Expander), editor de medallas, reglas, tienda (disponibles + inventario) |
 | Configuración | `SettingsView` | XP base por nivel, exportar BD, restablecer datos |
 
 ### Controles reutilizables
@@ -234,6 +237,7 @@ Al arrancar: `EnsureHobbyProgressRowsAsync` + `EnsureHobbyXpBackfillAsync` (migr
 | `XpProgressBar` | Barras de XP 0–100 (sidebar + dashboard hero) |
 | `GeometricBackground` | Patrón de cuadrícula sutil |
 | `LevelUpOverlay` | Modal de celebración al subir de nivel |
+| `MedalUnlockOverlay` | Modal al desbloquear medalla (saldo, título, inmunidad) |
 
 ### Tema
 
@@ -276,6 +280,7 @@ DataContext = _scope.GetRequiredService<MainViewModel>();
 |-----------|-------------|
 | `20260707222215_InitialCreate` | Esquema completo + seed medallas/reglas |
 | `20260708003429_AddPlayerProfileCustomization` | `DisplayName`, `AvatarPath` en `PlayerProfiles` |
+| `20260818185808_AddAchievementHub` | Título de honor, reliquia equipada, inmunidad; `Reward.RedeemedCostInPoints` |
 
 **Comandos útiles** (desde `src/HobbyXP`):
 
@@ -388,7 +393,7 @@ dotnet build
 ### Baja prioridad — ingeniería
 
 - [x] Evaluar estabilizar LiveCharts (salir de RC) o fijar versión estable → **2.0.4** GA + TFM `net8.0-windows10.0.19041` (SkiaSharp 3 nativo, sin NU1701).
-- [x] Tests unitarios: `XpLevelCalculator`, `XpService` (cálculo de puntos), servicios críticos (`AchievementEngineService`, `PlayerProfileService`, `RewardService`) → `tests/HobbyXP.Tests` (42 pruebas, xUnit + SQLite in-memory).
+- [x] Tests unitarios: `XpLevelCalculator`, `XpService` (cálculo de puntos), servicios críticos (`AchievementEngineService`, `PlayerProfileService`, `RewardService`, cuotas, hub de logros) → `tests/HobbyXP.Tests` (119 pruebas, xUnit + SQLite in-memory).
 - [x] **GitLab CI:** `dotnet build` en pipeline (`.gitlab-ci.yml`: build + test en runner `windows`).
 - [x] Empaquetado (MSIX / instalador) si se desea distribución → ver [`docs/DISTRIBUCION.md`](DISTRIBUCION.md): MSIX (`HobbyXP.Package`), portable ZIP e Inno Setup.
 - [x] `global.json` para fijar SDK 8.0.x (evita compilar `net8.0` con SDK 10 por defecto); ver sección 17.
@@ -418,7 +423,7 @@ dotnet build
 - [x] Puzzle, media, videojuego (% y platino).
 - [x] Libro: páginas y completado.
 - [x] Curso completado.
-- [x] Logros: vitrina, editar regla, editar medalla, canjear premio (deducción de `SpendableXp`).
+- [x] Logros: vitrina seccionada/colapsable, editor, hub en dashboard, overlay de medalla, canjear/equipar premio (deducción de `SpendableXp`).
 - [x] Ledger separado: progresión (hobbies/global) vs saldo canjeable; migración one-shot al arrancar.
 
 ---

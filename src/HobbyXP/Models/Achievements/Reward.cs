@@ -18,6 +18,9 @@ public class Reward : EntityBase
 
     public DateTime? RedeemedAt { get; set; }
 
+    /// <summary>XP canjeable realmente descontado al canjear (costo efectivo por nivel).</summary>
+    public int? RedeemedCostInPoints { get; set; }
+
     public string StatusLabel => Status switch
     {
         RewardStatus.Available => "Disponible",

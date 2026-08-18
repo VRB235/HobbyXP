@@ -31,13 +31,14 @@ public sealed class VideoGamesViewModel : AchievementAwareViewModel
         IWeeklyQuotaService weeklyQuotaService,
         IMessageDialogService messageDialogService,
         IProfileRefreshMessenger profileRefreshMessenger,
-        IAchievementMessenger achievementMessenger)
+        IAchievementMessenger achievementMessenger,
+        IAchievementProgressService achievementProgress)
         : base(achievementMessenger)
     {
         _videoGameService = videoGameService;
         _messageDialogService = messageDialogService;
         _profileRefreshMessenger = profileRefreshMessenger;
-        HobbyXp = new HobbyProgressPresenter(xpService, MilestoneSourceType.VideoGame, weeklyQuotaService);
+        HobbyXp = new HobbyProgressPresenter(xpService, MilestoneSourceType.VideoGame, weeklyQuotaService, achievementProgress);
         InProgressRows = new ObservableCollection<VideoGameProgressRowViewModel>();
         PlatinumGames = new ObservableCollection<VideoGame>();
         PlatformFilterOptions = EnumFilterOption<VideoGamePlatform>.Create(

@@ -1,6 +1,6 @@
 # HobbyXP — Casos de prueba funcionales
 
-> **Versión:** 1.0 — 9 de julio de 2026  
+> **Versión:** 1.1 — 18 de agosto de 2026  
 > **Audiencia:** analista funcional con conocimiento de la aplicación de escritorio y verificación en SQLite.  
 > **Alcance:** flujos principales por módulo, validaciones de formulario, avatar, XP/nivel, eliminación de registros y logros.
 
@@ -570,6 +570,19 @@ XP de referencia: 15 XP por comida en plan; +40 XP si el día queda 4/4. Fuera d
 
 ---
 
+### CP-MED-004 — Cuota semanal: capítulos no bastan; hay que terminar la serie
+
+| Campo | Detalle |
+|-------|---------|
+| **Prioridad** | Alta |
+| **Precondiciones** | Semana lun–dom actual. Serie en progreso (p. ej. 10 capítulos). Dashboard abierto en Disciplina semanal. |
+| **Pasos** | 1. Registrar 2 capítulos de la serie (sin terminarla).<br>2. Completar 2 películas en la misma semana.<br>3. Abrir Dashboard → cuota de **Media**.<br>4. Terminar la serie (capítulos restantes o registrar serie completada).<br>5. Volver al Dashboard. |
+| **UI** | Tras pasos 1–3: progreso `0/1 series terminadas · 2/2 películas`; cuota **no** cumplida.<br>Tras paso 5: `1/1 series terminadas · 2/2 películas`; **Cumplida**. |
+| **BD** | `MediaSeriesChapterLogs` con capítulos; `MediaEntries` tipo Series con `CompletedAt` en la semana. Sin evaluación de castigo en semana abierta. |
+| **Notas** | Si **no** hay serie en progreso ni terminada esa semana, la cuota de series **no aplica**; siguen haciendo falta 2 películas. |
+
+---
+
 ## 9. Videojuegos
 
 ### CP-VG-001 — Registrar avance por porcentaje
@@ -646,6 +659,19 @@ XP de referencia: 15 XP por comida en plan; +40 XP si el día queda 4/4. Fuera d
 
 ---
 
+### CP-LIB-003 — Cuota semanal: 20% de páginas del libro actual
+
+| Campo | Detalle |
+|-------|---------|
+| **Prioridad** | Alta |
+| **Precondiciones** | Semana lun–dom actual. Libro en lectura `Dune`, `TotalPages = 500` (cuota = 100 páginas, techo del 20%). |
+| **Pasos** | 1. Registrar 50 páginas leídas en la semana.<br>2. Dashboard → Disciplina → **Libros**.<br>3. Registrar 50 páginas más (acumulado 100 en la semana).<br>4. Volver al Dashboard. |
+| **UI** | Paso 2: progreso `50/100 páginas`; cuota **no** cumplida; etiqueta indica 20% de «Dune».<br>Paso 4: `100/100 páginas`; **Cumplida**. |
+| **BD** | `BookReadingLogs.PagesDone` suma 100 en el rango lun–dom (UTC de fecha local). Sin fila de castigo en semana abierta. |
+| **Notas** | Terminar el libro en la semana **sí cumple** aunque las páginas de esa semana sean &lt; 20%. Sin libro en lectura y sin uno terminado esa semana: cuota **No aplica** (no hay castigo). |
+
+---
+
 ## 11. Cursos
 
 ### CP-CUR-001 — Registrar sesión de curso
@@ -684,6 +710,19 @@ XP de referencia: 15 XP por comida en plan; +40 XP si el día queda 4/4. Fuera d
 
 ---
 
+### CP-CUR-004 — Cuota semanal: 5 sesiones
+
+| Campo | Detalle |
+|-------|---------|
+| **Prioridad** | Alta |
+| **Precondiciones** | Semana lun–dom actual. Curso en progreso con al menos 10 sesiones totales. |
+| **Pasos** | 1. Registrar 4 sesiones en la semana (pueden ser varios logs).<br>2. Dashboard → Disciplina → **Cursos**.<br>3. Registrar 1 sesión más (total 5).<br>4. Volver al Dashboard. |
+| **UI** | Paso 2: progreso `4/5 sesiones`; cuota **no** cumplida.<br>Paso 4: `5/5 sesiones`; **Cumplida**. |
+| **BD** | `CourseSessionLogs.SessionsDone` suma 5 en el rango lun–dom. |
+| **Notas** | Sin curso en progreso y sin sesiones esa semana: cuota **No aplica**. Terminar un curso de 3 sesiones en la semana **no** cumple si no se llega a 5 sesiones. |
+
+---
+
 ## 12. Logros, reglas y premios
 
 ### CP-LOG-001 — Vitrina de medallas muestra desbloqueadas
@@ -692,9 +731,9 @@ XP de referencia: 15 XP por comida en plan; +40 XP si el día queda 4/4. Fuera d
 |-------|---------|
 | **Prioridad** | Media |
 | **Precondiciones** | Al menos una medalla ganada (CP-RUN-002, CP-GYM-002 o CP-VG-002). |
-| **Pasos** | 1. Logros y Premios → pestaña Medallas. |
-| **UI** | Medallas ganadas visibles con nombre y descripción. |
-| **BD** | `SELECT * FROM EarnedMedals;` coherente con UI. |
+| **Pasos** | 1. Logros y Premios → pestaña **Vitrina**.<br>2. Pulsar la cabecera de un hobby colapsado para expandirlo; pulsar de nuevo para plegarlo. |
+| **UI** | Cada hobby es un menú colapsable (☰). Los hobbies con al menos una medalla desbloqueada arrancan **abiertos**; el resto, **cerrados**. Cabecera: nombre + `n/m desbloqueadas`. Dentro: desbloqueadas primero (borde dorado), luego pendientes (opacidad baja). |
+| **BD** | `SELECT * FROM EarnedMedals;` coherente con las tarjetas doradas. |
 
 ---
 
@@ -782,6 +821,40 @@ XP de referencia: 15 XP por comida en plan; +40 XP si el día queda 4/4. Fuera d
 | **Pasos** | 1. Arrancar la app (aplica migración + `EnsureSpendableLedgerAsync`).<br>2. Revisar sidebar (nivel 1, saldo) y banners de hobby.<br>3. Cerrar y volver a abrir. |
 | **UI** | Todos los hobbies y el global en nivel 1 / 0 XP de progresión; «Saldo: N» = suma previa de hobbies + global. |
 | **BD** | `SpendableXp` = suma anotada; `SpendableLedgerInitialized = 1`; `SpendableProgressBaselineApplied = 1`; `HobbyProgresses.TotalXp = 0`, `CurrentLevel = 1`; global `TotalXp = 0`, `CurrentLevel = 1`. Segundo arranque: mismos valores (no vuelve a sumar ni a reconstruir desde `XpTransactions`). |
+
+---
+
+### CP-LOG-008 — Desbloquear medalla otorga bonus, título e inmunidad
+
+| Campo | Detalle |
+|-------|---------|
+| **Prioridad** | Alta |
+| **Precondiciones** | Perfil sin medalla «Lector Voraz». Anotar `SpendableXp`. |
+| **Pasos** | 1. Completar el primer libro (CP-LIB-002).<br>2. Observar overlay de medalla.<br>3. Revisar sidebar (título de honor, inmunidad) y saldo. |
+| **UI** | Overlay «¡MEDALLA DESBLOQUEADA!» con +50 XP canjeable; sidebar muestra título «Lector Voraz» e inmunidad ~7 días; badge dorado en **Logros y Premios**. |
+| **BD** | `PlayerProfiles.HonorTitle = 'Lector Voraz'`; `SpendableXp` +50; `DisciplineImmunityUntilUtc` ≈ ahora+7d; transacción `ActionType = MedalPrivilegeBonus`. |
+
+---
+
+### CP-LOG-009 — Tienda: costo × nivel, inventario y equipar
+
+| Campo | Detalle |
+|-------|---------|
+| **Prioridad** | Alta |
+| **Precondiciones** | Nivel global ≥ 2; `SpendableXp` suficiente; premio base `300` XP. |
+| **Pasos** | 1. Logros → **Tienda**.<br>2. Verificar costo efectivo `600` (300 × 2).<br>3. Canjear.<br>4. En **Inventario**, seleccionar y **Equipar reliquia**. |
+| **UI** | Premio pasa a inventario; sidebar muestra marco dorado del avatar y «Reliquia: …». |
+| **BD** | `Rewards.Status = Redeemed`; `RedeemedCostInPoints = 600`; `PlayerProfiles.EquippedRewardId` = id del premio. |
+
+---
+
+### CP-LOG-010 — Dashboard: hub de logros y siguiente logro en hobby
+
+| Campo | Detalle |
+|-------|---------|
+| **Prioridad** | Media |
+| **Pasos** | 1. Abrir Dashboard: bloque **Logros y premios** (última medalla, siguiente logro, premio destacado).<br>2. Ir a Crecimiento → Libros y revisar el banner XP. |
+| **UI** | Hub con datos; banner de libros muestra «Siguiente logro: … (n/m …)» y barra. Botón **Abrir módulo** navega a Logros. |
 
 ---
 
@@ -884,10 +957,10 @@ XP de referencia: 15 XP por comida en plan; +40 XP si el día queda 4/4. Fuera d
 | Gym | `GymWorkouts`, `GymWorkoutEntries`, `Exercises` | CP-GYM-* |
 | Dieta | `DietDayLogs` | CP-DIE-* |
 | Rompecabezas | `Puzzles` | CP-PUZ-* |
-| Media | `MediaEntries` | CP-MED-* |
+| Media | `MediaEntries`, `MediaSeries`, `WeeklyQuotaEvaluations` | CP-MED-* |
 | Videojuegos | `VideoGames` | CP-VG-* |
-| Libros | `Books` | CP-LIB-* |
-| Cursos | `Courses`, `CourseSessionLogs` | CP-CUR-* |
+| Libros | `Books`, `BookReadingLogs`, `WeeklyQuotaEvaluations` | CP-LIB-* |
+| Cursos | `Courses`, `CourseSessionLogs`, `WeeklyQuotaEvaluations` | CP-CUR-* |
 | Logros | `MedalDefinitions`, `EarnedMedals`, `AchievementRules`, `Rewards` | CP-LOG-* |
 | Dashboard / XP | `PlayerProfiles`, `XpTransactions`, `Milestones` | CP-XP-* |
 | Configuración | `PlayerProfiles`, archivo `hobbyxp.db` | CP-SET-* |
