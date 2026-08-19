@@ -83,6 +83,16 @@ public sealed class RewardServiceTests : IDisposable
             profile.TotalXp = 1000;
             profile.CurrentLevel = 2;
             profile.SpendableXp = 1000;
+
+            db.HobbyProgresses.Add(new Models.Core.HobbyProgress
+            {
+                PlayerProfileId = profile.Id,
+                SourceType = MilestoneSourceType.Gym,
+                CurrentLevel = 1,
+                TotalXp = 0,
+                SpendableXp = 1000
+            });
+
             await db.SaveChangesAsync();
         }
 
@@ -101,9 +111,36 @@ public sealed class RewardServiceTests : IDisposable
         Assert.Equal(1000, profileAfter.TotalXp);
         Assert.Equal(2, profileAfter.CurrentLevel);
         Assert.Equal(400, profileAfter.SpendableXp);
+
+        var gymPool = await verifyDb.HobbyProgresses.SingleAsync(h => h.SourceType == MilestoneSourceType.Gym);
+        Assert.Equal(400, gymPool.SpendableXp);
+
         Assert.Equal(600, result.Value.RedeemedCostInPoints);
         Assert.Equal(-600, await verifyDb.XpTransactions.Select(t => t.Amount).SingleAsync());
         Assert.Single(await verifyDb.Milestones.Where(m => m.SourceType == MilestoneSourceType.Reward).ToListAsync());
+    }
+
+    [Fact]
+    public async Task CanRedeemAsync_WhenModuleBalanceInsufficient_ReturnsFalse()
+    {
+        await using (var db = _factory.CreateDbContext())
+        {
+            var profile = await db.PlayerProfiles.SingleAsync();
+            profile.SpendableXp = 5000;
+
+            db.HobbyProgresses.Add(new Models.Core.HobbyProgress
+            {
+                PlayerProfileId = profile.Id,
+                SourceType = MilestoneSourceType.Running,
+                SpendableXp = 5000
+            });
+
+            await db.SaveChangesAsync();
+        }
+
+        var reward = await _sut.CreateAsync("Café", 500, MilestoneSourceType.Gym);
+
+        Assert.False(await _sut.CanRedeemAsync(reward.Id));
     }
 
     [Fact]
@@ -114,6 +151,14 @@ public sealed class RewardServiceTests : IDisposable
             var profile = await db.PlayerProfiles.SingleAsync();
             profile.SpendableXp = 500;
             profile.CurrentLevel = 1;
+
+            db.HobbyProgresses.Add(new Models.Core.HobbyProgress
+            {
+                PlayerProfileId = profile.Id,
+                SourceType = MilestoneSourceType.Gym,
+                SpendableXp = 500
+            });
+
             await db.SaveChangesAsync();
         }
 

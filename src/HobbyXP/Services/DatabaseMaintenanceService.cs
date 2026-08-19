@@ -98,12 +98,14 @@ public sealed class DatabaseMaintenanceService : IDatabaseMaintenanceService
             profile.LastSeenEarnedMedalCount = 0;
             profile.SpendableLedgerInitialized = true;
             profile.SpendableProgressBaselineApplied = true;
+            profile.HobbySpendableLedgerInitialized = true;
             profile.UpdatedAt = now;
 
             foreach (var hobby in profile.HobbyProgresses)
             {
                 hobby.CurrentLevel = 1;
                 hobby.TotalXp = 0;
+                hobby.SpendableXp = 0;
                 hobby.UpdatedAt = now;
             }
         }

@@ -22,6 +22,7 @@ internal static class HobbyXpDatabaseInitializer
             SpendableXp = 0,
             SpendableLedgerInitialized = true,
             SpendableProgressBaselineApplied = true,
+            HobbySpendableLedgerInitialized = true,
             BaseXpPerLevel = 1000
         });
 
@@ -76,7 +77,8 @@ internal static class HobbyXpDatabaseInitializer
                     PlayerProfileId = profile.Id,
                     SourceType = source,
                     CurrentLevel = 1,
-                    TotalXp = 0
+                    TotalXp = 0,
+                    SpendableXp = 0
                 });
                 changed = true;
             }
@@ -183,8 +185,26 @@ internal static class HobbyXpDatabaseInitializer
         {
             if (!profile.SpendableLedgerInitialized)
             {
-                var hobbyXp = profile.HobbyProgresses.Sum(h => h.TotalXp);
-                profile.SpendableXp = hobbyXp + profile.TotalXp;
+                var totalSpendable = profile.HobbyProgresses.Sum(h => h.TotalXp) + profile.TotalXp;
+
+                foreach (var hobby in profile.HobbyProgresses)
+                {
+                    var metaFromHobby = Math.Max(0, hobby.CurrentLevel - 1) * profile.BaseXpPerLevel;
+                    hobby.SpendableXp = hobby.TotalXp + metaFromHobby;
+                }
+
+                var assigned = profile.HobbyProgresses.Sum(h => h.SpendableXp);
+                var remainder = totalSpendable - assigned;
+                if (remainder > 0)
+                {
+                    var target = profile.HobbyProgresses
+                        .OrderByDescending(h => h.SpendableXp)
+                        .ThenBy(h => h.SourceType)
+                        .First();
+                    target.SpendableXp += remainder;
+                }
+
+                profile.SpendableXp = totalSpendable;
                 profile.SpendableLedgerInitialized = true;
             }
 
@@ -206,5 +226,104 @@ internal static class HobbyXpDatabaseInitializer
 
         profile.TotalXp = 0;
         profile.CurrentLevel = 1;
+    }
+
+    /// <summary>
+    /// One-shot: reconstruye <see cref="HobbyProgress.SpendableXp"/> desde el ledger de transacciones
+    /// (o reparte el saldo global si no hay historial). Idempotente vía
+    /// <see cref="PlayerProfile.HobbySpendableLedgerInitialized"/>.
+    /// </summary>
+    public static async Task EnsureHobbySpendableLedgerAsync(
+        HobbyXpDbContext dbContext,
+        CancellationToken cancellationToken = default)
+    {
+        await EnsureHobbyProgressRowsAsync(dbContext, cancellationToken);
+
+        var profiles = await dbContext.PlayerProfiles
+            .Include(p => p.HobbyProgresses)
+            .Where(p => !p.HobbySpendableLedgerInitialized)
+            .ToListAsync(cancellationToken);
+
+        if (profiles.Count == 0)
+            return;
+
+        var medalSources = await BuildMedalSourceLookupAsync(dbContext, cancellationToken);
+
+        foreach (var profile in profiles)
+        {
+            foreach (var hobby in profile.HobbyProgresses)
+                hobby.SpendableXp = 0;
+
+            var transactions = await dbContext.XpTransactions
+                .Where(t => t.PlayerProfileId == profile.Id)
+                .ToListAsync(cancellationToken);
+
+            if (transactions.Count > 0)
+            {
+                foreach (var tx in transactions)
+                {
+                    var hobbySource = ResolveHobbyForTransaction(tx, medalSources);
+                    if (hobbySource is null || !HobbyProgressCatalog.IsTrackedHobby(hobbySource.Value))
+                        continue;
+
+                    var hobby = profile.HobbyProgresses.First(h => h.SourceType == hobbySource.Value);
+                    hobby.SpendableXp = Math.Max(0, hobby.SpendableXp + tx.Amount);
+                }
+            }
+            else if (profile.SpendableXp > 0)
+            {
+                // Perfil legacy sin txs: conserva el saldo en el primer hobby con progreso o Running.
+                var target = profile.HobbyProgresses
+                                 .OrderByDescending(h => h.TotalXp)
+                                 .FirstOrDefault(h => h.TotalXp > 0)
+                             ?? profile.HobbyProgresses.First(h => h.SourceType == MilestoneSourceType.Running);
+                target.SpendableXp = profile.SpendableXp;
+            }
+
+            profile.SpendableXp = profile.HobbyProgresses.Sum(h => h.SpendableXp);
+            profile.HobbySpendableLedgerInitialized = true;
+            profile.UpdatedAt = DateTime.UtcNow;
+        }
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+    }
+
+    private static MilestoneSourceType? ResolveHobbyForTransaction(
+        XpTransaction tx,
+        IReadOnlyDictionary<int, MilestoneSourceType> medalSources)
+    {
+        if (tx.SourceType is { } source && HobbyProgressCatalog.IsTrackedHobby(source))
+            return source;
+
+        if (tx.ActionType == AchievementActionType.MedalPrivilegeBonus &&
+            tx.SourceEntityId is int medalId &&
+            medalSources.TryGetValue(medalId, out var medalSource))
+            return medalSource;
+
+        return null;
+    }
+
+    private static async Task<Dictionary<int, MilestoneSourceType>> BuildMedalSourceLookupAsync(
+        HobbyXpDbContext dbContext,
+        CancellationToken cancellationToken)
+    {
+        var definitions = await dbContext.MedalDefinitions
+            .AsNoTracking()
+            .Select(d => new { d.Id, d.Code })
+            .ToListAsync(cancellationToken);
+
+        var lookup = new Dictionary<int, MilestoneSourceType>();
+        foreach (var definition in definitions)
+        {
+            var entry = MedalCatalog.Entries.FirstOrDefault(e => e.Code == definition.Code);
+            if (entry is null)
+                continue;
+
+            var source = MedalTrackMap.SourceFor(entry.Track);
+            if (source is not null)
+                lookup[definition.Id] = source.Value;
+        }
+
+        return lookup;
     }
 }

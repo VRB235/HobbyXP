@@ -42,7 +42,12 @@ public interface IXpService
 
     Task<bool> TryDeductXpAsync(
         int amount,
+        MilestoneSourceType hobbySource,
         string description,
+        CancellationToken cancellationToken = default);
+
+    Task<int> GetHobbySpendableXpAsync(
+        MilestoneSourceType sourceType,
         CancellationToken cancellationToken = default);
 
     Task<int> RevokeXpForSourceAsync(

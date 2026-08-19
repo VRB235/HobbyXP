@@ -66,6 +66,8 @@ public sealed class VideoGameProgressRowViewModel : ViewModelBase
         ? $"Actual: {CurrentCompletion}% → Nuevo: {TargetCompletion}%"
         : $"Progreso actual: {CurrentCompletion}%";
 
+    public double ProgressPercent => CurrentCompletion;
+
     public AsyncRelayCommand ApplyProgressCommand { get; }
 
     public RelayCommand BumpProgressCommand { get; }

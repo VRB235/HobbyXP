@@ -30,6 +30,9 @@ internal sealed class PlayerProfileConfiguration : IEntityTypeConfiguration<Play
         builder.Property(p => p.SpendableProgressBaselineApplied)
             .HasDefaultValue(false);
 
+        builder.Property(p => p.HobbySpendableLedgerInitialized)
+            .HasDefaultValue(false);
+
         builder.Property(p => p.DisplayName)
             .HasMaxLength(100)
             .HasDefaultValue("Aventurero");
@@ -93,6 +96,9 @@ internal sealed class HobbyProgressConfiguration : IEntityTypeConfiguration<Hobb
 
         builder.Property(h => h.CurrentLevel)
             .HasDefaultValue(1);
+
+        builder.Property(h => h.SpendableXp)
+            .HasDefaultValue(0);
 
         builder.HasOne(h => h.PlayerProfile)
             .WithMany(p => p.HobbyProgresses)

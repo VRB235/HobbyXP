@@ -29,6 +29,11 @@ public class PlayerProfile : EntityBase
     public bool SpendableProgressBaselineApplied { get; set; }
 
     /// <summary>
+    /// True cuando ya se reconstruyó el saldo canjeable por hobby desde el ledger.
+    /// </summary>
+    public bool HobbySpendableLedgerInitialized { get; set; }
+
+    /// <summary>
     /// XP del tramo 1→2. Cada nivel siguiente cuesta el doble (escala geométrica configurable).
     /// </summary>
     public int BaseXpPerLevel { get; set; } = 1000;

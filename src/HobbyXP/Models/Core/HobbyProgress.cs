@@ -16,5 +16,10 @@ public class HobbyProgress : EntityBase
 
     public int TotalXp { get; set; }
 
+    /// <summary>
+    /// Saldo canjeable ganado en este módulo (solo válido para premios del mismo hobby).
+    /// </summary>
+    public int SpendableXp { get; set; }
+
     public PlayerProfile PlayerProfile { get; set; } = null!;
 }

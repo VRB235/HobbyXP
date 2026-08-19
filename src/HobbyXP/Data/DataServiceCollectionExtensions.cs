@@ -27,6 +27,7 @@ public static class DataServiceCollectionExtensions
         await HobbyXpDatabaseInitializer.EnsureHobbyProgressRowsAsync(dbContext, cancellationToken);
         await HobbyXpDatabaseInitializer.EnsureHobbyXpBackfillAsync(dbContext, cancellationToken);
         await HobbyXpDatabaseInitializer.EnsureSpendableLedgerAsync(dbContext, cancellationToken);
+        await HobbyXpDatabaseInitializer.EnsureHobbySpendableLedgerAsync(dbContext, cancellationToken);
 
         var weeklyQuota = scope.ServiceProvider.GetRequiredService<IWeeklyQuotaService>();
         await weeklyQuota.EvaluateClosedWeeksAsync(cancellationToken);
