@@ -106,6 +106,8 @@ public sealed class AchievementEngineService : IAchievementEngineService
             .Select(m => m.MedalDefinitionId)
             .ToListAsync(cancellationToken);
 
+        var profile = await db.PlayerProfiles.FirstAsync(cancellationToken);
+
         var events = new List<AchievementEvent>();
         foreach (var spec in MedalCatalog.ForTrack(track).Where(s => s.Threshold <= currentCount).OrderBy(s => s.Threshold))
         {
@@ -124,7 +126,7 @@ public sealed class AchievementEngineService : IAchievementEngineService
             earnedDefinitionIds.Add(definition.Id);
 
             var bonus = MedalPrivilegeRules.GetSpendableBonus(spec.Threshold);
-            await ApplyMedalPrivilegesAsync(db, definition, bonus, cancellationToken);
+            await ApplyMedalPrivilegesAsync(db, profile, definition, track, bonus, cancellationToken);
 
             events.Add(new AchievementEvent(
                 definition.Name,
@@ -143,12 +145,14 @@ public sealed class AchievementEngineService : IAchievementEngineService
 
     private static async Task ApplyMedalPrivilegesAsync(
         HobbyXpDbContext db,
+        PlayerProfile profile,
         MedalDefinition definition,
+        MedalMilestoneTrack track,
         int spendableBonus,
         CancellationToken cancellationToken)
     {
-        var profile = await db.PlayerProfiles.FirstAsync(cancellationToken);
         var now = DateTime.UtcNow;
+        var hobbySource = MedalTrackMap.SourceFor(track);
 
         profile.SpendableXp += spendableBonus;
         profile.HonorTitle = definition.Name;
@@ -156,6 +160,20 @@ public sealed class AchievementEngineService : IAchievementEngineService
             now,
             profile.DisciplineImmunityUntilUtc);
         profile.UpdatedAt = now;
+
+        if (hobbySource is not null)
+        {
+            await db.Entry(profile)
+                .Collection(p => p.HobbyProgresses)
+                .LoadAsync(cancellationToken);
+
+            var hobby = profile.HobbyProgresses.FirstOrDefault(h => h.SourceType == hobbySource.Value);
+            if (hobby is not null)
+            {
+                hobby.SpendableXp += spendableBonus;
+                hobby.UpdatedAt = now;
+            }
+        }
 
         db.XpTransactions.Add(new XpTransaction
         {
@@ -165,8 +183,8 @@ public sealed class AchievementEngineService : IAchievementEngineService
             Description = $"Bonus de medalla: {definition.Name}",
             SourceEntityType = nameof(MedalDefinition),
             SourceEntityId = definition.Id,
-            SourceType = MilestoneSourceType.System,
-            IsGlobal = true,
+            SourceType = hobbySource ?? MilestoneSourceType.System,
+            IsGlobal = hobbySource is null,
             EarnedAt = now
         });
     }

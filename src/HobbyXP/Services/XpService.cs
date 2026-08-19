@@ -122,21 +122,41 @@ public sealed class XpService : IXpService
             milestoneTitle,
             cancellationToken);
 
+    public async Task<int> GetHobbySpendableXpAsync(
+        MilestoneSourceType sourceType,
+        CancellationToken cancellationToken = default)
+    {
+        if (!HobbyProgressCatalog.IsTrackedHobby(sourceType))
+            throw new ArgumentOutOfRangeException(nameof(sourceType), "No es un hobby con pool de XP.");
+
+        await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var profile = await GetProfileAsync(db, cancellationToken);
+        var hobby = await GetOrCreateHobbyProgressAsync(db, profile, sourceType, cancellationToken);
+        return hobby.SpendableXp;
+    }
+
     public async Task<bool> TryDeductXpAsync(
         int amount,
+        MilestoneSourceType hobbySource,
         string description,
         CancellationToken cancellationToken = default)
     {
         if (amount <= 0)
             return false;
 
+        if (!HobbyProgressCatalog.IsTrackedHobby(hobbySource))
+            throw new ArgumentOutOfRangeException(nameof(hobbySource), "Indique un módulo válido.");
+
         await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
         var profile = await GetProfileAsync(db, cancellationToken);
+        var hobby = await GetOrCreateHobbyProgressAsync(db, profile, hobbySource, cancellationToken);
 
-        if (profile.SpendableXp < amount)
+        if (hobby.SpendableXp < amount)
             return false;
 
-        profile.SpendableXp -= amount;
+        hobby.SpendableXp -= amount;
+        profile.SpendableXp = Math.Max(0, profile.SpendableXp - amount);
+        hobby.UpdatedAt = DateTime.UtcNow;
         profile.UpdatedAt = DateTime.UtcNow;
 
         db.XpTransactions.Add(new XpTransaction
@@ -146,8 +166,8 @@ public sealed class XpService : IXpService
             ActionType = AchievementActionType.RewardRedeemed,
             Description = description,
             SourceEntityType = nameof(Reward),
-            SourceType = MilestoneSourceType.Reward,
-            IsGlobal = true,
+            SourceType = hobbySource,
+            IsGlobal = false,
             EarnedAt = DateTime.UtcNow
         });
 
@@ -203,10 +223,12 @@ public sealed class XpService : IXpService
                     EarnedAt = DateTime.UtcNow
                 });
 
-                // El bonus global también se había acreditado al saldo canjeable.
+                // El bonus global también se había acreditado al saldo canjeable del hobby.
+                hobby.SpendableXp = Math.Max(0, hobby.SpendableXp - globalPenalty);
                 profile.SpendableXp = Math.Max(0, profile.SpendableXp - globalPenalty);
             }
 
+            hobby.SpendableXp = Math.Max(0, hobby.SpendableXp - totalToRevoke);
             profile.SpendableXp = Math.Max(0, profile.SpendableXp - totalToRevoke);
             profile.UpdatedAt = DateTime.UtcNow;
 
@@ -301,6 +323,7 @@ public sealed class XpService : IXpService
         {
             globalXpRevoked = levelsLost * profile.BaseXpPerLevel;
             profile.TotalXp = Math.Max(0, profile.TotalXp - globalXpRevoked);
+            hobby.SpendableXp = Math.Max(0, hobby.SpendableXp - globalXpRevoked);
             profile.SpendableXp = Math.Max(0, profile.SpendableXp - globalXpRevoked);
             XpLevelCalculator.RecalculateLevel(profile);
 
@@ -318,6 +341,7 @@ public sealed class XpService : IXpService
             });
         }
 
+        hobby.SpendableXp = Math.Max(0, hobby.SpendableXp - hobbyXpToRevoke);
         profile.SpendableXp = Math.Max(0, profile.SpendableXp - hobbyXpToRevoke);
         profile.UpdatedAt = DateTime.UtcNow;
 
@@ -365,6 +389,7 @@ public sealed class XpService : IXpService
         if (hobbyXpToRestore > 0)
         {
             hobby.TotalXp += hobbyXpToRestore;
+            hobby.SpendableXp += hobbyXpToRestore;
             profile.SpendableXp += hobbyXpToRestore;
             XpLevelCalculator.RecalculateLevel(hobby, profile.BaseXpPerLevel);
 
@@ -385,6 +410,7 @@ public sealed class XpService : IXpService
         if (globalXpToRestore > 0)
         {
             profile.TotalXp += globalXpToRestore;
+            hobby.SpendableXp += globalXpToRestore;
             profile.SpendableXp += globalXpToRestore;
             XpLevelCalculator.RecalculateLevel(profile);
 
@@ -477,6 +503,7 @@ public sealed class XpService : IXpService
         var previousGlobalLevel = profile.CurrentLevel;
 
         hobby.TotalXp += totalAward;
+        hobby.SpendableXp += totalAward;
         profile.SpendableXp += totalAward;
         profile.UpdatedAt = DateTime.UtcNow;
         XpLevelCalculator.RecalculateLevel(hobby, profile.BaseXpPerLevel);
@@ -515,6 +542,7 @@ public sealed class XpService : IXpService
         {
             globalBonus = levelsGained * profile.BaseXpPerLevel;
             profile.TotalXp += globalBonus;
+            hobby.SpendableXp += globalBonus;
             profile.SpendableXp += globalBonus;
             profile.UpdatedAt = DateTime.UtcNow;
             XpLevelCalculator.RecalculateLevel(profile);
@@ -585,7 +613,8 @@ public sealed class XpService : IXpService
                 PlayerProfileId = profile.Id,
                 SourceType = source,
                 CurrentLevel = 1,
-                TotalXp = 0
+                TotalXp = 0,
+                SpendableXp = 0
             };
             profile.HobbyProgresses.Add(hobby);
             db.HobbyProgresses.Add(hobby);

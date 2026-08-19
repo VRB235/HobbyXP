@@ -65,6 +65,16 @@ public sealed class AchievementProgressService : IAchievementProgressService
             ? 0
             : RewardCostCalculator.GetEffectiveCost(featured.CostInPoints, profile.CurrentLevel);
 
+        var moduleBalance = 0;
+        if (featured?.SourceType is { } module && HobbyProgressCatalog.IsTrackedHobby(module))
+        {
+            moduleBalance = await db.HobbyProgresses
+                .AsNoTracking()
+                .Where(h => h.SourceType == module)
+                .Select(h => h.SpendableXp)
+                .FirstOrDefaultAsync(cancellationToken);
+        }
+
         string? equippedName = null;
         if (profile.EquippedRewardId is int equippedId)
         {
@@ -80,7 +90,9 @@ public sealed class AchievementProgressService : IAchievementProgressService
             closest,
             featured,
             effectiveCost,
-            featured is not null && profile.SpendableXp >= effectiveCost,
+            featured is not null &&
+            featured.SourceType is not null &&
+            moduleBalance >= effectiveCost,
             profile.HonorTitle,
             equippedName,
             profile.DisciplineImmunityUntilUtc);

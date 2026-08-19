@@ -170,7 +170,7 @@ public sealed class XpServiceTests : IDisposable
     [Fact]
     public async Task TryDeductXpAsync_WhenInsufficient_ReturnsFalse()
     {
-        var deducted = await _sut.TryDeductXpAsync(100, "Canje fallido");
+        var deducted = await _sut.TryDeductXpAsync(100, MilestoneSourceType.Gym, "Canje fallido");
 
         Assert.False(deducted);
     }
@@ -184,10 +184,20 @@ public sealed class XpServiceTests : IDisposable
             seededProfile.TotalXp = 1500;
             seededProfile.CurrentLevel = 2;
             seededProfile.SpendableXp = 1500;
+
+            db.HobbyProgresses.Add(new HobbyProgress
+            {
+                PlayerProfileId = seededProfile.Id,
+                SourceType = MilestoneSourceType.Gym,
+                CurrentLevel = 1,
+                TotalXp = 0,
+                SpendableXp = 1500
+            });
+
             await db.SaveChangesAsync();
         }
 
-        var deducted = await _sut.TryDeductXpAsync(600, "Canje de premio");
+        var deducted = await _sut.TryDeductXpAsync(600, MilestoneSourceType.Gym, "Canje de premio");
 
         Assert.True(deducted);
 
@@ -197,9 +207,13 @@ public sealed class XpServiceTests : IDisposable
         Assert.Equal(2, profile.CurrentLevel);
         Assert.Equal(900, profile.SpendableXp);
 
+        var hobby = await verifyDb.HobbyProgresses.SingleAsync(h => h.SourceType == MilestoneSourceType.Gym);
+        Assert.Equal(900, hobby.SpendableXp);
+
         var transaction = await verifyDb.XpTransactions.SingleAsync(t => t.Amount < 0);
         Assert.Equal(-600, transaction.Amount);
-        Assert.True(transaction.IsGlobal);
+        Assert.False(transaction.IsGlobal);
+        Assert.Equal(MilestoneSourceType.Gym, transaction.SourceType);
     }
 
     [Fact]

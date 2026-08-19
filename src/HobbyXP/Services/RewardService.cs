@@ -97,9 +97,13 @@ public sealed class RewardService : IRewardService
         if (reward is null || reward.Status != RewardStatus.Available)
             return false;
 
+        if (reward.SourceType is not { } module || !HobbyProgressCatalog.IsTrackedHobby(module))
+            return false;
+
         var profile = await _playerProfileService.GetProfileAsync(cancellationToken);
         var cost = RewardCostCalculator.GetEffectiveCost(reward.CostInPoints, profile.CurrentLevel);
-        return profile.SpendableXp >= cost;
+        var moduleBalance = await _xpService.GetHobbySpendableXpAsync(module, cancellationToken);
+        return moduleBalance >= cost;
     }
 
     public async Task<OperationResult<Reward>> RedeemAsync(
@@ -113,16 +117,21 @@ public sealed class RewardService : IRewardService
         if (reward.Status != RewardStatus.Available)
             throw new InvalidOperationException("El premio ya fue reclamado.");
 
+        if (reward.SourceType is not { } module || !HobbyProgressCatalog.IsTrackedHobby(module))
+            throw new InvalidOperationException("El premio debe pertenecer a un módulo válido.");
+
         var profile = await _playerProfileService.GetProfileAsync(cancellationToken);
         var effectiveCost = RewardCostCalculator.GetEffectiveCost(reward.CostInPoints, profile.CurrentLevel);
 
         var deducted = await _xpService.TryDeductXpAsync(
             effectiveCost,
-            $"Canje de premio: {reward.Name} ({effectiveCost:N0} XP)",
+            module,
+            $"Canje de premio: {reward.Name} ({effectiveCost:N0} XP · {HobbyProgressCatalog.GetDisplayName(module)})",
             cancellationToken);
 
         if (!deducted)
-            throw new InvalidOperationException("No tienes suficiente XP para canjear este premio.");
+            throw new InvalidOperationException(
+                $"No tienes suficiente XP de {HobbyProgressCatalog.GetDisplayName(module)} para canjear este premio.");
 
         reward.Status = RewardStatus.Redeemed;
         reward.RedeemedAt = DateTime.UtcNow;

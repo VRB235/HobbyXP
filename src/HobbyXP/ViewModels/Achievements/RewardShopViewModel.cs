@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using HobbyXP.Helpers;
+using HobbyXP.Models.Enums;
 using HobbyXP.Services.Abstractions;
 using HobbyXP.Services.Messaging;
 using HobbyXP.ViewModels.Common;
@@ -11,7 +12,9 @@ public sealed class RewardShopViewModel : AchievementAwareViewModel
 {
     private readonly IRewardService _rewardService;
     private readonly IPlayerProfileService _playerProfileService;
+    private readonly IXpService _xpService;
     private readonly IProfileRefreshMessenger _profileRefreshMessenger;
+    private readonly Dictionary<MilestoneSourceType, int> _moduleBalances = new();
     private string _name = string.Empty;
     private string _costInPoints = "500";
     private string? _description;
@@ -25,12 +28,14 @@ public sealed class RewardShopViewModel : AchievementAwareViewModel
     public RewardShopViewModel(
         IRewardService rewardService,
         IPlayerProfileService playerProfileService,
+        IXpService xpService,
         IProfileRefreshMessenger profileRefreshMessenger,
         IAchievementMessenger achievementMessenger)
         : base(achievementMessenger)
     {
         _rewardService = rewardService;
         _playerProfileService = playerProfileService;
+        _xpService = xpService;
         _profileRefreshMessenger = profileRefreshMessenger;
         AvailableSections = new ObservableCollection<RewardShopSectionViewModel>();
         InventorySections = new ObservableCollection<RewardShopSectionViewModel>();
@@ -59,6 +64,10 @@ public sealed class RewardShopViewModel : AchievementAwareViewModel
             {
                 RefreshCreateValidation();
                 AssignModuleCommand.RaiseCanExecuteChanged();
+                OnPropertyChanged(nameof(BalanceText));
+                OnPropertyChanged(nameof(CanAffordSelected));
+                OnPropertyChanged(nameof(SelectedRewardRedeemHint));
+                RedeemRewardCommand.RaiseCanExecuteChanged();
             }
         }
     }
@@ -103,8 +112,18 @@ public sealed class RewardShopViewModel : AchievementAwareViewModel
         }
     }
 
-    public string BalanceText =>
-        $"Saldo canjeable: {AvailableXp:N0} XP · nivel {_currentLevel} (el costo = base × nivel)";
+    public string BalanceText
+    {
+        get
+        {
+            var module = SelectedAvailable?.SourceType ?? SelectedModule?.Value;
+            if (module is null)
+                return $"Saldo total: {AvailableXp:N0} XP · nivel {_currentLevel} (el costo = base × nivel)";
+
+            return
+                $"Saldo {HobbyProgressCatalog.GetDisplayName(module.Value)}: {GetModuleBalance(module.Value):N0} XP · nivel {_currentLevel} (el costo = base × nivel)";
+        }
+    }
 
     public RewardRowViewModel? SelectedAvailable
     {
@@ -115,6 +134,7 @@ public sealed class RewardShopViewModel : AchievementAwareViewModel
             {
                 OnPropertyChanged(nameof(CanAffordSelected));
                 OnPropertyChanged(nameof(SelectedRewardRedeemHint));
+                OnPropertyChanged(nameof(BalanceText));
                 RedeemRewardCommand.RaiseCanExecuteChanged();
                 AssignModuleCommand.RaiseCanExecuteChanged();
                 SyncModuleFromSelection(value);
@@ -139,8 +159,8 @@ public sealed class RewardShopViewModel : AchievementAwareViewModel
     }
 
     public bool CanAffordSelected =>
-        SelectedAvailable is { IsAvailable: true } selected &&
-        AvailableXp >= selected.EffectiveCost;
+        SelectedAvailable is { IsAvailable: true, SourceType: { } module } selected &&
+        GetModuleBalance(module) >= selected.EffectiveCost;
 
     public string SelectedRewardRedeemHint
     {
@@ -149,11 +169,16 @@ public sealed class RewardShopViewModel : AchievementAwareViewModel
             if (SelectedAvailable is null)
                 return "Seleccione un premio disponible.";
 
-            if (CanAffordSelected)
-                return $"Puede canjearlo por {SelectedAvailable.EffectiveCost:N0} XP.";
+            if (SelectedAvailable.SourceType is not { } module)
+                return "Asigne un módulo al premio antes de canjearlo.";
 
-            var missing = SelectedAvailable.EffectiveCost - AvailableXp;
-            return $"Necesita {SelectedAvailable.EffectiveCost:N0} XP (faltan {missing:N0}).";
+            var moduleBalance = GetModuleBalance(module);
+            if (CanAffordSelected)
+                return $"Puede canjearlo por {SelectedAvailable.EffectiveCost:N0} XP de {HobbyProgressCatalog.GetDisplayName(module)}.";
+
+            var missing = SelectedAvailable.EffectiveCost - moduleBalance;
+            return
+                $"Necesita {SelectedAvailable.EffectiveCost:N0} XP de {HobbyProgressCatalog.GetDisplayName(module)} (faltan {missing:N0}; saldo del módulo: {moduleBalance:N0}).";
         }
     }
 
@@ -173,6 +198,14 @@ public sealed class RewardShopViewModel : AchievementAwareViewModel
         AvailableXp = profile.SpendableXp;
         _currentLevel = profile.CurrentLevel;
         _equippedRewardId = profile.EquippedRewardId;
+
+        _moduleBalances.Clear();
+        foreach (var hobby in await _xpService.GetAllHobbyProgressAsync())
+        {
+            var balance = await _xpService.GetHobbySpendableXpAsync(hobby.SourceType);
+            _moduleBalances[hobby.SourceType] = balance;
+        }
+
         OnPropertyChanged(nameof(BalanceText));
 
         var rewards = await _rewardService.GetAllAsync();
@@ -228,6 +261,9 @@ public sealed class RewardShopViewModel : AchievementAwareViewModel
         if (match is not null)
             SelectedModule = match;
     }
+
+    private int GetModuleBalance(MilestoneSourceType module) =>
+        _moduleBalances.GetValueOrDefault(module, 0);
 
     private static void ReplaceSections(
         ObservableCollection<RewardShopSectionViewModel> target,
