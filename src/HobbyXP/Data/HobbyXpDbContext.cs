@@ -20,6 +20,7 @@ public class HobbyXpDbContext : DbContext
     public DbSet<HobbyProgress> HobbyProgresses => Set<HobbyProgress>();
     public DbSet<Milestone> Milestones => Set<Milestone>();
     public DbSet<WeeklyQuotaEvaluation> WeeklyQuotaEvaluations => Set<WeeklyQuotaEvaluation>();
+    public DbSet<DailyQuotaEvaluation> DailyQuotaEvaluations => Set<DailyQuotaEvaluation>();
 
     public DbSet<OfficialRace> OfficialRaces => Set<OfficialRace>();
     public DbSet<RunningSession> RunningSessions => Set<RunningSession>();

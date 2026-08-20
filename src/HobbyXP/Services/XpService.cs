@@ -293,10 +293,13 @@ public sealed class XpService : IXpService
         MilestoneSourceType milestoneSource,
         string description,
         int? sourceEntityId = null,
+        string? sourceEntityType = null,
         CancellationToken cancellationToken = default)
     {
         if (!HobbyProgressCatalog.IsTrackedHobby(milestoneSource))
             throw new ArgumentOutOfRangeException(nameof(milestoneSource));
+
+        var entityType = sourceEntityType ?? nameof(WeeklyQuotaEvaluation);
 
         await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
         var profile = await GetProfileAsync(db, cancellationToken);
@@ -333,7 +336,7 @@ public sealed class XpService : IXpService
                 Amount = -globalXpRevoked,
                 ActionType = AchievementActionType.WeeklyQuotaPenalty,
                 Description = $"Ajuste global por castigo en {HobbyProgressCatalog.GetDisplayName(milestoneSource)}",
-                SourceEntityType = nameof(WeeklyQuotaEvaluation),
+                SourceEntityType = entityType,
                 SourceEntityId = sourceEntityId,
                 SourceType = milestoneSource,
                 IsGlobal = true,
@@ -351,7 +354,7 @@ public sealed class XpService : IXpService
             Amount = -hobbyXpToRevoke,
             ActionType = AchievementActionType.WeeklyQuotaPenalty,
             Description = description,
-            SourceEntityType = nameof(WeeklyQuotaEvaluation),
+            SourceEntityType = entityType,
             SourceEntityId = sourceEntityId,
             SourceType = milestoneSource,
             IsGlobal = false,
@@ -374,6 +377,7 @@ public sealed class XpService : IXpService
         int globalXpToRestore,
         string description,
         int? sourceEntityId = null,
+        string? sourceEntityType = null,
         CancellationToken cancellationToken = default)
     {
         if (!HobbyProgressCatalog.IsTrackedHobby(milestoneSource))
@@ -381,6 +385,8 @@ public sealed class XpService : IXpService
 
         if (hobbyXpToRestore <= 0 && globalXpToRestore <= 0)
             return;
+
+        var entityType = sourceEntityType ?? nameof(WeeklyQuotaEvaluation);
 
         await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
         var profile = await GetProfileAsync(db, cancellationToken);
@@ -399,7 +405,7 @@ public sealed class XpService : IXpService
                 Amount = hobbyXpToRestore,
                 ActionType = AchievementActionType.WeeklyQuotaPenalty,
                 Description = description,
-                SourceEntityType = nameof(WeeklyQuotaEvaluation),
+                SourceEntityType = entityType,
                 SourceEntityId = sourceEntityId,
                 SourceType = milestoneSource,
                 IsGlobal = false,
@@ -421,7 +427,7 @@ public sealed class XpService : IXpService
                 ActionType = AchievementActionType.WeeklyQuotaPenalty,
                 Description =
                     $"Restauración global por disciplina en {HobbyProgressCatalog.GetDisplayName(milestoneSource)}",
-                SourceEntityType = nameof(WeeklyQuotaEvaluation),
+                SourceEntityType = entityType,
                 SourceEntityId = sourceEntityId,
                 SourceType = milestoneSource,
                 IsGlobal = true,

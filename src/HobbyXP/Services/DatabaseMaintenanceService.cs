@@ -67,6 +67,7 @@ public sealed class DatabaseMaintenanceService : IDatabaseMaintenanceService
         await db.XpTransactions.ExecuteDeleteAsync(cancellationToken);
         await db.Milestones.ExecuteDeleteAsync(cancellationToken);
         await db.WeeklyQuotaEvaluations.ExecuteDeleteAsync(cancellationToken);
+        await db.DailyQuotaEvaluations.ExecuteDeleteAsync(cancellationToken);
 
         // Catálogos conservados: Exercises, MedalDefinitions, AchievementRules.
         // Premios: se mantienen las definiciones; se revierten canjes.
@@ -92,6 +93,7 @@ public sealed class DatabaseMaintenanceService : IDatabaseMaintenanceService
             profile.TotalXp = 0;
             profile.SpendableXp = 0;
             profile.WeeklyQuotaTrackingStartedAtUtc = null;
+            profile.DailyQuotaTrackingStartedAtUtc = null;
             profile.HonorTitle = null;
             profile.EquippedRewardId = null;
             profile.DisciplineImmunityUntilUtc = null;

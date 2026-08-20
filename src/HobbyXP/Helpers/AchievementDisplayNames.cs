@@ -14,7 +14,7 @@ public static class AchievementDisplayNames
         AchievementActionType.PuzzleCompleted => "Rompecabezas completado",
         AchievementActionType.MediaCompleted => "Serie o película terminada",
         AchievementActionType.MediaChapterWatched => "Serie — capítulo visto",
-        AchievementActionType.WeeklyQuotaPenalty => "Disciplina semanal — castigo/restauración",
+        AchievementActionType.WeeklyQuotaPenalty => "Disciplina — castigo/restauración",
         AchievementActionType.VideoGamePercent => "Videojuego — avance (%)",
         AchievementActionType.VideoGamePlatinum => "Videojuego platinado",
         AchievementActionType.BookPageRead => "Libro — página leída",

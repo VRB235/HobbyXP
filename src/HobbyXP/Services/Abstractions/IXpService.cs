@@ -64,10 +64,11 @@ public interface IXpService
         MilestoneSourceType milestoneSource,
         string description,
         int? sourceEntityId = null,
+        string? sourceEntityType = null,
         CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Devuelve XP de hobby/global previamente revocado por castigo semanal.
+    /// Devuelve XP de hobby/global previamente revocado por castigo de disciplina.
     /// </summary>
     Task RestoreHobbyLevelPenaltyAsync(
         MilestoneSourceType milestoneSource,
@@ -75,6 +76,7 @@ public interface IXpService
         int globalXpToRestore,
         string description,
         int? sourceEntityId = null,
+        string? sourceEntityType = null,
         CancellationToken cancellationToken = default);
 
     Task<IReadOnlyList<DailyXpPoint>> GetDailyXpForLastDaysAsync(

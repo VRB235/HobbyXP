@@ -43,6 +43,9 @@ internal sealed class PlayerProfileConfiguration : IEntityTypeConfiguration<Play
         builder.Property(p => p.WeeklyQuotaTrackingStartedAtUtc)
             .IsRequired(false);
 
+        builder.Property(p => p.DailyQuotaTrackingStartedAtUtc)
+            .IsRequired(false);
+
         builder.Property(p => p.HonorTitle)
             .HasMaxLength(120);
 
@@ -127,6 +130,27 @@ internal sealed class WeeklyQuotaEvaluationConfiguration : IEntityTypeConfigurat
             .IsRequired();
 
         builder.HasIndex(e => new { e.SourceType, e.WeekStartUtc })
+            .IsUnique();
+    }
+}
+
+internal sealed class DailyQuotaEvaluationConfiguration : IEntityTypeConfiguration<DailyQuotaEvaluation>
+{
+    public void Configure(EntityTypeBuilder<DailyQuotaEvaluation> builder)
+    {
+        builder.ToTable("DailyQuotaEvaluations");
+
+        builder.Property(e => e.SourceType)
+            .HasConversion<string>()
+            .HasMaxLength(32)
+            .IsRequired();
+
+        builder.Property(e => e.Status)
+            .HasConversion<string>()
+            .HasMaxLength(16)
+            .IsRequired();
+
+        builder.HasIndex(e => new { e.SourceType, e.DayUtc })
             .IsUnique();
     }
 }

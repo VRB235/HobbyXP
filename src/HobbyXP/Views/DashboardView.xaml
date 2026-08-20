@@ -113,11 +113,11 @@
             </Border>
 
             <!-- Disciplina semanal -->
-            <Expander Header="Disciplina semanal (lunes–domingo)"
+            <Expander Header="Disciplina (diaria + semanal)"
                       IsExpanded="{Binding IsDisciplineExpanded, Mode=TwoWay}"
                       Margin="0,0,0,12">
                 <StackPanel>
-                    <TextBlock Text="Si no cumple la cuota al cerrar la semana, baja 1 nivel del hobby. Libros: 20% de páginas del libro actual (terminarlo también cumple). Cursos: 5 sesiones. Series: hay que terminar al menos una en la semana si hay serie en progreso. Al abrir la app se revisan hasta 26 semanas; actividad atrasada puede restaurar el XP."
+                    <TextBlock Text="Running/Gym/Libros/Cursos: cuota diaria (Cumplida si hoy está al día) y cuota semanal. El castigo diario se aplica al día siguiente si no registró; el semanal al cerrar la semana. Diario: 1 sesión (libros: 20% de páginas). Semanal: Running 4, Gym 5, Curso 5 sesiones, Libro 1 terminado. Otros hobbies solo semanal. Actividad atrasada puede restaurar XP."
                                Style="{StaticResource MutedText}" Margin="0,0,0,12" TextWrapping="Wrap" />
                     <ItemsControl ItemsSource="{Binding WeeklyQuotaItems}">
                         <ItemsControl.ItemTemplate>
@@ -154,6 +154,7 @@
                                                     <Setter Property="Text" Value="En curso" />
                                                     <Setter Property="Foreground" Value="{StaticResource AccentCyanBrush}" />
                                                     <Style.Triggers>
+                                                        <!-- Estado del periodo ABIERTO (hoy / semana actual). Castigos históricos van en el texto naranja, no en el badge. -->
                                                         <DataTrigger Binding="{Binding IsMet}" Value="True">
                                                             <Setter Property="Text" Value="Cumplida" />
                                                             <Setter Property="Foreground" Value="{StaticResource AccentGreenBrush}" />
@@ -161,10 +162,6 @@
                                                         <DataTrigger Binding="{Binding IsApplicable}" Value="False">
                                                             <Setter Property="Text" Value="No aplica" />
                                                             <Setter Property="Foreground" Value="{StaticResource TextMutedBrush}" />
-                                                        </DataTrigger>
-                                                        <DataTrigger Binding="{Binding HasActivePenalty}" Value="True">
-                                                            <Setter Property="Text" Value="Castigo" />
-                                                            <Setter Property="Foreground" Value="#FF8A65" />
                                                         </DataTrigger>
                                                     </Style.Triggers>
                                                 </Style>

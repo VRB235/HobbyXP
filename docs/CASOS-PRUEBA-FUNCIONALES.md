@@ -659,16 +659,16 @@ XP de referencia: 15 XP por comida en plan; +40 XP si el día queda 4/4. Fuera d
 
 ---
 
-### CP-LIB-003 — Cuota semanal: 20% de páginas del libro actual
+### CP-LIB-003 — Cuota diaria 20% + semanal 1 libro terminado
 
 | Campo | Detalle |
 |-------|---------|
 | **Prioridad** | Alta |
-| **Precondiciones** | Semana lun–dom actual. Libro en lectura `Dune`, `TotalPages = 500` (cuota = 100 páginas, techo del 20%). |
-| **Pasos** | 1. Registrar 50 páginas leídas en la semana.<br>2. Dashboard → Disciplina → **Libros**.<br>3. Registrar 50 páginas más (acumulado 100 en la semana).<br>4. Volver al Dashboard. |
-| **UI** | Paso 2: progreso `50/100 páginas`; cuota **no** cumplida; etiqueta indica 20% de «Dune».<br>Paso 4: `100/100 páginas`; **Cumplida**. |
-| **BD** | `BookReadingLogs.PagesDone` suma 100 en el rango lun–dom (UTC de fecha local). Sin fila de castigo en semana abierta. |
-| **Notas** | Terminar el libro en la semana **sí cumple** aunque las páginas de esa semana sean &lt; 20%. Sin libro en lectura y sin uno terminado esa semana: cuota **No aplica** (no hay castigo). |
+| **Precondiciones** | Día actual. Libro en lectura `Dune`, `TotalPages = 500` (cuota diaria = 100 páginas, techo del 20%). Semana lun–dom actual. |
+| **Pasos** | 1. Registrar 50 páginas leídas **hoy**.<br>2. Dashboard → Disciplina → **Libros**.<br>3. Registrar 50 páginas más **hoy** (acumulado 100 del día).<br>4. Volver al Dashboard.<br>5. (Semanal) Terminar el libro en la semana y verificar cuota semanal. |
+| **UI** | Paso 2: `Hoy: 50/100 páginas · Semana: 0/1 libros terminados`; etiqueta **En curso** (día no cumplido).<br>Paso 4: `Hoy: 100/100…`; **Cumplida** (día).<br>Paso 5: Semana `1/1`; semanal cumplida. |
+| **BD** | `BookReadingLogs.PagesDone` del día (UTC de fecha local). Semana/día **abiertos**: sin castigo. El castigo diario se aplica **al día siguiente** si no hubo 20% (fila en `DailyQuotaEvaluations`). Semana sin libro terminado: castigo en `WeeklyQuotaEvaluations` al cerrar la semana. |
+| **Notas** | Badge del Dashboard = estado de **hoy** (En curso / Cumplida), no castigos históricos (esos van en el texto naranja). Terminar el libro **hoy** cumple el día aunque páginas &lt; 20%. Sin libro en lectura: **No aplica**. |
 
 ---
 
@@ -710,16 +710,16 @@ XP de referencia: 15 XP por comida en plan; +40 XP si el día queda 4/4. Fuera d
 
 ---
 
-### CP-CUR-004 — Cuota semanal: 5 sesiones
+### CP-CUR-004 — Cuota diaria 1 sesión + semanal 5
 
 | Campo | Detalle |
 |-------|---------|
 | **Prioridad** | Alta |
-| **Precondiciones** | Semana lun–dom actual. Curso en progreso con al menos 10 sesiones totales. |
-| **Pasos** | 1. Registrar 4 sesiones en la semana (pueden ser varios logs).<br>2. Dashboard → Disciplina → **Cursos**.<br>3. Registrar 1 sesión más (total 5).<br>4. Volver al Dashboard. |
-| **UI** | Paso 2: progreso `4/5 sesiones`; cuota **no** cumplida.<br>Paso 4: `5/5 sesiones`; **Cumplida**. |
-| **BD** | `CourseSessionLogs.SessionsDone` suma 5 en el rango lun–dom. |
-| **Notas** | Sin curso en progreso y sin sesiones esa semana: cuota **No aplica**. Terminar un curso de 3 sesiones en la semana **no** cumple si no se llega a 5 sesiones. |
+| **Precondiciones** | Día actual + semana lun–dom. Curso en progreso con al menos 10 sesiones totales. |
+| **Pasos** | 1. Sin sesiones hoy: Dashboard → Disciplina → **Cursos** (debe verse día pendiente).<br>2. Registrar 1 sesión **hoy**.<br>3. Volver al Dashboard (día **Cumplida**).<br>4. Acumular hasta 5 sesiones en la semana y verificar semanal. |
+| **UI** | Tras paso 2–3: `Hoy: 1/1 sesiones · Semana: n/5 sesiones`; badge **Cumplida** por el día.<br>Con menos de 5 en la semana: semanal aún pendiente (el badge prioriza el día). |
+| **BD** | Día cerrado sin sesión: `DailyQuotaEvaluations` (castigo). Semana cerrada &lt; 5: `WeeklyQuotaEvaluations`. |
+| **Notas** | Sin curso en progreso y sin sesiones: **No aplica**. |
 
 ---
 

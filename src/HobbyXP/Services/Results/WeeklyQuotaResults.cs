@@ -21,9 +21,19 @@ public sealed record WeeklyQuotaProgress(
     string SecondaryUnitLabel,
     bool IsMet,
     WeeklyQuotaStatus? LastClosedStatus,
-    string? ActivePenaltyReminder)
+    string? ActivePenaltyReminder,
+    bool HasDailyQuota = false,
+    string? DailyRequirementLabel = null,
+    int DailyRequiredPrimary = 0,
+    int DailyActualPrimary = 0,
+    string? DailyPrimaryUnitLabel = null,
+    bool IsDailyMet = false,
+    bool IsWeeklyMet = false)
 {
-    public bool IsApplicable => RequiredPrimary > 0 || RequiredSecondary > 0;
+    public bool IsApplicable =>
+        RequiredPrimary > 0 ||
+        RequiredSecondary > 0 ||
+        (HasDailyQuota && DailyRequiredPrimary > 0);
 
     public string ProgressText
     {
@@ -32,14 +42,30 @@ public sealed record WeeklyQuotaProgress(
             if (!IsApplicable)
                 return "Sin actividad activa esta semana";
 
-            if (RequiredPrimary > 0 && RequiredSecondary > 0)
-                return $"{ActualPrimary}/{RequiredPrimary} {PrimaryUnitLabel} · {ActualSecondary}/{RequiredSecondary} {SecondaryUnitLabel}";
+            if (HasDailyQuota && DailyRequiredPrimary > 0)
+            {
+                var dailyUnit = DailyPrimaryUnitLabel ?? PrimaryUnitLabel;
+                var daily = $"Hoy: {DailyActualPrimary}/{DailyRequiredPrimary} {dailyUnit}";
+                var weekly = FormatWeeklyProgress();
+                return string.IsNullOrEmpty(weekly) ? daily : $"{daily} · Semana: {weekly}";
+            }
 
-            if (RequiredSecondary > 0)
-                return $"{ActualSecondary}/{RequiredSecondary} {SecondaryUnitLabel}";
-
-            return $"{ActualPrimary}/{RequiredPrimary} {PrimaryUnitLabel}";
+            return FormatWeeklyProgress();
         }
+    }
+
+    private string FormatWeeklyProgress()
+    {
+        if (RequiredPrimary <= 0 && RequiredSecondary <= 0)
+            return string.Empty;
+
+        if (RequiredPrimary > 0 && RequiredSecondary > 0)
+            return $"{ActualPrimary}/{RequiredPrimary} {PrimaryUnitLabel} · {ActualSecondary}/{RequiredSecondary} {SecondaryUnitLabel}";
+
+        if (RequiredSecondary > 0)
+            return $"{ActualSecondary}/{RequiredSecondary} {SecondaryUnitLabel}";
+
+        return $"{ActualPrimary}/{RequiredPrimary} {PrimaryUnitLabel}";
     }
 
     public bool HasActivePenalty => !string.IsNullOrWhiteSpace(ActivePenaltyReminder);

@@ -4,12 +4,12 @@ namespace HobbyXP.Helpers;
 
 /// <summary>
 /// Cuotas semanales de disciplina por hobby.
-/// Gym: 5 entrenamientos (no “entretenimientos”).
-/// Libro: 20 % de las páginas del libro actual (dinámico).
+/// Gym: 5 entrenamientos. Running: 4. Libro: 1 terminado. Curso: 5 sesiones.
 /// </summary>
 public static class WeeklyQuotaRules
 {
     public const int BookPageQuotaPercent = 20;
+    public const int BooksCompletedRequired = 1;
     public const int CourseSessionsRequired = 5;
     public const int SeriesCompletedRequired = 1;
     public const int MoviesRequired = 2;
@@ -34,14 +34,14 @@ public static class WeeklyQuotaRules
             MilestoneSourceType.Puzzle => (1, 0),
             MilestoneSourceType.Media => (SeriesCompletedRequired, MoviesRequired),
             MilestoneSourceType.VideoGame => (1, 0),
-            MilestoneSourceType.Book => (0, 0), // dinámico: GetBookRequiredPages
+            MilestoneSourceType.Book => (BooksCompletedRequired, 0),
             MilestoneSourceType.Course => (CourseSessionsRequired, 0),
             MilestoneSourceType.Diet => (5, 0),
             _ => (0, 0)
         };
 
     /// <summary>
-    /// Páginas mínimas de la semana: techo del 20 % del libro actual (mínimo 1 si hay páginas).
+    /// Páginas mínimas diarias: techo del 20 % del libro actual (mínimo 1 si hay páginas).
     /// </summary>
     public static int GetBookRequiredPages(int totalPages)
     {
@@ -59,7 +59,7 @@ public static class WeeklyQuotaRules
             MilestoneSourceType.Puzzle => "rompecabezas",
             MilestoneSourceType.Media => "series terminadas",
             MilestoneSourceType.VideoGame => "avances",
-            MilestoneSourceType.Book => "páginas",
+            MilestoneSourceType.Book => "libros terminados",
             MilestoneSourceType.Course => "sesiones",
             MilestoneSourceType.Diet => "días buenos",
             _ => "unidades"
@@ -87,8 +87,8 @@ public static class WeeklyQuotaRules
         if (sourceType == MilestoneSourceType.Book)
         {
             return primary <= 0
-                ? $"{BookPageQuotaPercent}% de páginas del libro actual / semana"
-                : $"{primary} páginas ({BookPageQuotaPercent}% del libro actual) / semana";
+                ? "Sin libro activo esta semana"
+                : $"{primary} libro terminado / semana";
         }
 
         if (sourceType == MilestoneSourceType.Media)

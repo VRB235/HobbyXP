@@ -62,6 +62,15 @@ public sealed class WeeklyQuotaRulesTests
         Assert.Equal(0, secondary);
     }
 
+    [Fact]
+    public void Book_WeeklyRequiresOneCompletedBook()
+    {
+        var (primary, secondary) = WeeklyQuotaRules.GetRequired(Models.Enums.MilestoneSourceType.Book);
+        Assert.Equal(1, primary);
+        Assert.Equal(0, secondary);
+        Assert.Contains("libro terminado", WeeklyQuotaRules.FormatRequirement(Models.Enums.MilestoneSourceType.Book), StringComparison.OrdinalIgnoreCase);
+    }
+
     [Theory]
     [InlineData(0, 0)]
     [InlineData(1, 1)]
@@ -71,14 +80,23 @@ public sealed class WeeklyQuotaRulesTests
     public void Book_RequiredPages_IsTwentyPercentCeiling(int totalPages, int expected)
     {
         Assert.Equal(expected, WeeklyQuotaRules.GetBookRequiredPages(totalPages));
+        Assert.Equal(expected, DailyQuotaRules.GetBookRequiredPages(totalPages));
     }
 
     [Fact]
-    public void Book_CompletingBook_MeetsQuotaEvenIfPagesBelowTwentyPercent()
+    public void Book_CompletingBook_MeetsDailyQuotaEvenIfPagesBelowTwentyPercent()
     {
-        Assert.True(WeeklyQuotaRules.IsBookQuotaMet(100, 10, completedBookThisWeek: true));
-        Assert.False(WeeklyQuotaRules.IsBookQuotaMet(100, 10, completedBookThisWeek: false));
-        Assert.True(WeeklyQuotaRules.IsBookQuotaMet(100, 100, completedBookThisWeek: false));
+        Assert.True(DailyQuotaRules.IsBookQuotaMet(100, 10, completedBookToday: true));
+        Assert.False(DailyQuotaRules.IsBookQuotaMet(100, 10, completedBookToday: false));
+        Assert.True(DailyQuotaRules.IsBookQuotaMet(100, 100, completedBookToday: false));
+    }
+
+    [Fact]
+    public void Daily_RunningGymCourse_RequireOneSession()
+    {
+        Assert.Equal(1, DailyQuotaRules.GetRequiredPrimary(Models.Enums.MilestoneSourceType.Running));
+        Assert.Equal(1, DailyQuotaRules.GetRequiredPrimary(Models.Enums.MilestoneSourceType.Gym));
+        Assert.Equal(1, DailyQuotaRules.GetRequiredPrimary(Models.Enums.MilestoneSourceType.Course));
     }
 }
 

@@ -2,6 +2,7 @@ using HobbyXP.Helpers;
 using HobbyXP.Models.Entertainment;
 using HobbyXP.Models.Enums;
 using HobbyXP.Models.PersonalGrowth;
+using HobbyXP.Models.Physical;
 using HobbyXP.Services;
 using HobbyXP.Tests.Helpers;
 using Microsoft.EntityFrameworkCore;
@@ -30,13 +31,12 @@ public sealed class WeeklyQuotaProgressTests : IDisposable
 
         Assert.False(book.IsApplicable);
         Assert.Equal(0, book.RequiredPrimary);
-        Assert.Contains("20%", book.RequirementLabel, StringComparison.Ordinal);
+        Assert.Equal(0, book.DailyRequiredPrimary);
     }
 
     [Fact]
-    public async Task Book_RequiresTwentyPercentOfCurrentBookPages()
+    public async Task Book_DailyRequiresTwentyPercent_WeeklyRequiresOneCompleted()
     {
-        var weekStart = WeekDateHelper.GetWeekStartLocal(DateTime.Today);
         await using (var db = _factory.CreateDbContext())
         {
             var book = new Book { Title = "Dune", Author = "Herbert", TotalPages = 500, Status = BookStatus.Reading };
@@ -45,7 +45,7 @@ public sealed class WeeklyQuotaProgressTests : IDisposable
             db.BookReadingLogs.Add(new BookReadingLog
             {
                 BookId = book.Id,
-                ReadDate = DateTimeHelper.ToUtcFromLocalDate(weekStart),
+                ReadDate = DateTimeHelper.ToUtcFromLocalDate(DateTime.Today),
                 PagesDone = 50
             });
             await db.SaveChangesAsync();
@@ -54,16 +54,19 @@ public sealed class WeeklyQuotaProgressTests : IDisposable
         var progress = await _sut.GetCurrentWeekProgressAsync();
         var bookQuota = progress.Single(p => p.SourceType == MilestoneSourceType.Book);
 
-        Assert.Equal(100, bookQuota.RequiredPrimary);
-        Assert.Equal(50, bookQuota.ActualPrimary);
+        Assert.Equal(1, bookQuota.RequiredPrimary);
+        Assert.Equal(0, bookQuota.ActualPrimary);
+        Assert.False(bookQuota.IsWeeklyMet);
+        Assert.Equal(100, bookQuota.DailyRequiredPrimary);
+        Assert.Equal(50, bookQuota.DailyActualPrimary);
+        Assert.False(bookQuota.IsDailyMet);
         Assert.False(bookQuota.IsMet);
         Assert.Contains("Dune", bookQuota.RequirementLabel, StringComparison.Ordinal);
     }
 
     [Fact]
-    public async Task Book_TwentyPercentRead_MeetsQuota()
+    public async Task Book_DailyTwentyPercentRead_MarksCumplida()
     {
-        var weekStart = WeekDateHelper.GetWeekStartLocal(DateTime.Today);
         await using (var db = _factory.CreateDbContext())
         {
             var book = new Book { Title = "Dune", Author = "Herbert", TotalPages = 500, Status = BookStatus.Reading };
@@ -72,7 +75,7 @@ public sealed class WeeklyQuotaProgressTests : IDisposable
             db.BookReadingLogs.Add(new BookReadingLog
             {
                 BookId = book.Id,
-                ReadDate = DateTimeHelper.ToUtcFromLocalDate(weekStart.AddDays(1)),
+                ReadDate = DateTimeHelper.ToUtcFromLocalDate(DateTime.Today),
                 PagesDone = 100
             });
             await db.SaveChangesAsync();
@@ -81,12 +84,14 @@ public sealed class WeeklyQuotaProgressTests : IDisposable
         var progress = await _sut.GetCurrentWeekProgressAsync();
         var bookQuota = progress.Single(p => p.SourceType == MilestoneSourceType.Book);
 
+        Assert.True(bookQuota.IsDailyMet);
         Assert.True(bookQuota.IsMet);
-        Assert.Equal(100, bookQuota.ActualPrimary);
+        Assert.False(bookQuota.IsWeeklyMet);
+        Assert.Equal(100, bookQuota.DailyActualPrimary);
     }
 
     [Fact]
-    public async Task Book_CompletedThisWeek_MeetsQuota()
+    public async Task Book_CompletedThisWeek_MeetsWeeklyQuota()
     {
         var weekStart = WeekDateHelper.GetWeekStartLocal(DateTime.Today);
         await using (var db = _factory.CreateDbContext())
@@ -106,8 +111,9 @@ public sealed class WeeklyQuotaProgressTests : IDisposable
         var progress = await _sut.GetCurrentWeekProgressAsync();
         var bookQuota = progress.Single(p => p.SourceType == MilestoneSourceType.Book);
 
-        Assert.True(bookQuota.IsMet);
-        Assert.Contains("terminado", bookQuota.RequirementLabel, StringComparison.OrdinalIgnoreCase);
+        Assert.True(bookQuota.IsWeeklyMet);
+        Assert.Equal(1, bookQuota.ActualPrimary);
+        Assert.Contains("libro terminado", bookQuota.RequirementLabel, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -118,12 +124,12 @@ public sealed class WeeklyQuotaProgressTests : IDisposable
 
         Assert.False(course.IsApplicable);
         Assert.Equal(0, course.RequiredPrimary);
+        Assert.Equal(0, course.DailyRequiredPrimary);
     }
 
     [Fact]
-    public async Task Course_RequiresFiveSessions()
+    public async Task Course_DailyOneSession_WeeklyFive()
     {
-        var weekStart = WeekDateHelper.GetWeekStartLocal(DateTime.Today);
         await using (var db = _factory.CreateDbContext())
         {
             var course = new Course
@@ -138,8 +144,8 @@ public sealed class WeeklyQuotaProgressTests : IDisposable
             db.CourseSessionLogs.Add(new CourseSessionLog
             {
                 CourseId = course.Id,
-                SessionDate = DateTimeHelper.ToUtcFromLocalDate(weekStart),
-                SessionsDone = 4
+                SessionDate = DateTimeHelper.ToUtcFromLocalDate(DateTime.Today),
+                SessionsDone = 1
             });
             await db.SaveChangesAsync();
         }
@@ -148,12 +154,16 @@ public sealed class WeeklyQuotaProgressTests : IDisposable
         var courseQuota = progress.Single(p => p.SourceType == MilestoneSourceType.Course);
 
         Assert.Equal(5, courseQuota.RequiredPrimary);
-        Assert.Equal(4, courseQuota.ActualPrimary);
-        Assert.False(courseQuota.IsMet);
+        Assert.Equal(1, courseQuota.ActualPrimary);
+        Assert.False(courseQuota.IsWeeklyMet);
+        Assert.Equal(1, courseQuota.DailyRequiredPrimary);
+        Assert.Equal(1, courseQuota.DailyActualPrimary);
+        Assert.True(courseQuota.IsDailyMet);
+        Assert.True(courseQuota.IsMet);
     }
 
     [Fact]
-    public async Task Course_FiveSessions_MeetsQuota()
+    public async Task Course_FiveSessions_MeetsWeeklyQuota()
     {
         var weekStart = WeekDateHelper.GetWeekStartLocal(DateTime.Today);
         await using (var db = _factory.CreateDbContext())
@@ -179,7 +189,58 @@ public sealed class WeeklyQuotaProgressTests : IDisposable
         var progress = await _sut.GetCurrentWeekProgressAsync();
         var courseQuota = progress.Single(p => p.SourceType == MilestoneSourceType.Course);
 
-        Assert.True(courseQuota.IsMet);
+        Assert.True(courseQuota.IsWeeklyMet);
+        Assert.Equal(5, courseQuota.ActualPrimary);
+    }
+
+    [Fact]
+    public async Task Gym_RequiresOneDailyAndFiveWeekly()
+    {
+        await using (var db = _factory.CreateDbContext())
+        {
+            db.GymWorkouts.Add(new GymWorkout
+            {
+                WorkoutDate = DateTimeHelper.ToUtcFromLocalDate(DateTime.Today),
+                Notes = "pierna"
+            });
+            await db.SaveChangesAsync();
+        }
+
+        var progress = await _sut.GetCurrentWeekProgressAsync();
+        var gym = progress.Single(p => p.SourceType == MilestoneSourceType.Gym);
+
+        Assert.Equal(5, gym.RequiredPrimary);
+        Assert.Equal(1, gym.ActualPrimary);
+        Assert.Equal(1, gym.DailyRequiredPrimary);
+        Assert.Equal(1, gym.DailyActualPrimary);
+        Assert.True(gym.IsDailyMet);
+        Assert.True(gym.IsMet);
+        Assert.False(gym.IsWeeklyMet);
+    }
+
+    [Fact]
+    public async Task Running_RequiresOneDailyAndFourWeekly()
+    {
+        await using (var db = _factory.CreateDbContext())
+        {
+            db.RunningSessions.Add(new RunningSession
+            {
+                RecordedAt = DateTimeHelper.ToUtcFromLocalDate(DateTime.Today),
+                DistanceKm = 5,
+                Duration = TimeSpan.FromMinutes(30)
+            });
+            await db.SaveChangesAsync();
+        }
+
+        var progress = await _sut.GetCurrentWeekProgressAsync();
+        var running = progress.Single(p => p.SourceType == MilestoneSourceType.Running);
+
+        Assert.Equal(4, running.RequiredPrimary);
+        Assert.Equal(1, running.ActualPrimary);
+        Assert.Equal(1, running.DailyRequiredPrimary);
+        Assert.True(running.IsDailyMet);
+        Assert.True(running.IsMet);
+        Assert.False(running.IsWeeklyMet);
     }
 
     [Fact]
@@ -281,6 +342,103 @@ public sealed class WeeklyQuotaProgressTests : IDisposable
         {
             Assert.False(await db.WeeklyQuotaEvaluations.AnyAsync(e => e.SourceType == MilestoneSourceType.Book));
             Assert.False(await db.WeeklyQuotaEvaluations.AnyAsync(e => e.SourceType == MilestoneSourceType.Course));
+            Assert.False(await db.DailyQuotaEvaluations.AnyAsync(e => e.SourceType == MilestoneSourceType.Book));
+            Assert.False(await db.DailyQuotaEvaluations.AnyAsync(e => e.SourceType == MilestoneSourceType.Course));
+        }
+    }
+
+    [Fact]
+    public async Task EvaluateClosedDays_WithoutGymSession_PenalizesGym()
+    {
+        var start = DateTime.Today.AddDays(-3);
+        await using (var db = _factory.CreateDbContext())
+        {
+            var profile = await db.PlayerProfiles.SingleAsync();
+            profile.WeeklyQuotaTrackingStartedAtUtc = DateTimeHelper.ToUtcFromLocalDate(start);
+            profile.DailyQuotaTrackingStartedAtUtc = DateTimeHelper.ToUtcFromLocalDate(start);
+            db.HobbyProgresses.Add(new Models.Core.HobbyProgress
+            {
+                PlayerProfileId = profile.Id,
+                SourceType = MilestoneSourceType.Gym,
+                TotalXp = 1500,
+                CurrentLevel = 2,
+                SpendableXp = 1500
+            });
+            await db.SaveChangesAsync();
+        }
+
+        await _sut.EvaluateClosedWeeksAsync();
+
+        await using (var db = _factory.CreateDbContext())
+        {
+            Assert.True(await db.DailyQuotaEvaluations.AnyAsync(
+                e => e.SourceType == MilestoneSourceType.Gym &&
+                     e.Status == WeeklyQuotaStatus.Penalized));
+        }
+    }
+
+    [Fact]
+    public async Task DailyTracking_StartsToday_DoesNotPenalizePastDaysOnFirstRun()
+    {
+        await using (var db = _factory.CreateDbContext())
+        {
+            var profile = await db.PlayerProfiles.SingleAsync();
+            profile.WeeklyQuotaTrackingStartedAtUtc = DateTimeHelper.ToUtcFromLocalDate(DateTime.Today.AddDays(-10));
+            db.HobbyProgresses.Add(new Models.Core.HobbyProgress
+            {
+                PlayerProfileId = profile.Id,
+                SourceType = MilestoneSourceType.Gym,
+                TotalXp = 1500,
+                CurrentLevel = 2,
+                SpendableXp = 1500
+            });
+            await db.SaveChangesAsync();
+        }
+
+        await _sut.EvaluateClosedWeeksAsync();
+
+        await using (var db = _factory.CreateDbContext())
+        {
+            Assert.False(await db.DailyQuotaEvaluations.AnyAsync(e => e.SourceType == MilestoneSourceType.Gym));
+            var profile = await db.PlayerProfiles.SingleAsync();
+            Assert.NotNull(profile.DailyQuotaTrackingStartedAtUtc);
+            Assert.Equal(
+                DateTimeHelper.ToUtcFromLocalDate(DateTime.Today),
+                profile.DailyQuotaTrackingStartedAtUtc);
+        }
+    }
+
+    [Fact]
+    public async Task OpenDay_IsNotPenalized_ShowsMetWhenQuotaDone()
+    {
+        await using (var db = _factory.CreateDbContext())
+        {
+            var book = new Book { Title = "Dune", Author = "Herbert", TotalPages = 410, Status = BookStatus.Reading };
+            db.Books.Add(book);
+            await db.SaveChangesAsync();
+            db.BookReadingLogs.Add(new BookReadingLog
+            {
+                BookId = book.Id,
+                ReadDate = DateTimeHelper.ToUtcFromLocalDate(DateTime.Today),
+                PagesDone = 82
+            });
+            await db.SaveChangesAsync();
+        }
+
+        await _sut.EvaluateClosedWeeksAsync();
+        await _sut.NotifyActivityAsync(MilestoneSourceType.Book, DateTime.Today);
+
+        var progress = await _sut.GetCurrentWeekProgressAsync();
+        var bookQuota = progress.Single(p => p.SourceType == MilestoneSourceType.Book);
+
+        Assert.True(bookQuota.IsDailyMet);
+        Assert.True(bookQuota.IsMet);
+        Assert.False(bookQuota.HasActivePenalty);
+        await using (var db = _factory.CreateDbContext())
+        {
+            Assert.False(await db.DailyQuotaEvaluations.AnyAsync(
+                e => e.SourceType == MilestoneSourceType.Book &&
+                     e.Status == WeeklyQuotaStatus.Penalized));
         }
     }
 }

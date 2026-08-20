@@ -106,6 +106,7 @@ public sealed class DatabaseMaintenanceServiceTests : IDisposable
         Assert.Equal(1, profile.CurrentLevel);
         Assert.Equal(0, profile.SpendableXp);
         Assert.Null(profile.WeeklyQuotaTrackingStartedAtUtc);
+        Assert.Null(profile.DailyQuotaTrackingStartedAtUtc);
         Assert.All(profile.HobbyProgresses, h =>
         {
             Assert.Equal(0, h.TotalXp);

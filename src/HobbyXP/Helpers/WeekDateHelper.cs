@@ -31,4 +31,18 @@ public static class WeekDateHelper
             cursor = cursor.AddDays(7);
         }
     }
+
+    public static bool IsClosedDay(DateTime dayLocal, DateTime todayLocal) =>
+        dayLocal.Date < todayLocal.Date;
+
+    public static IEnumerable<DateTime> EnumerateClosedDaysLocal(DateTime fromLocal, DateTime todayLocal)
+    {
+        var cursor = fromLocal.Date;
+        var end = todayLocal.Date;
+        while (cursor < end)
+        {
+            yield return cursor;
+            cursor = cursor.AddDays(1);
+        }
+    }
 }

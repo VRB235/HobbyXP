@@ -54,6 +54,12 @@ public class PlayerProfile : EntityBase
     /// </summary>
     public DateTime? WeeklyQuotaTrackingStartedAtUtc { get; set; }
 
+    /// <summary>
+    /// Día local (UTC de medianoche) desde el cual aplica la disciplina diaria.
+    /// Null = aún no inicializado; al activarse se fija en «hoy» para no castigar el pasado.
+    /// </summary>
+    public DateTime? DailyQuotaTrackingStartedAtUtc { get; set; }
+
     /// <summary>Título de honor de la última medalla desbloqueada.</summary>
     public string? HonorTitle { get; set; }
 
