@@ -25,9 +25,11 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IRewardService, RewardService>();
         services.AddScoped<IAchievementProgressService, AchievementProgressService>();
         services.AddScoped<IWeeklyQuotaService, WeeklyQuotaService>();
+        services.AddScoped<ISuggestionService, SuggestionService>();
 
         services.AddSingleton<IFileDialogService, FileDialogService>();
         services.AddSingleton<IMessageDialogService, MessageDialogService>();
+        services.AddSingleton<IImagePreviewService, ImagePreviewService>();
         services.AddSingleton<ILevelUpMessenger, LevelUpMessenger>();
         services.AddSingleton<IProfileRefreshMessenger, ProfileRefreshMessenger>();
         services.AddSingleton<IApplicationDataResetMessenger, ApplicationDataResetMessenger>();

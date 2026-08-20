@@ -61,6 +61,7 @@ public sealed class DatabaseMaintenanceService : IDatabaseMaintenanceService
         await db.CourseSessionLogs.ExecuteDeleteAsync(cancellationToken);
         await db.Courses.ExecuteDeleteAsync(cancellationToken);
         await db.Puzzles.ExecuteDeleteAsync(cancellationToken);
+        await db.Suggestions.ExecuteDeleteAsync(cancellationToken);
 
         // Progresión / auditoría / medallas ganadas.
         await db.EarnedMedals.ExecuteDeleteAsync(cancellationToken);
@@ -116,11 +117,14 @@ public sealed class DatabaseMaintenanceService : IDatabaseMaintenanceService
 
         await HobbyXpDatabaseInitializer.EnsureHobbyProgressRowsAsync(db, cancellationToken);
 
-        // Fotos de puzzles son historial; el avatar del perfil se conserva.
+        // Fotos de puzzles y sugerencias son historial; el avatar del perfil se conserva.
         // En tests in-memory no se toca el directorio de datos de la app.
         var connectionString = db.Database.GetConnectionString() ?? string.Empty;
         if (connectionString.Contains(DatabaseConstants.FileName, StringComparison.OrdinalIgnoreCase))
+        {
             ClearDirectoryContents(Path.Combine(DatabaseConstants.GetDatabaseDirectory(), "PuzzlePhotos"));
+            ClearDirectoryContents(Path.Combine(DatabaseConstants.GetDatabaseDirectory(), "SuggestionPhotos"));
+        }
     }
 
     private static void ClearDirectoryContents(string directoryPath)

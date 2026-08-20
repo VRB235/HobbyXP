@@ -7,5 +7,6 @@ public enum NavigationSection
     Entertainment,
     PersonalGrowth,
     Achievements,
+    Suggestions,
     Settings
 }

@@ -5,6 +5,7 @@ using HobbyXP.ViewModels.Entertainment;
 using HobbyXP.ViewModels.PersonalGrowth;
 using HobbyXP.ViewModels.Physical;
 using HobbyXP.ViewModels.Settings;
+using HobbyXP.ViewModels.Suggestions;
 
 namespace HobbyXP.ViewModels.Navigation;
 
@@ -15,6 +16,7 @@ public sealed class NavigationService : INavigationService
     private readonly EntertainmentViewModel _entertainment;
     private readonly PersonalGrowthViewModel _personalGrowth;
     private readonly AchievementsViewModel _achievements;
+    private readonly SuggestionsViewModel _suggestions;
     private readonly SettingsViewModel _settings;
 
     public NavigationService(
@@ -23,6 +25,7 @@ public sealed class NavigationService : INavigationService
         EntertainmentViewModel entertainment,
         PersonalGrowthViewModel personalGrowth,
         AchievementsViewModel achievements,
+        SuggestionsViewModel suggestions,
         SettingsViewModel settings)
     {
         _dashboard = dashboard;
@@ -30,6 +33,7 @@ public sealed class NavigationService : INavigationService
         _entertainment = entertainment;
         _personalGrowth = personalGrowth;
         _achievements = achievements;
+        _suggestions = suggestions;
         _settings = settings;
         CurrentViewModel = _dashboard;
     }
@@ -53,6 +57,7 @@ public sealed class NavigationService : INavigationService
             NavigationSection.Entertainment => _entertainment,
             NavigationSection.PersonalGrowth => _personalGrowth,
             NavigationSection.Achievements => _achievements,
+            NavigationSection.Suggestions => _suggestions,
             NavigationSection.Settings => _settings,
             _ => _dashboard
         };
@@ -70,6 +75,7 @@ public sealed class NavigationService : INavigationService
         Invalidate(_entertainment);
         Invalidate(_personalGrowth);
         Invalidate(_achievements);
+        Invalidate(_suggestions);
         Invalidate(_settings);
     }
 

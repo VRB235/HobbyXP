@@ -2,7 +2,7 @@
 
 Aplicativo de escritorio **WPF (.NET 8)** para gamificar hobbies personales (running, gimnasio, **dieta**, entretenimiento, libros/cursos) con sistema de **XP, niveles, medallas, premios y disciplina semanal**.
 
-**Versión actual: 1.4.0** (producción: rama `main`, tag [`v1.4.0`](https://github.com/VRB235/HobbyXP/releases/tag/v1.4.0)).
+**Versión actual: 1.6.0** (producción: rama `main`, tag [`v1.6.0`](https://github.com/VRB235/HobbyXP/releases/tag/v1.6.0)).
 
 - **Plataforma**: Windows 10/11, `net8.0-windows10.0.19041`.
 - **Arquitectura**: MVVM con inyección de dependencias (`Microsoft.Extensions.Hosting`).
@@ -47,12 +47,13 @@ El `README.md` se mantiene como **vista ejecutiva y técnica resumida** del esta
   - Otorgamiento y deducción de XP mediante `XpService` y registro de transacciones/hitos.
   - Motor de medallas `AchievementEngineService` basado en reglas (`AchievementActionType`).
   - Sistema de recompensas (`Reward`) canjeables por XP (inventario y reliquia equipable).
+  - **Sugerencias**: registro local de mejoras y errores (con imágenes, fecha y estado resuelta/pendiente); filtros por texto, tipo, estado y rango de fechas. Clic en miniatura para ampliar y abrir en el sistema. Sin XP.
 - **Interfaz**:
   - Sidebar con perfil, navegación lateral y estado de XP/nivel.
   - Dashboard con gráficos de XP, **hub de logros/premios**, cuotas semanales y hitos recientes.
   - Overlay de celebración al subir de nivel (`LevelUpOverlay`) y al desbloquear medalla (`MedalUnlockOverlay`).
   - Vitrina de medallas por hobby, con secciones colapsables.
-  - Tablas de historial (running, gimnasio, **dieta**, media, libros, cursos, logros) con **ordenación por columna** (clic en cabecera Asc/Desc; helper `GridViewSortHelper`).
+  - Tablas de historial (running, gimnasio, **dieta**, media, libros, cursos, logros, **sugerencias**) con **ordenación por columna** (clic en cabecera Asc/Desc; helper `GridViewSortHelper`).
   - Historiales de actividad física con **altura mínima** para ~10 filas visibles y scroll de página si no caben formularios + tablas.
   - Fechas atrasables al registrar (running, gym, dieta, lecturas, etc.) para disciplina semanal.
   - En Debug, título de ventana `HobbyXP [DEV]` para distinguir el entorno de desarrollo.
@@ -107,12 +108,13 @@ Copy-Item "$env:LOCALAPPDATA\HobbyXP\*" "$env:LOCALAPPDATA\HobbyXP-Dev\" -Recurs
 
 ---
 
-## Mejoras en `develop` respecto a `main` (incluidas en 1.4.0)
+## Mejoras incluidas en 1.6.0
 
 | Área | Qué cambió |
 |------|------------|
-| **Premios** | Cada premio se vincula a un hobby (Running, Gimnasio, Carrera oficial, …). La tienda agrupa Disponibles e Inventario en menús colapsables. Premios antiguos sin módulo aparecen en **General**; se pueden reasignar. |
-| **Versión** | 1.3.0 → **1.4.0** (csproj, Inno Setup, manifiesto MSIX). |
+| **Disciplina** | Cuota diaria + ajuste de cuota semanal de libro terminado. |
+| **Sugerencias** | Nueva sección del sidebar: registrar mejoras/errores con imágenes, fecha, marcar resuelta y filtrar por rango de fechas (además de tipo/estado/texto). Clic en miniatura abre visor + «Abrir en el sistema». Migración `AddSuggestions`. |
+| **Versión** | 1.5.0 → **1.6.0** (csproj, Inno Setup, manifiesto MSIX). |
 
 ---
 
@@ -137,7 +139,7 @@ Para generar un ZIP portable autocontenido:
 .\scripts\package-portable.ps1
 ```
 
-Salida: `artifacts\HobbyXP-win-x64-Release.zip`. Release GitHub: [`v1.4.0`](https://github.com/VRB235/HobbyXP/releases/tag/v1.4.0).
+Salida: `artifacts\HobbyXP-win-x64-Release.zip`. Release GitHub: [`v1.6.0`](https://github.com/VRB235/HobbyXP/releases/tag/v1.6.0).
 
 MSIX e instalador Inno Setup: ver [`docs/DISTRIBUCION.md`](docs/DISTRIBUCION.md).
 

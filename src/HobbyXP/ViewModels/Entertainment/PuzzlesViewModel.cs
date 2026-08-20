@@ -14,6 +14,7 @@ public sealed class PuzzlesViewModel : AchievementAwareViewModel
     private readonly IPuzzleService _puzzleService;
     private readonly IFileDialogService _fileDialogService;
     private readonly IMessageDialogService _messageDialogService;
+    private readonly IImagePreviewService _imagePreviewService;
     private readonly IProfileRefreshMessenger _profileRefreshMessenger;
     private string _name = string.Empty;
     private string _pieceCount = "500";
@@ -31,6 +32,7 @@ public sealed class PuzzlesViewModel : AchievementAwareViewModel
         IWeeklyQuotaService weeklyQuotaService,
         IFileDialogService fileDialogService,
         IMessageDialogService messageDialogService,
+        IImagePreviewService imagePreviewService,
         IProfileRefreshMessenger profileRefreshMessenger,
         IAchievementMessenger achievementMessenger,
         IAchievementProgressService achievementProgress)
@@ -39,6 +41,7 @@ public sealed class PuzzlesViewModel : AchievementAwareViewModel
         _puzzleService = puzzleService;
         _fileDialogService = fileDialogService;
         _messageDialogService = messageDialogService;
+        _imagePreviewService = imagePreviewService;
         _profileRefreshMessenger = profileRefreshMessenger;
         HobbyXp = new HobbyProgressPresenter(xpService, MilestoneSourceType.Puzzle, weeklyQuotaService, achievementProgress);
         Puzzles = new ObservableCollection<Puzzle>();
@@ -50,6 +53,7 @@ public sealed class PuzzlesViewModel : AchievementAwareViewModel
         RegisterCommand = new AsyncRelayCommand(RegisterAsync, CanRegister);
         PickPhotosCommand = new RelayCommand(PickPhotos);
         RemovePhotoCommand = new RelayCommand(RemovePhoto);
+        OpenPhotoCommand = new RelayCommand(OpenPhoto);
         ClearDateFilterCommand = new RelayCommand(ClearHistoryFilters);
         DeletePuzzleCommand = new AsyncRelayCommand(p => DeletePuzzleAsync(p));
         RefreshRegisterValidation();
@@ -147,6 +151,8 @@ public sealed class PuzzlesViewModel : AchievementAwareViewModel
 
     public RelayCommand RemovePhotoCommand { get; }
 
+    public RelayCommand OpenPhotoCommand { get; }
+
     public RelayCommand ClearDateFilterCommand { get; }
 
     public AsyncRelayCommand DeletePuzzleCommand { get; }
@@ -218,6 +224,22 @@ public sealed class PuzzlesViewModel : AchievementAwareViewModel
 
         SelectedPhotos.Remove(photo);
         OnPropertyChanged(nameof(HasSelectedPhotos));
+    }
+
+    private void OpenPhoto(object? parameter)
+    {
+        var path = parameter switch
+        {
+            string filePath => filePath,
+            PuzzlePhotoItem selected => selected.FilePath,
+            PhotoPreviewItem preview => preview.FilePath,
+            _ => null
+        };
+
+        if (string.IsNullOrWhiteSpace(path))
+            return;
+
+        _imagePreviewService.Show(path);
     }
 
     private ValidationResult ValidateRegisterForm() =>

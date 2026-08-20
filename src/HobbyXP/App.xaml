@@ -7,6 +7,7 @@
              xmlns:vmEnt="clr-namespace:HobbyXP.ViewModels.Entertainment"
              xmlns:vmGrow="clr-namespace:HobbyXP.ViewModels.PersonalGrowth"
              xmlns:vmAch="clr-namespace:HobbyXP.ViewModels.Achievements"
+             xmlns:vmSug="clr-namespace:HobbyXP.ViewModels.Suggestions"
              xmlns:vmSet="clr-namespace:HobbyXP.ViewModels.Settings"
              xmlns:views="clr-namespace:HobbyXP.Views"
              xmlns:viewControls="clr-namespace:HobbyXP.Views.Controls"
@@ -30,6 +31,8 @@
             <conv:MinIntConverter x:Key="MinIntConverter" />
             <conv:FlexibleNumberConverter x:Key="FlexibleNumber" />
             <conv:PuzzleCategoryDisplayConverter x:Key="PuzzleCategoryDisplayConverter" />
+            <conv:SuggestionKindDisplayConverter x:Key="SuggestionKindDisplayConverter" />
+            <conv:SuggestionResolveActionConverter x:Key="SuggestionResolveActionConverter" />
             <conv:PhotoPathsToImagesConverter x:Key="PhotoPathsToImagesConverter" />
 
             <DataTemplate DataType="{x:Type vmDash:DashboardViewModel}">
@@ -55,6 +58,9 @@
             </DataTemplate>
             <DataTemplate DataType="{x:Type vmAch:AchievementsViewModel}">
                 <views:AchievementsView />
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type vmSug:SuggestionsViewModel}">
+                <views:SuggestionsView />
             </DataTemplate>
             <DataTemplate DataType="{x:Type vmSet:SettingsViewModel}">
                 <views:SettingsView />

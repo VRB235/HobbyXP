@@ -204,6 +204,26 @@ public sealed class PuzzleCategoryDisplayConverter : IValueConverter
         };
 }
 
+public sealed class SuggestionKindDisplayConverter : IValueConverter
+{
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture) =>
+        value is SuggestionKind kind
+            ? SuggestionDisplayLabels.GetKind(kind)
+            : string.Empty;
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) =>
+        Binding.DoNothing;
+}
+
+public sealed class SuggestionResolveActionConverter : IValueConverter
+{
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture) =>
+        value is SuggestionStatus.Resolved ? "Reabrir" : "Resolver";
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) =>
+        Binding.DoNothing;
+}
+
 public sealed class PathToImageSourceConverter : IValueConverter
 {
     public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
@@ -240,11 +260,18 @@ public sealed class PhotoPathsToImagesConverter : IValueConverter
 {
     public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
     {
-        var paths = PuzzlePhotoStorage.Deserialize(value as string);
-        return paths
-            .Select(LocalImageLoader.TryLoad)
-            .Where(image => image is not null)
-            .ToList();
+        var paths = RelativePhotoPathStorage.Deserialize(value as string);
+        var items = new List<PhotoPreviewItem>();
+        foreach (var path in paths)
+        {
+            var image = LocalImageLoader.TryLoad(path);
+            if (image is null)
+                continue;
+
+            items.Add(new PhotoPreviewItem(path, image));
+        }
+
+        return items;
     }
 
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) =>

@@ -3,9 +3,9 @@ using HobbyXP.Data;
 
 namespace HobbyXP.Helpers;
 
-public static class PuzzlePhotoStorage
+public static class SuggestionPhotoStorage
 {
-    private const string FolderName = "PuzzlePhotos";
+    private const string FolderName = "SuggestionPhotos";
 
     public static IReadOnlyList<string> Deserialize(string? value) =>
         RelativePhotoPathStorage.Deserialize(value);
@@ -13,12 +13,12 @@ public static class PuzzlePhotoStorage
     public static string? Serialize(IReadOnlyList<string> absolutePaths) =>
         RelativePhotoPathStorage.Serialize(absolutePaths);
 
-    public static IReadOnlyList<string> SavePhotos(int puzzleId, IEnumerable<string> sourcePaths)
+    public static IReadOnlyList<string> SavePhotos(int suggestionId, IEnumerable<string> sourcePaths)
     {
         var destinationDirectory = Path.Combine(
             DatabaseConstants.GetDatabaseDirectory(),
             FolderName,
-            puzzleId.ToString());
+            suggestionId.ToString());
 
         Directory.CreateDirectory(destinationDirectory);
 
@@ -37,7 +37,7 @@ public static class PuzzlePhotoStorage
         return savedPaths;
     }
 
-    public static void DeleteStoredPhotos(int puzzleId, string? photoPathValue)
+    public static void DeleteStoredPhotos(int suggestionId, string? photoPathValue)
     {
         foreach (var path in Deserialize(photoPathValue))
         {
@@ -48,7 +48,7 @@ public static class PuzzlePhotoStorage
         var directory = Path.Combine(
             DatabaseConstants.GetDatabaseDirectory(),
             FolderName,
-            puzzleId.ToString());
+            suggestionId.ToString());
 
         if (Directory.Exists(directory))
             Directory.Delete(directory, recursive: true);

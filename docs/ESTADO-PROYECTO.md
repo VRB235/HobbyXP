@@ -70,8 +70,8 @@ Override: variable `HOBBYXP_DATA_DIR`.
 
 ### Fase 2 — Capa de servicios ✅
 
-- **14 interfaces** en `Services/Abstractions/`.
-- **Implementaciones** por dominio: XP, dashboard, running, gym, puzzles, media, videojuegos, libros, cursos, medallas, premios, perfil, diálogo de archivos.
+- **15 interfaces** en `Services/Abstractions/`.
+- **Implementaciones** por dominio: XP, dashboard, running, gym, puzzles, media, videojuegos, libros, cursos, medallas, premios, perfil, diálogo de archivos, **sugerencias**.
 - **`XpService`** como motor central: calcula puntos, otorga XP, recalcula nivel, registra transacciones/hitos, publica level-up.
 - **`AchievementEngineService`**: evalúa y otorga medallas según reglas.
 - **`OperationResult<T>`** y DTOs en `Services/Results/`.
@@ -82,7 +82,7 @@ Override: variable `HOBBYXP_DATA_DIR`.
 ### Fase 3 — ViewModels y navegación ✅
 
 - Infraestructura: `ViewModelBase`, `BusyViewModelBase`, `LoadableViewModelBase`, `RelayCommand`, `AsyncRelayCommand`.
-- **6 secciones** del sidebar: Dashboard, Actividades Físicas, Entretenimiento, Crecimiento Personal, Logros y Premios, Configuración.
+- **7 secciones** del sidebar: Dashboard, Actividades Físicas, Entretenimiento, Crecimiento Personal, Logros y Premios, Sugerencias, Configuración.
 - ViewModels anidados con **tabs** (p. ej. Running + Gym dentro de Físico).
 - **`AchievementAwareViewModel`** para propagar eventos de logro tras operaciones.
 - **`MainViewModel`**: orquestación, perfil en sidebar, navegación, overlay de level-up.
@@ -164,6 +164,10 @@ src/HobbyXP/
 
 - `MedalDefinition`, `EarnedMedal`, `AchievementRule`, `Reward` (tienda por módulo `SourceType`, inventario, `RedeemedCostInPoints`, reliquia equipable).
 
+### Feedback / sugerencias
+
+- `Suggestion`: título, descripción, tipo (`Improvement` / `Bug`), estado (`Open` / `Resolved`), `ReportedAt`, `ResolvedAt`, fotos locales (`PhotoPath` JSON relativo).
+
 ### Enum importante: `AchievementActionType`
 
 `RunningKilometer`, `GymWorkoutSaved`, `ProgressiveOverload`, `OfficialRaceCompleted`, `PuzzleCompleted`, `MediaCompleted`, `VideoGamePercent`, `VideoGamePlatinum`, `BookPageRead`, `BookCompleted`, `CourseCompleted`, `RewardRedeemed`.
@@ -228,6 +232,7 @@ Al arrancar: `EnsureHobbyProgressRowsAsync` + `EnsureHobbyXpBackfillAsync` (migr
 | Entretenimiento | `EntertainmentView` | Rompecabezas, Media, Videojuegos (historial con búsqueda/filtros y ordenación por columnas; platinados en `ListView`) |
 | Crecimiento | `PersonalGrowthView` | Libros, Cursos |
 | Logros | `AchievementsView` | Vitrina por hobby (Expander), editor de medallas, reglas, tienda (disponibles + inventario por módulo) |
+| Sugerencias | `SuggestionsView` | Alta de mejoras/errores, imágenes, marcar resuelta, filtros (texto, tipo, estado, rango de fechas) |
 | Configuración | `SettingsView` | XP base por nivel, exportar BD, restablecer datos |
 
 ### Controles reutilizables
@@ -282,6 +287,7 @@ DataContext = _scope.GetRequiredService<MainViewModel>();
 | `20260708003429_AddPlayerProfileCustomization` | `DisplayName`, `AvatarPath` en `PlayerProfiles` |
 | `20260818185808_AddAchievementHub` | Título de honor, reliquia equipada, inmunidad; `Reward.RedeemedCostInPoints` |
 | `20260818211150_AddRewardSourceType` | `Rewards.SourceType` (módulo/hobby del premio) |
+| `20260820185834_AddSuggestions` | Tabla `Suggestions` (mejoras/errores, estado, fotos, fechas) |
 
 **Comandos útiles** (desde `src/HobbyXP`):
 

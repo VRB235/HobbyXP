@@ -72,6 +72,7 @@ public sealed class MainViewModel : ViewModelBase
             new NavigationItem(NavigationSection.Entertainment, "Entretenimiento", "🎮"),
             new NavigationItem(NavigationSection.PersonalGrowth, "Crecimiento Personal", "📚"),
             new NavigationItem(NavigationSection.Achievements, "Logros y Premios", "🏆"),
+            new NavigationItem(NavigationSection.Suggestions, "Sugerencias", "💡"),
             new NavigationItem(NavigationSection.Settings, "Configuración", "⚙️")
         });
 

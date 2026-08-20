@@ -2,6 +2,7 @@ using HobbyXP.Models.Achievements;
 using HobbyXP.Models.Core;
 using HobbyXP.Models.Entertainment;
 using HobbyXP.Models.Enums;
+using HobbyXP.Models.Feedback;
 using HobbyXP.Models.PersonalGrowth;
 using HobbyXP.Models.Physical;
 using Microsoft.EntityFrameworkCore;
@@ -516,5 +517,39 @@ internal sealed class RewardConfiguration : IEntityTypeConfiguration<Reward>
             .HasMaxLength(32);
 
         builder.HasIndex(r => r.SourceType);
+    }
+}
+
+internal sealed class SuggestionConfiguration : IEntityTypeConfiguration<Suggestion>
+{
+    public void Configure(EntityTypeBuilder<Suggestion> builder)
+    {
+        builder.ToTable("Suggestions");
+
+        builder.Property(s => s.Title)
+            .HasMaxLength(200)
+            .IsRequired();
+
+        builder.Property(s => s.Description)
+            .HasMaxLength(4000)
+            .IsRequired();
+
+        builder.Property(s => s.Kind)
+            .HasConversion<string>()
+            .HasMaxLength(16)
+            .IsRequired();
+
+        builder.Property(s => s.Status)
+            .HasConversion<string>()
+            .HasMaxLength(16)
+            .IsRequired();
+
+        builder.Property(s => s.PhotoPath)
+            .HasMaxLength(2000)
+            .IsRequired(false);
+
+        builder.HasIndex(s => s.ReportedAt);
+        builder.HasIndex(s => s.Status);
+        builder.HasIndex(s => s.Kind);
     }
 }

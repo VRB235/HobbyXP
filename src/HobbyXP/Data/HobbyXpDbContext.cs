@@ -2,6 +2,7 @@ using HobbyXP.Models.Achievements;
 using HobbyXP.Models.Core;
 using HobbyXP.Models.Entertainment;
 using HobbyXP.Models.Enums;
+using HobbyXP.Models.Feedback;
 using HobbyXP.Models.PersonalGrowth;
 using HobbyXP.Models.Physical;
 using Microsoft.EntityFrameworkCore;
@@ -45,6 +46,7 @@ public class HobbyXpDbContext : DbContext
     public DbSet<EarnedMedal> EarnedMedals => Set<EarnedMedal>();
     public DbSet<AchievementRule> AchievementRules => Set<AchievementRule>();
     public DbSet<Reward> Rewards => Set<Reward>();
+    public DbSet<Suggestion> Suggestions => Set<Suggestion>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
