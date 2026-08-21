@@ -505,6 +505,15 @@ internal sealed class RewardConfiguration : IEntityTypeConfiguration<Reward>
         builder.Property(r => r.Description)
             .HasMaxLength(1000);
 
+        builder.Property(r => r.Price)
+            .HasPrecision(18, 2);
+
+        builder.Property(r => r.PurchaseUrl)
+            .HasMaxLength(2000);
+
+        builder.Property(r => r.ImagePath)
+            .HasMaxLength(500);
+
         builder.Property(r => r.Status)
             .HasConversion<string>()
             .HasMaxLength(16)

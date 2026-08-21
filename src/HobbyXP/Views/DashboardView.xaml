@@ -95,18 +95,38 @@
                         </StackPanel>
 
                         <StackPanel Grid.Column="2">
-                            <TextBlock Text="Premio destacado" Style="{StaticResource MutedText}" FontSize="12" />
-                            <TextBlock Text="{Binding AchievementHub.FeaturedReward.Name, FallbackValue=Cree un premio en la tienda}"
-                                       FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,4,0,0" />
-                            <TextBlock Text="{Binding AchievementHub.FeaturedModuleName}"
-                                       Style="{StaticResource MutedText}" FontSize="12" Margin="0,2,0,0"
-                                       Visibility="{Binding AchievementHub.HasFeaturedReward, Converter={StaticResource BoolToVisibilityConverter}}" />
-                            <TextBlock Text="{Binding AchievementHub.FeaturedCostText}"
-                                       Style="{StaticResource MutedText}" FontSize="12" Margin="0,4,0,0"
-                                       Visibility="{Binding AchievementHub.HasFeaturedReward, Converter={StaticResource BoolToVisibilityConverter}}" />
-                            <TextBlock Text="¡Puede canjearlo!"
-                                       Foreground="{StaticResource AccentGreenBrush}" FontSize="12" Margin="0,4,0,0"
-                                       Visibility="{Binding AchievementHub.CanAffordFeatured, Converter={StaticResource BoolToVisibilityConverter}}" />
+                            <TextBlock Text="Premio más cercano" Style="{StaticResource MutedText}" FontSize="12" />
+                            <DockPanel Margin="0,4,0,0"
+                                       Visibility="{Binding AchievementHub.HasFeaturedReward, Converter={StaticResource BoolToVisibilityConverter}}">
+                                <Border DockPanel.Dock="Left"
+                                        Width="44" Height="44" CornerRadius="6" ClipToBounds="True"
+                                        Background="#1A2233" Margin="0,0,8,0"
+                                        Visibility="{Binding AchievementHub.HasFeaturedImage, Converter={StaticResource BoolToVisibilityConverter}}">
+                                    <Button Command="{Binding OpenFeaturedRewardImageCommand}"
+                                            ToolTip="Clic para ampliar · Abrir en el sistema desde el visor"
+                                            Cursor="Hand"
+                                            Background="Transparent"
+                                            BorderThickness="0"
+                                            Padding="0">
+                                        <Image Source="{Binding AchievementHub.FeaturedImagePath, Converter={StaticResource PathToImageSourceConverter}}"
+                                               Stretch="UniformToFill"
+                                               Width="44" Height="44" />
+                                    </Button>
+                                </Border>
+                                <StackPanel>
+                                    <TextBlock Text="{Binding AchievementHub.FeaturedReward.Name}"
+                                               FontWeight="SemiBold" TextWrapping="Wrap" />
+                                    <TextBlock Text="{Binding AchievementHub.FeaturedModuleName}"
+                                               Style="{StaticResource MutedText}" FontSize="12" Margin="0,2,0,0" />
+                                    <TextBlock Text="{Binding AchievementHub.FeaturedCostText}"
+                                               Style="{StaticResource MutedText}" FontSize="12" Margin="0,2,0,0" />
+                                    <TextBlock Text="{Binding AchievementHub.FeaturedMotivationText}"
+                                               Foreground="{StaticResource AccentGreenBrush}" FontSize="12" Margin="0,4,0,0" />
+                                </StackPanel>
+                            </DockPanel>
+                            <TextBlock Text="Cree un premio en la tienda"
+                                       FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,4,0,0"
+                                       Visibility="{Binding AchievementHub.HasFeaturedReward, Converter={StaticResource InverseBoolToVisibilityConverter}}" />
                         </StackPanel>
                     </Grid>
                 </DockPanel>

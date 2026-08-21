@@ -1,3 +1,4 @@
+using System.IO;
 using HobbyXP.Data;
 using HobbyXP.Helpers;
 using HobbyXP.Models.Achievements;
@@ -27,6 +28,26 @@ public sealed class RewardService : IRewardService
     public async Task<IReadOnlyList<Reward>> GetAllAsync(CancellationToken cancellationToken = default)
     {
         await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var rewards = await db.Rewards.ToListAsync(cancellationToken);
+
+        var migrated = false;
+        foreach (var reward in rewards)
+        {
+            if (string.IsNullOrWhiteSpace(reward.ImagePath))
+                continue;
+
+            var ensured = RewardPhotoStorage.EnsureManaged(reward.Id, reward.ImagePath);
+            if (string.Equals(reward.ImagePath, ensured, StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            reward.ImagePath = ensured;
+            reward.UpdatedAt = DateTime.UtcNow;
+            migrated = true;
+        }
+
+        if (migrated)
+            await db.SaveChangesAsync(cancellationToken);
+
         return await db.Rewards
             .AsNoTracking()
             .OrderBy(r => r.Status)
@@ -39,28 +60,76 @@ public sealed class RewardService : IRewardService
         int costInPoints,
         MilestoneSourceType sourceType,
         string? description = null,
+        decimal? price = null,
+        string? purchaseUrl = null,
+        string? imageSourcePath = null,
         CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(name))
-            throw new ArgumentException("El nombre es obligatorio.", nameof(name));
-
-        if (costInPoints <= 0)
-            throw new ArgumentOutOfRangeException(nameof(costInPoints));
-
-        EnsureTrackedHobby(sourceType);
+        ValidateWritableFields(name, costInPoints, sourceType, price, purchaseUrl);
 
         await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
 
         var reward = new Reward
         {
             Name = name.Trim(),
-            Description = description,
+            Description = NormalizeOptionalText(description),
             CostInPoints = costInPoints,
+            Price = price,
+            PurchaseUrl = NormalizeOptionalText(purchaseUrl),
             SourceType = sourceType,
             Status = RewardStatus.Available
         };
 
         db.Rewards.Add(reward);
+        await db.SaveChangesAsync(cancellationToken);
+
+        if (!string.IsNullOrWhiteSpace(imageSourcePath))
+        {
+            reward.ImagePath = RewardPhotoStorage.SaveFromSource(reward.Id, imageSourcePath);
+            reward.UpdatedAt = DateTime.UtcNow;
+            await db.SaveChangesAsync(cancellationToken);
+        }
+
+        return reward;
+    }
+
+    public async Task<Reward> UpdateAsync(
+        int rewardId,
+        string name,
+        int costInPoints,
+        MilestoneSourceType sourceType,
+        string? description = null,
+        decimal? price = null,
+        string? purchaseUrl = null,
+        string? imageSourcePath = null,
+        bool clearImage = false,
+        CancellationToken cancellationToken = default)
+    {
+        ValidateWritableFields(name, costInPoints, sourceType, price, purchaseUrl);
+
+        await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var reward = await db.Rewards.FindAsync([rewardId], cancellationToken)
+            ?? throw new InvalidOperationException($"No existe el premio con Id {rewardId}.");
+
+        reward.Name = name.Trim();
+        reward.Description = NormalizeOptionalText(description);
+        reward.CostInPoints = costInPoints;
+        reward.Price = price;
+        reward.PurchaseUrl = NormalizeOptionalText(purchaseUrl);
+        reward.SourceType = sourceType;
+        reward.UpdatedAt = DateTime.UtcNow;
+
+        if (clearImage)
+        {
+            RewardPhotoStorage.DeleteStoredPhoto(reward.Id, reward.ImagePath);
+            reward.ImagePath = null;
+        }
+        else if (!string.IsNullOrWhiteSpace(imageSourcePath))
+        {
+            RewardPhotoStorage.DeleteStoredPhoto(reward.Id, reward.ImagePath);
+            reward.ImagePath = RewardPhotoStorage.SaveFromSource(reward.Id, imageSourcePath);
+        }
+
         await db.SaveChangesAsync(cancellationToken);
         return reward;
     }
@@ -80,6 +149,49 @@ public sealed class RewardService : IRewardService
         reward.UpdatedAt = DateTime.UtcNow;
         await db.SaveChangesAsync(cancellationToken);
     }
+
+    public async Task DeleteAsync(int rewardId, CancellationToken cancellationToken = default)
+    {
+        await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var reward = await db.Rewards.FindAsync([rewardId], cancellationToken)
+            ?? throw new InvalidOperationException($"No existe el premio con Id {rewardId}.");
+
+        if (reward.Status == RewardStatus.Redeemed)
+            throw new InvalidOperationException("No se puede eliminar un premio ya canjeado. Desequipelo si aplica.");
+
+        var profile = await db.PlayerProfiles.FirstAsync(cancellationToken);
+        if (profile.EquippedRewardId == rewardId)
+            profile.EquippedRewardId = null;
+
+        RewardPhotoStorage.DeleteRewardFolder(rewardId);
+        db.Rewards.Remove(reward);
+        await db.SaveChangesAsync(cancellationToken);
+    }
+
+    private static void ValidateWritableFields(
+        string name,
+        int costInPoints,
+        MilestoneSourceType sourceType,
+        decimal? price,
+        string? purchaseUrl)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+            throw new ArgumentException("El nombre es obligatorio.", nameof(name));
+
+        if (costInPoints <= 0)
+            throw new ArgumentOutOfRangeException(nameof(costInPoints));
+
+        if (price is < 0)
+            throw new ArgumentOutOfRangeException(nameof(price));
+
+        if (purchaseUrl is { Length: > 2000 })
+            throw new ArgumentException("El enlace de compra es demasiado largo.", nameof(purchaseUrl));
+
+        EnsureTrackedHobby(sourceType);
+    }
+
+    private static string? NormalizeOptionalText(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 
     private static void EnsureTrackedHobby(MilestoneSourceType sourceType)
     {

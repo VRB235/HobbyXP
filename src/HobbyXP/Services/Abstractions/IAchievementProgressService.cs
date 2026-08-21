@@ -9,6 +9,10 @@ public interface IAchievementProgressService
         MilestoneSourceType sourceType,
         CancellationToken cancellationToken = default);
 
+    Task<NextRewardProgress?> GetNearestRewardAsync(
+        MilestoneSourceType sourceType,
+        CancellationToken cancellationToken = default);
+
     Task<AchievementHubSnapshot> GetHubSnapshotAsync(CancellationToken cancellationToken = default);
 
     Task<int> GetUnseenMedalCountAsync(CancellationToken cancellationToken = default);

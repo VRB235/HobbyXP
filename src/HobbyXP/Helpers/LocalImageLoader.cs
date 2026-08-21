@@ -1,6 +1,7 @@
 using System.IO;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using HobbyXP.Data;
 
 namespace HobbyXP.Helpers;
 
@@ -8,7 +9,7 @@ public static class LocalImageLoader
 {
     public static ImageSource? TryLoad(string? path)
     {
-        var resolved = MedalIconPaths.ResolveAbsolutePath(path);
+        var resolved = ResolveExistingPath(path);
         if (resolved is null)
             return null;
 
@@ -26,5 +27,22 @@ public static class LocalImageLoader
         {
             return null;
         }
+    }
+
+    private static string? ResolveExistingPath(string? path)
+    {
+        var fromMedals = MedalIconPaths.ResolveAbsolutePath(path);
+        if (fromMedals is not null)
+            return fromMedals;
+
+        var fromReward = RewardPhotoStorage.ResolveAbsolutePath(path);
+        if (fromReward is not null)
+            return fromReward;
+
+        if (string.IsNullOrWhiteSpace(path) || Path.IsPathRooted(path))
+            return null;
+
+        var fromData = Path.Combine(DatabaseConstants.GetDatabaseDirectory(), path);
+        return File.Exists(fromData) ? fromData : null;
     }
 }

@@ -19,6 +19,7 @@
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
 
             <TextBlock Grid.Column="0"
@@ -72,6 +73,54 @@
                                         Height="8"
                                         Margin="0,4,0,0" />
             </StackPanel>
+
+            <Border Grid.Row="5"
+                    Grid.ColumnSpan="2"
+                    Margin="0,8,0,0"
+                    Padding="8,6"
+                    CornerRadius="6"
+                    Background="#1A2A22"
+                    BorderBrush="#3A7A5A"
+                    BorderThickness="1"
+                    Visibility="{Binding HasNearestReward, Converter={StaticResource BoolToVisibilityConverter}}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <Border Width="56"
+                            Height="56"
+                            CornerRadius="6"
+                            ClipToBounds="True"
+                            Background="#122018"
+                            Margin="0,0,10,0"
+                            Cursor="Hand"
+                            ToolTip="Clic para ampliar la imagen del premio"
+                            Visibility="{Binding HasNearestRewardImage, Converter={StaticResource BoolToVisibilityConverter}}"
+                            MouseLeftButtonUp="OnNearestRewardImageClick">
+                        <Image Source="{Binding NearestRewardImagePath, Converter={StaticResource PathToImageSourceConverter}}"
+                               Stretch="UniformToFill"
+                               IsHitTestVisible="False" />
+                    </Border>
+
+                    <StackPanel Grid.Column="1">
+                        <TextBlock Text="{Binding NearestRewardText}"
+                                   Foreground="{StaticResource AccentGreenBrush}"
+                                   FontSize="12"
+                                   FontWeight="SemiBold"
+                                   TextWrapping="Wrap" />
+                        <TextBlock Text="{Binding NearestRewardPriceLabel}"
+                                   Style="{StaticResource MutedText}"
+                                   FontSize="11"
+                                   Margin="0,2,0,0"
+                                   Visibility="{Binding HasNearestRewardPrice, Converter={StaticResource BoolToVisibilityConverter}}" />
+                        <controls:XpProgressBar Value="{Binding NearestRewardPercent}"
+                                                Height="8"
+                                                Margin="0,4,0,0" />
+                    </StackPanel>
+                </Grid>
+            </Border>
         </Grid>
     </Border>
 </UserControl>

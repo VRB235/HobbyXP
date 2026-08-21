@@ -1,3 +1,4 @@
+using System.Globalization;
 using HobbyXP.Helpers;
 using HobbyXP.Models.Achievements;
 using HobbyXP.Models.Enums;
@@ -29,6 +30,22 @@ public sealed class RewardRowViewModel : ViewModelBase
     public int BaseCost => Reward.CostInPoints;
 
     public int EffectiveCost => RewardCostCalculator.GetEffectiveCost(BaseCost, CurrentLevel);
+
+    public decimal? Price => Reward.Price;
+
+    public string? PurchaseUrl => Reward.PurchaseUrl;
+
+    public string? ImagePath => Reward.ImagePath;
+
+    public string? ImageDisplayPath => RewardPhotoStorage.ResolveAbsolutePath(ImagePath);
+
+    public bool HasImage => !string.IsNullOrWhiteSpace(ImageDisplayPath);
+
+    public bool HasPurchaseUrl => !string.IsNullOrWhiteSpace(PurchaseUrl);
+
+    public string PriceLabel => Price is null
+        ? "—"
+        : Price.Value.ToString("N2", CultureInfo.CurrentCulture);
 
     public RewardStatus Status => Reward.Status;
 

@@ -269,15 +269,15 @@
                     <StackPanel Margin="8">
                         <TextBlock Text="{Binding BalanceText}" Style="{StaticResource SubsectionTitleText}" Margin="0,0,0,12" />
 
-                        <GroupBox Header="Crear premio (costo base)" Padding="12" Margin="0,0,0,12">
+                        <GroupBox Header="{Binding FormTitle}" Padding="12" Margin="0,0,0,12">
                             <StackPanel>
-                                <Grid Margin="0,0,0,4">
+                                <Grid Margin="0,0,0,8">
                                     <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="160" />
                                         <ColumnDefinition Width="180" />
-                                        <ColumnDefinition Width="200" />
+                                        <ColumnDefinition Width="100" />
                                         <ColumnDefinition Width="100" />
                                         <ColumnDefinition Width="*" MinWidth="140" />
-                                        <ColumnDefinition Width="Auto" />
                                     </Grid.ColumnDefinitions>
 
                                     <StackPanel Grid.Column="0" Margin="0,0,8,0">
@@ -298,18 +298,84 @@
                                     </StackPanel>
 
                                     <StackPanel Grid.Column="3" Margin="0,0,8,0">
+                                        <TextBlock Text="Precio ($)" Style="{StaticResource MutedText}" />
+                                        <TextBox Text="{Binding PriceText}" HorizontalAlignment="Stretch" />
+                                    </StackPanel>
+
+                                    <StackPanel Grid.Column="4">
                                         <TextBlock Text="Descripción (opcional)" Style="{StaticResource MutedText}" />
                                         <TextBox Text="{Binding Description}" HorizontalAlignment="Stretch" />
                                     </StackPanel>
+                                </Grid>
 
-                                    <StackPanel Grid.Column="4" Orientation="Horizontal" VerticalAlignment="Bottom">
-                                        <Button Content="Crear" Command="{Binding CreateRewardCommand}"
-                                                Style="{StaticResource PrimaryButton}" Margin="0,0,8,0" />
-                                        <Button Content="Asignar módulo" Command="{Binding AssignModuleCommand}"
-                                                Style="{StaticResource AccentButton}" />
+                                <Grid Margin="0,0,0,8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                                        <TextBlock Text="Link de compra" Style="{StaticResource MutedText}" />
+                                        <TextBox Text="{Binding PurchaseUrl}" HorizontalAlignment="Stretch" />
+                                    </StackPanel>
+
+                                    <Button Grid.Column="1"
+                                            Content="Abrir link"
+                                            Command="{Binding OpenPurchaseUrlCommand}"
+                                            Style="{StaticResource AccentButton}"
+                                            Margin="0,16,8,0"
+                                            VerticalAlignment="Top" />
+
+                                    <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="0,16,0,0">
+                                        <Border Width="56" Height="56" CornerRadius="6" ClipToBounds="True"
+                                                Background="#1A2233" BorderBrush="{StaticResource BorderBrush}"
+                                                BorderThickness="1" Margin="0,0,8,0"
+                                                Visibility="{Binding HasPreviewImage, Converter={StaticResource BoolToVisibilityConverter}}">
+                                            <Button Command="{Binding OpenPhotoCommand}"
+                                                    CommandParameter="{Binding PreviewImagePath}"
+                                                    ToolTip="Clic para ampliar · Abrir en el sistema desde el visor"
+                                                    Cursor="Hand"
+                                                    Background="Transparent"
+                                                    BorderThickness="0"
+                                                    Padding="0">
+                                                <Image Source="{Binding PreviewImagePath, Converter={StaticResource PathToImageSourceConverter}}"
+                                                       Stretch="UniformToFill"
+                                                       Width="56" Height="56" />
+                                            </Button>
+                                        </Border>
+                                        <Button Content="Ver" Command="{Binding OpenPhotoCommand}"
+                                                CommandParameter="{Binding PreviewImagePath}"
+                                                Style="{StaticResource AccentButton}" Margin="0,0,8,0" VerticalAlignment="Center"
+                                                Visibility="{Binding HasPreviewImage, Converter={StaticResource BoolToVisibilityConverter}}" />
+                                        <Button Content="Imagen" Command="{Binding PickImageCommand}"
+                                                Style="{StaticResource PrimaryButton}" Margin="0,0,8,0" VerticalAlignment="Center" />
+                                        <Button Content="Quitar" Command="{Binding ClearImageCommand}"
+                                                Style="{StaticResource AccentButton}" VerticalAlignment="Center" />
                                     </StackPanel>
                                 </Grid>
-                                <TextBlock Text="Al canjear se cobra base × nivel global actual. Los premios se agrupan por hobby; «Asignar módulo» mueve el seleccionado."
+
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                    <Button Content="{Binding PrimaryActionLabel}"
+                                            Command="{Binding CreateRewardCommand}"
+                                            Style="{StaticResource PrimaryButton}"
+                                            Margin="0,0,8,0"
+                                            Visibility="{Binding IsEditing, Converter={StaticResource InverseBoolToVisibilityConverter}}" />
+                                    <Button Content="{Binding PrimaryActionLabel}"
+                                            Command="{Binding SaveRewardCommand}"
+                                            Style="{StaticResource PrimaryButton}"
+                                            Margin="0,0,8,0"
+                                            Visibility="{Binding IsEditing, Converter={StaticResource BoolToVisibilityConverter}}" />
+                                    <Button Content="Nuevo" Command="{Binding ClearFormCommand}"
+                                            Style="{StaticResource AccentButton}" Margin="0,0,8,0" />
+                                    <Button Content="Asignar módulo" Command="{Binding AssignModuleCommand}"
+                                            Style="{StaticResource AccentButton}" Margin="0,0,8,0" />
+                                    <Button Content="Eliminar" Command="{Binding DeleteRewardCommand}"
+                                            Style="{StaticResource AccentButton}"
+                                            Visibility="{Binding IsEditing, Converter={StaticResource BoolToVisibilityConverter}}" />
+                                </StackPanel>
+
+                                <TextBlock Text="Al canjear se cobra base × nivel global actual. Seleccione un premio para editar nombre, precio, link, imagen y módulo."
                                            Style="{StaticResource MutedText}" FontSize="12" />
                                 <controls:FormValidationBanner Message="{Binding ValidationMessage}" />
                             </StackPanel>
@@ -345,9 +411,28 @@
                                                           helpers:GridViewSortHelper.EnableSort="True">
                                                     <ListView.View>
                                                         <GridView>
-                                                            <GridViewColumn Header="Nombre" DisplayMemberBinding="{Binding Name}" Width="180" />
-                                                            <GridViewColumn Header="Costo efectivo" DisplayMemberBinding="{Binding CostLabel}" Width="220" />
-                                                            <GridViewColumn Header="Estado" DisplayMemberBinding="{Binding StatusLabel}" Width="100" />
+                                                            <GridViewColumn Header="" Width="44">
+                                                                <GridViewColumn.CellTemplate>
+                                                                    <DataTemplate>
+                                                                        <Button Command="{Binding DataContext.OpenPhotoCommand, ElementName=RewardShopScroll}"
+                                                                                CommandParameter="{Binding}"
+                                                                                ToolTip="Ver imagen"
+                                                                                Cursor="Hand"
+                                                                                Background="Transparent"
+                                                                                BorderThickness="0"
+                                                                                Padding="0"
+                                                                                Visibility="{Binding HasImage, Converter={StaticResource BoolToVisibilityConverter}}">
+                                                                            <Image Width="28" Height="28"
+                                                                                   Source="{Binding ImageDisplayPath, Converter={StaticResource PathToImageSourceConverter}}"
+                                                                                   Stretch="UniformToFill" />
+                                                                        </Button>
+                                                                    </DataTemplate>
+                                                                </GridViewColumn.CellTemplate>
+                                                            </GridViewColumn>
+                                                            <GridViewColumn Header="Nombre" DisplayMemberBinding="{Binding Name}" Width="160" />
+                                                            <GridViewColumn Header="Costo efectivo" DisplayMemberBinding="{Binding CostLabel}" Width="200" />
+                                                            <GridViewColumn Header="Precio" DisplayMemberBinding="{Binding PriceLabel}" Width="80" />
+                                                            <GridViewColumn Header="Estado" DisplayMemberBinding="{Binding StatusLabel}" Width="90" />
                                                         </GridView>
                                                     </ListView.View>
                                                 </ListView>
@@ -391,9 +476,28 @@
                                                           helpers:GridViewSortHelper.EnableSort="True">
                                                     <ListView.View>
                                                         <GridView>
-                                                            <GridViewColumn Header="Nombre" DisplayMemberBinding="{Binding Name}" Width="180" />
-                                                            <GridViewColumn Header="Canje" DisplayMemberBinding="{Binding CostLabel}" Width="160" />
-                                                            <GridViewColumn Header="Equipo" DisplayMemberBinding="{Binding EquipButtonLabel}" Width="100" />
+                                                            <GridViewColumn Header="" Width="44">
+                                                                <GridViewColumn.CellTemplate>
+                                                                    <DataTemplate>
+                                                                        <Button Command="{Binding DataContext.OpenPhotoCommand, ElementName=RewardShopScroll}"
+                                                                                CommandParameter="{Binding}"
+                                                                                ToolTip="Ver imagen"
+                                                                                Cursor="Hand"
+                                                                                Background="Transparent"
+                                                                                BorderThickness="0"
+                                                                                Padding="0"
+                                                                                Visibility="{Binding HasImage, Converter={StaticResource BoolToVisibilityConverter}}">
+                                                                            <Image Width="28" Height="28"
+                                                                                   Source="{Binding ImageDisplayPath, Converter={StaticResource PathToImageSourceConverter}}"
+                                                                                   Stretch="UniformToFill" />
+                                                                        </Button>
+                                                                    </DataTemplate>
+                                                                </GridViewColumn.CellTemplate>
+                                                            </GridViewColumn>
+                                                            <GridViewColumn Header="Nombre" DisplayMemberBinding="{Binding Name}" Width="160" />
+                                                            <GridViewColumn Header="Canje" DisplayMemberBinding="{Binding CostLabel}" Width="150" />
+                                                            <GridViewColumn Header="Precio" DisplayMemberBinding="{Binding PriceLabel}" Width="80" />
+                                                            <GridViewColumn Header="Equipo" DisplayMemberBinding="{Binding EquipButtonLabel}" Width="90" />
                                                         </GridView>
                                                     </ListView.View>
                                                 </ListView>

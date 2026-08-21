@@ -25,6 +25,7 @@ public sealed class DashboardViewModel : LoadableViewModelBase
     private readonly IXpService _xpService;
     private readonly IWeeklyQuotaService _weeklyQuotaService;
     private readonly IAchievementProgressService _achievementProgress;
+    private readonly IImagePreviewService _imagePreviewService;
     private int _currentLevel = 1;
     private int _totalXp;
     private int _xpIntoCurrentLevel;
@@ -52,6 +53,7 @@ public sealed class DashboardViewModel : LoadableViewModelBase
         IXpService xpService,
         IWeeklyQuotaService weeklyQuotaService,
         IAchievementProgressService achievementProgress,
+        IImagePreviewService imagePreviewService,
         IApplicationDataResetMessenger applicationDataResetMessenger)
     {
         _dashboardService = dashboardService;
@@ -59,13 +61,17 @@ public sealed class DashboardViewModel : LoadableViewModelBase
         _xpService = xpService;
         _weeklyQuotaService = weeklyQuotaService;
         _achievementProgress = achievementProgress;
+        _imagePreviewService = imagePreviewService;
         RecentMilestones = new ObservableCollection<Milestone>();
         SuggestedActivities = new ObservableCollection<LevelUpSuggestion>();
         HobbyProgressItems = new ObservableCollection<HobbyProgressInfo>();
         WeeklyQuotaItems = new ObservableCollection<WeeklyQuotaProgress>();
         RefreshCommand = new AsyncRelayCommand(() => LoadAsync());
+        OpenFeaturedRewardImageCommand = new RelayCommand(OpenFeaturedRewardImage, CanOpenFeaturedRewardImage);
         applicationDataResetMessenger.ApplicationDataReset += OnApplicationDataReset;
     }
+
+    public RelayCommand OpenFeaturedRewardImageCommand { get; }
 
     public ObservableCollection<Milestone> RecentMilestones { get; }
     public ObservableCollection<LevelUpSuggestion> SuggestedActivities { get; }
@@ -370,4 +376,15 @@ public sealed class DashboardViewModel : LoadableViewModelBase
 
     private static double ClampProgress(double value) =>
         double.IsNaN(value) || double.IsInfinity(value) ? 0d : Math.Clamp(value, 0d, 100d);
+
+    private bool CanOpenFeaturedRewardImage() =>
+        AchievementHub is { HasFeaturedImage: true, FeaturedImagePath: not null };
+
+    private void OpenFeaturedRewardImage()
+    {
+        if (AchievementHub?.FeaturedImagePath is not { } path)
+            return;
+
+        _imagePreviewService.Show(path, AchievementHub.FeaturedReward?.Name ?? "Premio");
+    }
 }

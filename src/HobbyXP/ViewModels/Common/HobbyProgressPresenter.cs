@@ -23,6 +23,10 @@ public sealed class HobbyProgressPresenter : ViewModelBase
     private string? _penaltyReminder;
     private string? _nextMedalText;
     private double _nextMedalPercent;
+    private string? _nearestRewardText;
+    private double _nearestRewardPercent;
+    private string? _nearestRewardImagePath;
+    private string? _nearestRewardPriceLabel;
 
     public HobbyProgressPresenter(
         IXpService xpService,
@@ -105,6 +109,48 @@ public sealed class HobbyProgressPresenter : ViewModelBase
 
     public bool HasNextMedal => !string.IsNullOrWhiteSpace(NextMedalText);
 
+    public string? NearestRewardText
+    {
+        get => _nearestRewardText;
+        private set
+        {
+            if (SetProperty(ref _nearestRewardText, value))
+                OnPropertyChanged(nameof(HasNearestReward));
+        }
+    }
+
+    public double NearestRewardPercent
+    {
+        get => _nearestRewardPercent;
+        private set => SetProperty(ref _nearestRewardPercent, value);
+    }
+
+    public string? NearestRewardImagePath
+    {
+        get => _nearestRewardImagePath;
+        private set
+        {
+            if (SetProperty(ref _nearestRewardImagePath, value))
+                OnPropertyChanged(nameof(HasNearestRewardImage));
+        }
+    }
+
+    public string? NearestRewardPriceLabel
+    {
+        get => _nearestRewardPriceLabel;
+        private set
+        {
+            if (SetProperty(ref _nearestRewardPriceLabel, value))
+                OnPropertyChanged(nameof(HasNearestRewardPrice));
+        }
+    }
+
+    public bool HasNearestReward => !string.IsNullOrWhiteSpace(NearestRewardText);
+
+    public bool HasNearestRewardImage => !string.IsNullOrWhiteSpace(NearestRewardImagePath);
+
+    public bool HasNearestRewardPrice => !string.IsNullOrWhiteSpace(NearestRewardPriceLabel);
+
     public string LevelText => HobbyLevelTitles.FormatLevelLabel(_sourceType, CurrentLevel);
 
     public string LevelTitle => HobbyLevelTitles.GetTitle(_sourceType, CurrentLevel);
@@ -139,11 +185,23 @@ public sealed class HobbyProgressPresenter : ViewModelBase
             var next = await _achievementProgress.GetNextMedalAsync(_sourceType, cancellationToken);
             NextMedalText = next?.BannerText;
             NextMedalPercent = next?.Percent ?? 0;
+
+            var nearest = await _achievementProgress.GetNearestRewardAsync(_sourceType, cancellationToken);
+            NearestRewardText = nearest?.BannerText;
+            NearestRewardPercent = nearest?.Percent ?? 0;
+            NearestRewardImagePath = nearest?.ResolvedImagePath;
+            NearestRewardPriceLabel = nearest is { Price: not null }
+                ? nearest.PriceLabel
+                : null;
         }
         else
         {
             NextMedalText = null;
             NextMedalPercent = 0;
+            NearestRewardText = null;
+            NearestRewardPercent = 0;
+            NearestRewardImagePath = null;
+            NearestRewardPriceLabel = null;
         }
 
         OnPropertyChanged(nameof(LevelText));

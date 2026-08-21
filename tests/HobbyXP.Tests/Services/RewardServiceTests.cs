@@ -43,6 +43,84 @@ public sealed class RewardServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task CreateAsync_PersistsPurchaseDetails()
+    {
+        var reward = await _sut.CreateAsync(
+            "Auriculares",
+            300,
+            MilestoneSourceType.Gym,
+            "Sony WH",
+            price: 199.99m,
+            purchaseUrl: "https://tienda.example/auriculares");
+
+        Assert.Equal(199.99m, reward.Price);
+        Assert.Equal("https://tienda.example/auriculares", reward.PurchaseUrl);
+
+        await using var db = _factory.CreateDbContext();
+        var stored = await db.Rewards.SingleAsync();
+        Assert.Equal(199.99m, stored.Price);
+        Assert.Equal("https://tienda.example/auriculares", stored.PurchaseUrl);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_UpdatesAllWritableFields()
+    {
+        var reward = await _sut.CreateAsync("Batido", 200, MilestoneSourceType.Gym);
+
+        var updated = await _sut.UpdateAsync(
+            reward.Id,
+            "Batido proteico",
+            250,
+            MilestoneSourceType.Diet,
+            "Post entreno",
+            12.5m,
+            "https://tienda.example/batido");
+
+        Assert.Equal("Batido proteico", updated.Name);
+        Assert.Equal(250, updated.CostInPoints);
+        Assert.Equal(MilestoneSourceType.Diet, updated.SourceType);
+        Assert.Equal("Post entreno", updated.Description);
+        Assert.Equal(12.5m, updated.Price);
+        Assert.Equal("https://tienda.example/batido", updated.PurchaseUrl);
+    }
+
+    [Fact]
+    public async Task DeleteAsync_RemovesAvailableReward()
+    {
+        var reward = await _sut.CreateAsync("Café", 100, MilestoneSourceType.Gym);
+
+        await _sut.DeleteAsync(reward.Id);
+
+        await using var db = _factory.CreateDbContext();
+        Assert.Empty(await db.Rewards.ToListAsync());
+    }
+
+    [Fact]
+    public async Task DeleteAsync_WhenRedeemed_Throws()
+    {
+        await using (var db = _factory.CreateDbContext())
+        {
+            var profile = await db.PlayerProfiles.SingleAsync();
+            profile.SpendableXp = 500;
+            profile.CurrentLevel = 1;
+
+            db.HobbyProgresses.Add(new Models.Core.HobbyProgress
+            {
+                PlayerProfileId = profile.Id,
+                SourceType = MilestoneSourceType.Gym,
+                SpendableXp = 500
+            });
+
+            await db.SaveChangesAsync();
+        }
+
+        var reward = await _sut.CreateAsync("Café", 100, MilestoneSourceType.Gym);
+        await _sut.RedeemAsync(reward.Id);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => _sut.DeleteAsync(reward.Id));
+    }
+
+    [Fact]
     public async Task CreateAsync_PersistsHobbyModule()
     {
         var reward = await _sut.CreateAsync("Zapatillas", 400, MilestoneSourceType.Running);
