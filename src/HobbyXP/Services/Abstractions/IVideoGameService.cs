@@ -15,6 +15,7 @@ public interface IVideoGameService
         VideoGamePlatform platform,
         int initialCompletionPercentage = 0,
         DateTime? startedAt = null,
+        string? imageSourcePath = null,
         CancellationToken cancellationToken = default);
 
     Task<OperationResult<VideoGame>> UpdateCompletionAsync(
@@ -26,6 +27,22 @@ public interface IVideoGameService
     Task<OperationResult<VideoGame>> IncrementCompletionAsync(
         int videoGameId,
         int increment = 1,
+        CancellationToken cancellationToken = default);
+
+    Task<VideoGame> UpdateMetadataAsync(
+        int videoGameId,
+        string title,
+        VideoGamePlatform platform,
+        DateTime? startedAt,
+        DateTime? platinumUnlockedAt,
+        string? imageSourcePath = null,
+        bool clearImage = false,
+        CancellationToken cancellationToken = default);
+
+    Task<VideoGame> UpdateImageAsync(
+        int videoGameId,
+        string? imageSourcePath = null,
+        bool clearImage = false,
         CancellationToken cancellationToken = default);
 
     Task<bool> DeleteAsync(int videoGameId, CancellationToken cancellationToken = default);

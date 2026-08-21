@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Windows;
 using HobbyXP.Helpers;
 using HobbyXP.Models.Entertainment;
 using HobbyXP.Models.Enums;
@@ -6,6 +7,7 @@ using HobbyXP.Services.Abstractions;
 using HobbyXP.Services.Messaging;
 using HobbyXP.ViewModels.Common;
 using HobbyXP.ViewModels.Messaging;
+using HobbyXP.Views.Dialogs;
 
 namespace HobbyXP.ViewModels.Entertainment;
 
@@ -56,6 +58,7 @@ public sealed class PuzzlesViewModel : AchievementAwareViewModel
         OpenPhotoCommand = new RelayCommand(OpenPhoto);
         ClearDateFilterCommand = new RelayCommand(ClearHistoryFilters);
         DeletePuzzleCommand = new AsyncRelayCommand(p => DeletePuzzleAsync(p));
+        OpenDetailCommand = new RelayCommand(OpenDetail);
         RefreshRegisterValidation();
     }
 
@@ -156,6 +159,8 @@ public sealed class PuzzlesViewModel : AchievementAwareViewModel
     public RelayCommand ClearDateFilterCommand { get; }
 
     public AsyncRelayCommand DeletePuzzleCommand { get; }
+
+    public RelayCommand OpenDetailCommand { get; }
 
     public bool HasSelectedPhotos => SelectedPhotos.Count > 0;
 
@@ -285,6 +290,31 @@ public sealed class PuzzlesViewModel : AchievementAwareViewModel
             ClearValidation();
             StatusMessage = $"Rompecabezas registrado · +{result.Value.XpEarned} XP";
         }, "Guardando rompecabezas...");
+    }
+
+    private void OpenDetail(object? parameter)
+    {
+        if (parameter is not Puzzle puzzle)
+            return;
+
+        var detailVm = new PuzzleDetailViewModel(puzzle, _puzzleService, _fileDialogService);
+        var dialog = new PuzzleDetailWindow(detailVm)
+        {
+            Owner = Application.Current.MainWindow
+        };
+
+        var accepted = dialog.ShowDialog() == true;
+        if (!accepted || detailVm.SavedPuzzle is null)
+            return;
+
+        var index = _allPuzzles.FindIndex(p => p.Id == detailVm.SavedPuzzle.Id);
+        if (index >= 0)
+            _allPuzzles[index] = detailVm.SavedPuzzle;
+        else
+            _allPuzzles.Insert(0, detailVm.SavedPuzzle);
+
+        ApplyFilter();
+        StatusMessage = $"Rompecabezas actualizado: {detailVm.SavedPuzzle.Name}";
     }
 
     private async Task DeletePuzzleAsync(object? parameter)

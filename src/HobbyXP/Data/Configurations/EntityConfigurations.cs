@@ -287,6 +287,10 @@ internal sealed class MediaEntryConfiguration : IEntityTypeConfiguration<MediaEn
             .HasMaxLength(16)
             .IsRequired();
 
+        builder.Property(m => m.ImagePath)
+            .HasMaxLength(500)
+            .IsRequired(false);
+
         builder.HasIndex(m => m.CompletedAt);
     }
 }
@@ -305,6 +309,10 @@ internal sealed class MediaSeriesConfiguration : IEntityTypeConfiguration<MediaS
             .HasConversion<string>()
             .HasMaxLength(16)
             .IsRequired();
+
+        builder.Property(s => s.ImagePath)
+            .HasMaxLength(500)
+            .IsRequired(false);
 
         builder.ToTable(t => t.HasCheckConstraint(
             "CK_MediaSeries_ChaptersWatched",
@@ -351,6 +359,10 @@ internal sealed class BookConfiguration : IEntityTypeConfiguration<Book>
             .HasMaxLength(16)
             .IsRequired();
 
+        builder.Property(b => b.ImagePath)
+            .HasMaxLength(500)
+            .IsRequired(false);
+
         builder.ToTable(t => t.HasCheckConstraint(
             "CK_Books_PagesRead",
             "[PagesRead] >= 0 AND [PagesRead] <= [TotalPages]"));
@@ -395,6 +407,10 @@ internal sealed class CourseConfiguration : IEntityTypeConfiguration<Course>
             .HasConversion<string>()
             .HasMaxLength(16)
             .IsRequired();
+
+        builder.Property(c => c.ImagePath)
+            .HasMaxLength(500)
+            .IsRequired(false);
 
         builder.ToTable(t => t.HasCheckConstraint(
             "CK_Courses_SessionsCompleted",

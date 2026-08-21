@@ -1,4 +1,6 @@
 using System.Collections.ObjectModel;
+using System.Windows;
+using System.Windows.Input;
 using HobbyXP.Helpers;
 using HobbyXP.Models.Enums;
 using HobbyXP.Models.PersonalGrowth;
@@ -6,13 +8,16 @@ using HobbyXP.Services.Abstractions;
 using HobbyXP.Services.Messaging;
 using HobbyXP.ViewModels.Common;
 using HobbyXP.ViewModels.Messaging;
+using HobbyXP.Views.Dialogs;
 
 namespace HobbyXP.ViewModels.PersonalGrowth;
 
 public sealed class BooksViewModel : AchievementAwareViewModel
 {
     private readonly IBookService _bookService;
+    private readonly IFileDialogService _fileDialogService;
     private readonly IProfileRefreshMessenger _profileRefreshMessenger;
+    private readonly CoverImageDraft _cover;
     private string _title = string.Empty;
     private string _author = string.Empty;
     private string _totalPages = "300";
@@ -25,18 +30,26 @@ public sealed class BooksViewModel : AchievementAwareViewModel
         IBookService bookService,
         IXpService xpService,
         IWeeklyQuotaService weeklyQuotaService,
+        IFileDialogService fileDialogService,
         IProfileRefreshMessenger profileRefreshMessenger,
         IAchievementMessenger achievementMessenger,
         IAchievementProgressService achievementProgress)
         : base(achievementMessenger)
     {
         _bookService = bookService;
+        _fileDialogService = fileDialogService;
         _profileRefreshMessenger = profileRefreshMessenger;
+        _cover = new CoverImageDraft(HobbyCoverPhotoStorage.Folders.Books);
+        _cover.Changed += OnCoverChanged;
+
         HobbyXp = new HobbyProgressPresenter(xpService, MilestoneSourceType.Book, weeklyQuotaService, achievementProgress);
         ReadingRows = new ObservableCollection<BookReadingRowViewModel>();
-        CompletedRows = new ObservableCollection<BookCompletedRowViewModel>();
+        CompletedBooks = new ObservableCollection<Book>();
         RegisterCommand = new AsyncRelayCommand(RegisterAsync, CanRegister);
         ClearCompletedDateFilterCommand = new RelayCommand(ClearCompletedDateFilter);
+        PickImageCommand = new RelayCommand(() => _cover.Pick(_fileDialogService));
+        ClearImageCommand = new RelayCommand(() => _cover.Clear(), () => _cover.HasPreview);
+        OpenDetailCommand = new RelayCommand(OpenDetail);
         RefreshRegisterValidation();
     }
 
@@ -44,7 +57,7 @@ public sealed class BooksViewModel : AchievementAwareViewModel
 
     public ObservableCollection<BookReadingRowViewModel> ReadingRows { get; }
 
-    public ObservableCollection<BookCompletedRowViewModel> CompletedRows { get; }
+    public ObservableCollection<Book> CompletedBooks { get; }
 
     public string Title
     {
@@ -76,6 +89,10 @@ public sealed class BooksViewModel : AchievementAwareViewModel
         }
     }
 
+    public string? PreviewImagePath => _cover.PreviewPath;
+
+    public bool HasPreviewImage => _cover.HasPreview;
+
     public DateTime? CompletedFromDate
     {
         get => _completedFromDate;
@@ -100,7 +117,27 @@ public sealed class BooksViewModel : AchievementAwareViewModel
 
     public RelayCommand ClearCompletedDateFilterCommand { get; }
 
+    public RelayCommand PickImageCommand { get; }
+
+    public RelayCommand ClearImageCommand { get; }
+
+    public RelayCommand OpenDetailCommand { get; }
+
     protected override Task LoadCoreAsync() => ReloadAsync();
+
+    private void OnCoverChanged()
+    {
+        OnPropertyChanged(nameof(PreviewImagePath));
+        OnPropertyChanged(nameof(HasPreviewImage));
+        CommandManager.InvalidateRequerySuggested();
+    }
+
+    private void ResetCover()
+    {
+        _cover.MarkSaved();
+        _cover.Clear();
+        OnCoverChanged();
+    }
 
     private async Task ReloadAsync()
     {
@@ -114,11 +151,16 @@ public sealed class BooksViewModel : AchievementAwareViewModel
     {
         ReadingRows.Clear();
         foreach (var book in _allReading)
-            ReadingRows.Add(new BookReadingRowViewModel(book, ApplyPagesAsync, UpdateMetadataAsync));
+            ReadingRows.Add(new BookReadingRowViewModel(
+                book,
+                ApplyPagesAsync,
+                UpdateMetadataAsync,
+                UpdateBookImageAsync,
+                _fileDialogService));
 
-        CompletedRows.Clear();
+        CompletedBooks.Clear();
         foreach (var book in _allCompleted.Where(MatchesCompletedDateFilter))
-            CompletedRows.Add(new BookCompletedRowViewModel(book, UpdateMetadataAsync));
+            CompletedBooks.Add(book);
     }
 
     private bool MatchesCompletedDateFilter(Book book) =>
@@ -157,7 +199,8 @@ public sealed class BooksViewModel : AchievementAwareViewModel
         var pages = int.Parse(TotalPages);
         await RunBusyAsync(async () =>
         {
-            var book = await _bookService.RegisterAsync(Title, Author, pages);
+            var book = await _bookService.RegisterAsync(Title, Author, pages, _cover.PendingSourcePath);
+            ResetCover();
             _allReading.Insert(0, book);
             ApplyFilter();
 
@@ -167,6 +210,25 @@ public sealed class BooksViewModel : AchievementAwareViewModel
             ClearValidation();
             StatusMessage = $"Libro '{book.Title}' agregado.";
         }, "Registrando libro...");
+    }
+
+    private void OpenDetail(object? parameter)
+    {
+        if (parameter is not Book book)
+            return;
+
+        var detailVm = new BookDetailViewModel(book, _bookService, _fileDialogService);
+        var dialog = new BookDetailWindow(detailVm)
+        {
+            Owner = Application.Current.MainWindow
+        };
+
+        var accepted = dialog.ShowDialog() == true;
+        if (!accepted || detailVm.SavedBook is null)
+            return;
+
+        _ = ReloadAsync();
+        StatusMessage = $"Libro actualizado: {detailVm.SavedBook.Title}";
     }
 
     private async Task ApplyPagesAsync(Book book, int targetPagesRead, DateTime readingDate)
@@ -193,5 +255,18 @@ public sealed class BooksViewModel : AchievementAwareViewModel
             book.Author = updated.Author;
             StatusMessage = $"Datos actualizados: «{updated.Title}» · {updated.Author}";
         }, "Actualizando libro...");
+    }
+
+    private async Task<Book> UpdateBookImageAsync(Book book, string? imageSourcePath, bool clearImage)
+    {
+        var updated = await _bookService.UpdateImageAsync(book.Id, imageSourcePath, clearImage);
+        var index = _allReading.FindIndex(b => b.Id == updated.Id);
+        if (index >= 0)
+            _allReading[index] = updated;
+
+        StatusMessage = clearImage
+            ? $"Portada quitada de «{updated.Title}»."
+            : $"Portada actualizada: «{updated.Title}».";
+        return updated;
     }
 }

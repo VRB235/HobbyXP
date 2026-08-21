@@ -13,70 +13,85 @@
             Padding="12"
             Margin="0,0,0,8"
             Background="{StaticResource BgCardBrush}">
-        <StackPanel>
-            <StackPanel Margin="0,0,0,10">
-                <TextBlock Text="{Binding Title}" FontWeight="SemiBold" />
-                <TextBlock Text="{Binding XpEarnedDisplay}"
-                           Foreground="{StaticResource AccentGreenBrush}"
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <controls:ProgressCoverThumb Grid.Column="0"
+                                         VerticalAlignment="Top"
+                                         ImagePath="{Binding Cover.ImageDisplayPath}"
+                                         HasImage="{Binding Cover.HasImage}"
+                                         ImageActionLabel="{Binding Cover.ImageActionLabel}"
+                                         PickCommand="{Binding Cover.PickCommand}"
+                                         ClearCommand="{Binding Cover.ClearCommand}" />
+
+            <StackPanel Grid.Column="1">
+                <StackPanel Margin="0,0,0,10">
+                    <TextBlock Text="{Binding Title}" FontWeight="SemiBold" />
+                    <TextBlock Text="{Binding XpEarnedDisplay}"
+                               Foreground="{StaticResource AccentGreenBrush}"
+                               FontSize="12"
+                               Margin="0,2,0,0" />
+                </StackPanel>
+
+                <TextBlock Text="{Binding ProgressSummary}"
+                           Style="{StaticResource MutedText}"
                            FontSize="12"
-                           Margin="0,2,0,0" />
+                           Margin="0,0,0,6" />
+
+                <controls:ItemProgressBar Value="{Binding ProgressPercent, Mode=OneWay}"
+                                          Margin="0,0,0,10" />
+
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="130" />
+                        <ColumnDefinition Width="104" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <DatePicker Grid.Column="0"
+                                SelectedDate="{Binding WatchDate}"
+                                Margin="0,0,8,0"
+                                ToolTip="Fecha en que vio los capítulos" />
+
+                    <controls:NumericStepper Grid.Column="1"
+                                             Value="{Binding ChaptersToLog, Converter={StaticResource FlexibleNumber}}"
+                                             Minimum="1"
+                                             Maximum="{Binding RemainingChapters}"
+                                             Margin="0,0,8,0"
+                                             ToolTip="Cantidad de capítulos ese día" />
+
+                    <Button Grid.Column="2"
+                            Content="+1"
+                            Style="{StaticResource PrimaryButton}"
+                            Padding="8,4"
+                            Margin="0,0,6,0"
+                            Command="{Binding BumpChaptersCommand}"
+                            CommandParameter="1"
+                            ToolTip="Sumar un capítulo al registro" />
+
+                    <Button Grid.Column="3"
+                            Content="Restantes"
+                            Style="{StaticResource PrimaryButton}"
+                            Padding="8,4"
+                            Margin="0,0,6,0"
+                            Command="{Binding CompleteAllCommand}"
+                            ToolTip="Registrar todos los capítulos pendientes" />
+
+                    <Button Grid.Column="4"
+                            Content="Registrar"
+                            Style="{StaticResource AccentButton}"
+                            Padding="10,4"
+                            Command="{Binding LogChaptersCommand}"
+                            ToolTip="Guardar capítulos del día" />
+                </Grid>
+
+                <controls:FormValidationBanner Message="{Binding ValidationMessage}" Margin="0,8,0,0" />
             </StackPanel>
-
-            <TextBlock Text="{Binding ProgressSummary}"
-                       Style="{StaticResource MutedText}"
-                       FontSize="12"
-                       Margin="0,0,0,6" />
-
-            <controls:ItemProgressBar Value="{Binding ProgressPercent, Mode=OneWay}"
-                                      Margin="0,0,0,10" />
-
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="130" />
-                    <ColumnDefinition Width="104" />
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
-
-                <DatePicker Grid.Column="0"
-                            SelectedDate="{Binding WatchDate}"
-                            Margin="0,0,8,0"
-                            ToolTip="Fecha en que vio los capítulos" />
-
-                <controls:NumericStepper Grid.Column="1"
-                                         Value="{Binding ChaptersToLog, Converter={StaticResource FlexibleNumber}}"
-                                         Minimum="1"
-                                         Maximum="{Binding RemainingChapters}"
-                                         Margin="0,0,8,0"
-                                         ToolTip="Cantidad de capítulos ese día" />
-
-                <Button Grid.Column="2"
-                        Content="+1"
-                        Style="{StaticResource PrimaryButton}"
-                        Padding="8,4"
-                        Margin="0,0,6,0"
-                        Command="{Binding BumpChaptersCommand}"
-                        CommandParameter="1"
-                        ToolTip="Sumar un capítulo al registro" />
-
-                <Button Grid.Column="3"
-                        Content="Restantes"
-                        Style="{StaticResource PrimaryButton}"
-                        Padding="8,4"
-                        Margin="0,0,6,0"
-                        Command="{Binding CompleteAllCommand}"
-                        ToolTip="Registrar todos los capítulos pendientes" />
-
-                <Button Grid.Column="4"
-                        Content="Registrar"
-                        Style="{StaticResource AccentButton}"
-                        Padding="10,4"
-                        Command="{Binding LogChaptersCommand}"
-                        ToolTip="Guardar capítulos del día" />
-            </Grid>
-
-            <controls:FormValidationBanner Message="{Binding ValidationMessage}" Margin="0,8,0,0" />
-        </StackPanel>
+        </Grid>
     </Border>
 </UserControl>

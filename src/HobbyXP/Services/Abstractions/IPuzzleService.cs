@@ -15,5 +15,15 @@ public interface IPuzzleService
         DateTime? completedAt = null,
         CancellationToken cancellationToken = default);
 
+    Task<Puzzle> UpdateAsync(
+        int puzzleId,
+        string name,
+        int pieceCount,
+        Models.Enums.PuzzleCategory category,
+        DateTime completedAt,
+        IReadOnlyList<string>? photoPaths = null,
+        bool replacePhotos = false,
+        CancellationToken cancellationToken = default);
+
     Task<bool> DeleteAsync(int puzzleId, CancellationToken cancellationToken = default);
 }

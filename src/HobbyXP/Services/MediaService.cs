@@ -68,6 +68,7 @@ public sealed class MediaService : IMediaService
         string title,
         MediaType mediaType,
         DateTime? completedAt = null,
+        string? imageSourcePath = null,
         CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(title))
@@ -84,6 +85,15 @@ public sealed class MediaService : IMediaService
 
         db.MediaEntries.Add(entry);
         await db.SaveChangesAsync(cancellationToken);
+
+        if (!string.IsNullOrWhiteSpace(imageSourcePath))
+        {
+            entry.ImagePath = HobbyCoverPhotoStorage.SaveFromSource(
+                HobbyCoverPhotoStorage.Folders.MediaEntries,
+                entry.Id,
+                imageSourcePath);
+            await db.SaveChangesAsync(cancellationToken);
+        }
 
         var xpOutcome = await _xpService.AwardXpAsync(
             AchievementActionType.MediaCompleted,
@@ -126,6 +136,7 @@ public sealed class MediaService : IMediaService
     public async Task<MediaSeries> RegisterSeriesAsync(
         string title,
         int totalChapters,
+        string? imageSourcePath = null,
         CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(title))
@@ -146,6 +157,16 @@ public sealed class MediaService : IMediaService
 
         db.MediaSeries.Add(series);
         await db.SaveChangesAsync(cancellationToken);
+
+        if (!string.IsNullOrWhiteSpace(imageSourcePath))
+        {
+            series.ImagePath = HobbyCoverPhotoStorage.SaveFromSource(
+                HobbyCoverPhotoStorage.Folders.MediaSeries,
+                series.Id,
+                imageSourcePath);
+            await db.SaveChangesAsync(cancellationToken);
+        }
+
         return series;
     }
 
@@ -218,6 +239,18 @@ public sealed class MediaService : IMediaService
             db.MediaEntries.Add(historyEntry);
             await db.SaveChangesAsync(cancellationToken);
 
+            if (!string.IsNullOrWhiteSpace(series.ImagePath))
+            {
+                var absolute = HobbyCoverPhotoStorage.ResolveAbsolutePath(series.ImagePath);
+                if (absolute is not null)
+                {
+                    historyEntry.ImagePath = HobbyCoverPhotoStorage.SaveFromSource(
+                        HobbyCoverPhotoStorage.Folders.MediaEntries,
+                        historyEntry.Id,
+                        absolute);
+                }
+            }
+
             series.CompletedMediaEntryId = historyEntry.Id;
 
             var completeXp = await _xpService.AwardXpAsync(
@@ -257,6 +290,65 @@ public sealed class MediaService : IMediaService
         return OperationResult<MediaSeries>.WithEvents(series, events.ToArray());
     }
 
+    public async Task<MediaSeries> UpdateSeriesImageAsync(
+        int seriesId,
+        string? imageSourcePath = null,
+        bool clearImage = false,
+        CancellationToken cancellationToken = default)
+    {
+        await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var series = await db.MediaSeries.FindAsync([seriesId], cancellationToken)
+            ?? throw new InvalidOperationException($"No existe la serie con Id {seriesId}.");
+
+        const string folder = HobbyCoverPhotoStorage.Folders.MediaSeries;
+
+        if (clearImage)
+        {
+            HobbyCoverPhotoStorage.DeleteStoredPhoto(folder, series.Id, series.ImagePath);
+            series.ImagePath = null;
+        }
+        else if (!string.IsNullOrWhiteSpace(imageSourcePath))
+        {
+            HobbyCoverPhotoStorage.DeleteStoredPhoto(folder, series.Id, series.ImagePath);
+            series.ImagePath = HobbyCoverPhotoStorage.SaveFromSource(folder, series.Id, imageSourcePath);
+        }
+        else
+        {
+            series.ImagePath = HobbyCoverPhotoStorage.EnsureManaged(folder, series.Id, series.ImagePath);
+        }
+
+        series.UpdatedAt = DateTime.UtcNow;
+        await db.SaveChangesAsync(cancellationToken);
+        return series;
+    }
+
+    public async Task<MediaEntry> UpdateEntryAsync(
+        int entryId,
+        string title,
+        MediaType mediaType,
+        DateTime completedAt,
+        string? imageSourcePath = null,
+        bool clearImage = false,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(title))
+            throw new ArgumentException("El título es obligatorio.", nameof(title));
+
+        await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var entry = await db.MediaEntries.FindAsync([entryId], cancellationToken)
+            ?? throw new InvalidOperationException($"No existe la obra con Id {entryId}.");
+
+        entry.Title = title.Trim();
+        entry.MediaType = mediaType;
+        entry.CompletedAt = completedAt;
+        entry.UpdatedAt = DateTime.UtcNow;
+
+        ApplyCoverImage(HobbyCoverPhotoStorage.Folders.MediaEntries, entry.Id, entry, imageSourcePath, clearImage);
+
+        await db.SaveChangesAsync(cancellationToken);
+        return entry;
+    }
+
     public async Task<bool> DeleteAsync(int entryId, CancellationToken cancellationToken = default)
     {
         await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
@@ -271,9 +363,34 @@ public sealed class MediaService : IMediaService
             $"Eliminado del historial: {GetMediaLabel(entry.MediaType)} {entry.Title}",
             cancellationToken);
 
+        HobbyCoverPhotoStorage.DeleteEntityFolder(HobbyCoverPhotoStorage.Folders.MediaEntries, entryId);
         db.MediaEntries.Remove(entry);
         await db.SaveChangesAsync(cancellationToken);
         return true;
+    }
+
+    private static void ApplyCoverImage(
+        string folder,
+        int entityId,
+        MediaEntry entry,
+        string? imageSourcePath,
+        bool clearImage)
+    {
+        if (clearImage)
+        {
+            HobbyCoverPhotoStorage.DeleteStoredPhoto(folder, entityId, entry.ImagePath);
+            entry.ImagePath = null;
+            return;
+        }
+
+        if (!string.IsNullOrWhiteSpace(imageSourcePath))
+        {
+            HobbyCoverPhotoStorage.DeleteStoredPhoto(folder, entityId, entry.ImagePath);
+            entry.ImagePath = HobbyCoverPhotoStorage.SaveFromSource(folder, entityId, imageSourcePath);
+            return;
+        }
+
+        entry.ImagePath = HobbyCoverPhotoStorage.EnsureManaged(folder, entityId, entry.ImagePath);
     }
 
     private static string GetMediaLabel(MediaType mediaType) => mediaType switch

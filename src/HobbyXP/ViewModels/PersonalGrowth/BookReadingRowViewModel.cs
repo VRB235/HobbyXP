@@ -1,5 +1,6 @@
 using HobbyXP.Helpers;
 using HobbyXP.Models.PersonalGrowth;
+using HobbyXP.Services.Abstractions;
 using HobbyXP.ViewModels.Common;
 
 namespace HobbyXP.ViewModels.PersonalGrowth;
@@ -8,6 +9,7 @@ public sealed class BookReadingRowViewModel : ViewModelBase
 {
     private readonly Func<Book, int, DateTime, Task> _applyAsync;
     private readonly Func<Book, string, string, Task> _updateMetadataAsync;
+    private readonly Func<Book, string?, bool, Task<Book>> _updateImageAsync;
     private int _targetPagesRead;
     private DateTime? _readingDate = DateTime.Today;
     private string _editTitle;
@@ -18,14 +20,23 @@ public sealed class BookReadingRowViewModel : ViewModelBase
     public BookReadingRowViewModel(
         Book book,
         Func<Book, int, DateTime, Task> applyAsync,
-        Func<Book, string, string, Task> updateMetadataAsync)
+        Func<Book, string, string, Task> updateMetadataAsync,
+        Func<Book, string?, bool, Task<Book>> updateImageAsync,
+        IFileDialogService fileDialogService)
     {
         Book = book;
         _applyAsync = applyAsync;
         _updateMetadataAsync = updateMetadataAsync;
+        _updateImageAsync = updateImageAsync;
         _targetPagesRead = book.PagesRead;
         _editTitle = book.Title;
         _editAuthor = book.Author;
+
+        Cover = new ProgressCoverController(
+            HobbyCoverPhotoStorage.Folders.Books,
+            book.ImageDisplayPath,
+            fileDialogService,
+            PersistCoverAsync);
 
         ApplyPagesCommand = new AsyncRelayCommand(ApplyPagesAsync, CanApplyPages);
         BumpPagesCommand = new RelayCommand(BumpPages);
@@ -35,7 +46,19 @@ public sealed class BookReadingRowViewModel : ViewModelBase
         RefreshMetadataValidation();
     }
 
-    public Book Book { get; }
+    public Book Book { get; private set; }
+
+    public ProgressCoverController Cover { get; }
+
+    public string? ImageDisplayPath => Cover.ImageDisplayPath;
+
+    public bool HasImage => Cover.HasImage;
+
+    public string ImageActionLabel => Cover.ImageActionLabel;
+
+    public AsyncRelayCommand PickImageCommand => Cover.PickCommand;
+
+    public AsyncRelayCommand ClearImageCommand => Cover.ClearCommand;
 
     public string Title => Book.Title;
 
@@ -140,6 +163,17 @@ public sealed class BookReadingRowViewModel : ViewModelBase
     public RelayCommand SetCompleteCommand { get; }
 
     public AsyncRelayCommand SaveMetadataCommand { get; }
+
+    private async Task<string?> PersistCoverAsync(string? imageSourcePath, bool clearImage)
+    {
+        var updated = await _updateImageAsync(Book, imageSourcePath, clearImage);
+        Book = updated;
+        OnPropertyChanged(nameof(Title));
+        OnPropertyChanged(nameof(Author));
+        OnPropertyChanged(nameof(XpEarned));
+        OnPropertyChanged(nameof(XpEarnedDisplay));
+        return updated.ImageDisplayPath;
+    }
 
     private double ToPercent(int pages) =>
         TotalPages > 0 ? (double)pages / TotalPages * 100d : 0d;

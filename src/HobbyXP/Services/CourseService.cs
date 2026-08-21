@@ -51,6 +51,7 @@ public sealed class CourseService : ICourseService
         string name,
         string platform,
         int totalSessions,
+        string? imageSourcePath = null,
         CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(name))
@@ -72,6 +73,16 @@ public sealed class CourseService : ICourseService
 
         db.Courses.Add(course);
         await db.SaveChangesAsync(cancellationToken);
+
+        if (!string.IsNullOrWhiteSpace(imageSourcePath))
+        {
+            course.ImagePath = HobbyCoverPhotoStorage.SaveFromSource(
+                HobbyCoverPhotoStorage.Folders.Courses,
+                course.Id,
+                imageSourcePath);
+            await db.SaveChangesAsync(cancellationToken);
+        }
+
         return course;
     }
 
@@ -178,5 +189,75 @@ public sealed class CourseService : ICourseService
         await _weeklyQuotaService.NotifyActivityAsync(MilestoneSourceType.Course, sessionDate.Date, cancellationToken);
 
         return OperationResult<Course>.WithEvents(course, events.ToArray());
+    }
+
+    public async Task<Course?> UpdateMetadataAsync(
+        int courseId,
+        string name,
+        string platform,
+        int totalSessions,
+        DateTime? completedAt = null,
+        string? imageSourcePath = null,
+        bool clearImage = false,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+            throw new ArgumentException("El nombre es obligatorio.", nameof(name));
+
+        if (totalSessions < 1)
+            throw new ArgumentOutOfRangeException(nameof(totalSessions));
+
+        await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var course = await db.Courses.FindAsync([courseId], cancellationToken);
+        if (course is null)
+            return null;
+
+        course.Name = name.Trim();
+        course.Platform = platform.Trim();
+        if (totalSessions >= course.SessionsCompleted)
+            course.TotalSessions = totalSessions;
+        if (course.Status == CourseStatus.Completed && completedAt.HasValue)
+            course.CompletedAt = completedAt;
+        course.UpdatedAt = DateTime.UtcNow;
+        ApplyCoverImage(course, imageSourcePath, clearImage);
+
+        await db.SaveChangesAsync(cancellationToken);
+        return course;
+    }
+
+    public async Task<Course> UpdateImageAsync(
+        int courseId,
+        string? imageSourcePath = null,
+        bool clearImage = false,
+        CancellationToken cancellationToken = default)
+    {
+        await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var course = await db.Courses.FindAsync([courseId], cancellationToken)
+            ?? throw new InvalidOperationException($"No existe el curso con Id {courseId}.");
+
+        ApplyCoverImage(course, imageSourcePath, clearImage);
+        course.UpdatedAt = DateTime.UtcNow;
+        await db.SaveChangesAsync(cancellationToken);
+        return course;
+    }
+
+    private static void ApplyCoverImage(Course course, string? imageSourcePath, bool clearImage)
+    {
+        const string folder = HobbyCoverPhotoStorage.Folders.Courses;
+        if (clearImage)
+        {
+            HobbyCoverPhotoStorage.DeleteStoredPhoto(folder, course.Id, course.ImagePath);
+            course.ImagePath = null;
+            return;
+        }
+
+        if (!string.IsNullOrWhiteSpace(imageSourcePath))
+        {
+            HobbyCoverPhotoStorage.DeleteStoredPhoto(folder, course.Id, course.ImagePath);
+            course.ImagePath = HobbyCoverPhotoStorage.SaveFromSource(folder, course.Id, imageSourcePath);
+            return;
+        }
+
+        course.ImagePath = HobbyCoverPhotoStorage.EnsureManaged(folder, course.Id, course.ImagePath);
     }
 }

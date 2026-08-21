@@ -1,4 +1,5 @@
 using HobbyXP.Data;
+using HobbyXP.Helpers;
 using HobbyXP.Models.Entertainment;
 using HobbyXP.Models.Enums;
 using HobbyXP.Services.Abstractions;
@@ -51,6 +52,7 @@ public sealed class VideoGameService : IVideoGameService
         VideoGamePlatform platform,
         int initialCompletionPercentage = 0,
         DateTime? startedAt = null,
+        string? imageSourcePath = null,
         CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(title))
@@ -72,6 +74,15 @@ public sealed class VideoGameService : IVideoGameService
 
         db.VideoGames.Add(game);
         await db.SaveChangesAsync(cancellationToken);
+
+        if (!string.IsNullOrWhiteSpace(imageSourcePath))
+        {
+            game.ImagePath = HobbyCoverPhotoStorage.SaveFromSource(
+                HobbyCoverPhotoStorage.Folders.VideoGames,
+                game.Id,
+                imageSourcePath);
+            await db.SaveChangesAsync(cancellationToken);
+        }
 
         return await ApplyCompletionDeltaAsync(
             game.Id,
@@ -257,8 +268,74 @@ public sealed class VideoGameService : IVideoGameService
             $"Eliminado del historial: videojuego {game.Title}",
             cancellationToken);
 
+        HobbyCoverPhotoStorage.DeleteEntityFolder(HobbyCoverPhotoStorage.Folders.VideoGames, videoGameId);
         db.VideoGames.Remove(game);
         await db.SaveChangesAsync(cancellationToken);
         return true;
+    }
+
+    public async Task<VideoGame> UpdateMetadataAsync(
+        int videoGameId,
+        string title,
+        VideoGamePlatform platform,
+        DateTime? startedAt,
+        DateTime? platinumUnlockedAt,
+        string? imageSourcePath = null,
+        bool clearImage = false,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(title))
+            throw new ArgumentException("El título es obligatorio.", nameof(title));
+
+        await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var game = await db.VideoGames.FindAsync([videoGameId], cancellationToken)
+            ?? throw new InvalidOperationException($"No existe el videojuego con Id {videoGameId}.");
+
+        game.Title = title.Trim();
+        game.Platform = platform;
+        game.StartedAt = startedAt;
+        if (game.Status == VideoGameStatus.Platinum)
+            game.PlatinumUnlockedAt = platinumUnlockedAt ?? game.PlatinumUnlockedAt;
+        game.UpdatedAt = DateTime.UtcNow;
+        ApplyCoverImage(game, imageSourcePath, clearImage);
+
+        await db.SaveChangesAsync(cancellationToken);
+        return game;
+    }
+
+    public async Task<VideoGame> UpdateImageAsync(
+        int videoGameId,
+        string? imageSourcePath = null,
+        bool clearImage = false,
+        CancellationToken cancellationToken = default)
+    {
+        await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var game = await db.VideoGames.FindAsync([videoGameId], cancellationToken)
+            ?? throw new InvalidOperationException($"No existe el videojuego con Id {videoGameId}.");
+
+        ApplyCoverImage(game, imageSourcePath, clearImage);
+        game.UpdatedAt = DateTime.UtcNow;
+        await db.SaveChangesAsync(cancellationToken);
+        return game;
+    }
+
+    private static void ApplyCoverImage(VideoGame game, string? imageSourcePath, bool clearImage)
+    {
+        const string folder = HobbyCoverPhotoStorage.Folders.VideoGames;
+        if (clearImage)
+        {
+            HobbyCoverPhotoStorage.DeleteStoredPhoto(folder, game.Id, game.ImagePath);
+            game.ImagePath = null;
+            return;
+        }
+
+        if (!string.IsNullOrWhiteSpace(imageSourcePath))
+        {
+            HobbyCoverPhotoStorage.DeleteStoredPhoto(folder, game.Id, game.ImagePath);
+            game.ImagePath = HobbyCoverPhotoStorage.SaveFromSource(folder, game.Id, imageSourcePath);
+            return;
+        }
+
+        game.ImagePath = HobbyCoverPhotoStorage.EnsureManaged(folder, game.Id, game.ImagePath);
     }
 }

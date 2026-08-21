@@ -1,5 +1,6 @@
 using HobbyXP.Helpers;
 using HobbyXP.Models.Entertainment;
+using HobbyXP.Services.Abstractions;
 using HobbyXP.ViewModels.Common;
 
 namespace HobbyXP.ViewModels.Entertainment;
@@ -7,16 +8,26 @@ namespace HobbyXP.ViewModels.Entertainment;
 public sealed class SeriesProgressRowViewModel : ViewModelBase
 {
     private readonly Func<MediaSeries, DateTime, int, Task> _logChaptersAsync;
+    private readonly Func<MediaSeries, string?, bool, Task<MediaSeries>> _updateImageAsync;
     private DateTime? _watchDate = DateTime.Today;
     private int _chaptersToLog = 1;
     private string? _validationMessage;
 
     public SeriesProgressRowViewModel(
         MediaSeries series,
-        Func<MediaSeries, DateTime, int, Task> logChaptersAsync)
+        Func<MediaSeries, DateTime, int, Task> logChaptersAsync,
+        Func<MediaSeries, string?, bool, Task<MediaSeries>> updateImageAsync,
+        IFileDialogService fileDialogService)
     {
         Series = series;
         _logChaptersAsync = logChaptersAsync;
+        _updateImageAsync = updateImageAsync;
+
+        Cover = new ProgressCoverController(
+            HobbyCoverPhotoStorage.Folders.MediaSeries,
+            series.ImageDisplayPath,
+            fileDialogService,
+            PersistCoverAsync);
 
         LogChaptersCommand = new AsyncRelayCommand(LogChaptersAsync, CanLogChapters);
         BumpChaptersCommand = new RelayCommand(BumpChapters);
@@ -24,7 +35,19 @@ public sealed class SeriesProgressRowViewModel : ViewModelBase
         RefreshValidation();
     }
 
-    public MediaSeries Series { get; }
+    public MediaSeries Series { get; private set; }
+
+    public ProgressCoverController Cover { get; }
+
+    public string? ImageDisplayPath => Cover.ImageDisplayPath;
+
+    public bool HasImage => Cover.HasImage;
+
+    public string ImageActionLabel => Cover.ImageActionLabel;
+
+    public AsyncRelayCommand PickImageCommand => Cover.PickCommand;
+
+    public AsyncRelayCommand ClearImageCommand => Cover.ClearCommand;
 
     public string Title => Series.Title;
 
@@ -77,6 +100,16 @@ public sealed class SeriesProgressRowViewModel : ViewModelBase
     public RelayCommand BumpChaptersCommand { get; }
 
     public RelayCommand CompleteAllCommand { get; }
+
+    private async Task<string?> PersistCoverAsync(string? imageSourcePath, bool clearImage)
+    {
+        var updated = await _updateImageAsync(Series, imageSourcePath, clearImage);
+        Series = updated;
+        OnPropertyChanged(nameof(Title));
+        OnPropertyChanged(nameof(XpEarned));
+        OnPropertyChanged(nameof(XpEarnedDisplay));
+        return updated.ImageDisplayPath;
+    }
 
     private ValidationResult ValidateForm()
     {

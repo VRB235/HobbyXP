@@ -1,4 +1,6 @@
 using System.Collections.ObjectModel;
+using System.Windows;
+using System.Windows.Input;
 using HobbyXP.Helpers;
 using HobbyXP.Models.Entertainment;
 using HobbyXP.Models.Enums;
@@ -6,14 +8,17 @@ using HobbyXP.Services.Abstractions;
 using HobbyXP.Services.Messaging;
 using HobbyXP.ViewModels.Common;
 using HobbyXP.ViewModels.Messaging;
+using HobbyXP.Views.Dialogs;
 
 namespace HobbyXP.ViewModels.Entertainment;
 
 public sealed class VideoGamesViewModel : AchievementAwareViewModel
 {
     private readonly IVideoGameService _videoGameService;
+    private readonly IFileDialogService _fileDialogService;
     private readonly IMessageDialogService _messageDialogService;
     private readonly IProfileRefreshMessenger _profileRefreshMessenger;
+    private readonly CoverImageDraft _cover;
     private string _title = string.Empty;
     private VideoGamePlatform _platform = VideoGamePlatform.Pc;
     private int _initialCompletion;
@@ -29,6 +34,7 @@ public sealed class VideoGamesViewModel : AchievementAwareViewModel
         IVideoGameService videoGameService,
         IXpService xpService,
         IWeeklyQuotaService weeklyQuotaService,
+        IFileDialogService fileDialogService,
         IMessageDialogService messageDialogService,
         IProfileRefreshMessenger profileRefreshMessenger,
         IAchievementMessenger achievementMessenger,
@@ -36,8 +42,12 @@ public sealed class VideoGamesViewModel : AchievementAwareViewModel
         : base(achievementMessenger)
     {
         _videoGameService = videoGameService;
+        _fileDialogService = fileDialogService;
         _messageDialogService = messageDialogService;
         _profileRefreshMessenger = profileRefreshMessenger;
+        _cover = new CoverImageDraft(HobbyCoverPhotoStorage.Folders.VideoGames);
+        _cover.Changed += OnCoverChanged;
+
         HobbyXp = new HobbyProgressPresenter(xpService, MilestoneSourceType.VideoGame, weeklyQuotaService, achievementProgress);
         InProgressRows = new ObservableCollection<VideoGameProgressRowViewModel>();
         PlatinumGames = new ObservableCollection<VideoGame>();
@@ -49,6 +59,9 @@ public sealed class VideoGamesViewModel : AchievementAwareViewModel
         RegisterCommand = new AsyncRelayCommand(RegisterAsync, CanRegister);
         ClearDateFilterCommand = new RelayCommand(ClearHistoryFilters);
         DeleteGameCommand = new AsyncRelayCommand(p => DeleteGameAsync(p));
+        PickImageCommand = new RelayCommand(() => _cover.Pick(_fileDialogService));
+        ClearImageCommand = new RelayCommand(() => _cover.Clear(), () => _cover.HasPreview);
+        OpenDetailCommand = new RelayCommand(OpenDetail);
         RefreshRegisterValidation();
     }
 
@@ -93,6 +106,10 @@ public sealed class VideoGamesViewModel : AchievementAwareViewModel
                 RefreshRegisterValidation();
         }
     }
+
+    public string? PreviewImagePath => _cover.PreviewPath;
+
+    public bool HasPreviewImage => _cover.HasPreview;
 
     public string SearchText
     {
@@ -140,7 +157,27 @@ public sealed class VideoGamesViewModel : AchievementAwareViewModel
 
     public AsyncRelayCommand DeleteGameCommand { get; }
 
+    public RelayCommand PickImageCommand { get; }
+
+    public RelayCommand ClearImageCommand { get; }
+
+    public RelayCommand OpenDetailCommand { get; }
+
     protected override Task LoadCoreAsync() => ReloadGamesAsync();
+
+    private void OnCoverChanged()
+    {
+        OnPropertyChanged(nameof(PreviewImagePath));
+        OnPropertyChanged(nameof(HasPreviewImage));
+        CommandManager.InvalidateRequerySuggested();
+    }
+
+    private void ResetCover()
+    {
+        _cover.MarkSaved();
+        _cover.Clear();
+        OnCoverChanged();
+    }
 
     private async Task ReloadGamesAsync()
     {
@@ -154,7 +191,11 @@ public sealed class VideoGamesViewModel : AchievementAwareViewModel
     {
         InProgressRows.Clear();
         foreach (var game in _allInProgress.Where(MatchesInProgressFilters))
-            InProgressRows.Add(new VideoGameProgressRowViewModel(game, ApplyProgressAsync));
+            InProgressRows.Add(new VideoGameProgressRowViewModel(
+                game,
+                ApplyProgressAsync,
+                UpdateGameImageAsync,
+                _fileDialogService));
 
         PlatinumGames.Clear();
         foreach (var game in _allPlatinum.Where(MatchesPlatinumFilters))
@@ -201,6 +242,25 @@ public sealed class VideoGamesViewModel : AchievementAwareViewModel
         }, "Actualizando progreso...");
     }
 
+    private async Task<VideoGame> UpdateGameImageAsync(VideoGame game, string? imageSourcePath, bool clearImage)
+    {
+        var updated = await _videoGameService.UpdateImageAsync(game.Id, imageSourcePath, clearImage);
+        var index = _allInProgress.FindIndex(g => g.Id == updated.Id);
+        if (index >= 0)
+            _allInProgress[index] = updated;
+        else
+        {
+            index = _allPlatinum.FindIndex(g => g.Id == updated.Id);
+            if (index >= 0)
+                _allPlatinum[index] = updated;
+        }
+
+        StatusMessage = clearImage
+            ? $"Portada quitada de «{updated.Title}»."
+            : $"Portada actualizada: «{updated.Title}».";
+        return updated;
+    }
+
     private ValidationResult ValidateRegisterForm() =>
         FormValidation.FirstFailure(
             FormValidation.RequireText(Title, "el título"),
@@ -224,7 +284,9 @@ public sealed class VideoGamesViewModel : AchievementAwareViewModel
         await RunBusyAsync(async () =>
         {
             var startedAt = DateTimeHelper.ToUtcFromLocalDate(StartedDate ?? DateTime.Today);
-            var result = await _videoGameService.RegisterAsync(Title, Platform, InitialCompletion, startedAt);
+            var result = await _videoGameService.RegisterAsync(
+                Title, Platform, InitialCompletion, startedAt, _cover.PendingSourcePath);
+            ResetCover();
             PublishAchievements(result.Events);
             await ReloadGamesAsync();
 
@@ -234,6 +296,32 @@ public sealed class VideoGamesViewModel : AchievementAwareViewModel
             ClearValidation();
             StatusMessage = $"Juego registrado · +{result.Value.XpEarned} XP";
         }, "Registrando juego...");
+    }
+
+    private void OpenDetail(object? parameter)
+    {
+        var game = parameter switch
+        {
+            VideoGame videoGame => videoGame,
+            VideoGameProgressRowViewModel row => row.Game,
+            _ => null
+        };
+
+        if (game is null)
+            return;
+
+        var detailVm = new VideoGameDetailViewModel(game, _videoGameService, _fileDialogService);
+        var dialog = new VideoGameDetailWindow(detailVm)
+        {
+            Owner = Application.Current.MainWindow
+        };
+
+        var accepted = dialog.ShowDialog() == true;
+        if (!accepted || detailVm.SavedGame is null)
+            return;
+
+        _ = ReloadGamesAsync();
+        StatusMessage = $"Juego actualizado: {detailVm.SavedGame.Title}";
     }
 
     private async Task DeleteGameAsync(object? parameter)

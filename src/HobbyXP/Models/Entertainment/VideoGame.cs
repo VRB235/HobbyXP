@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations.Schema;
 using HobbyXP.Helpers;
 using HobbyXP.Models.Common;
 using HobbyXP.Models.Enums;
@@ -31,5 +32,18 @@ public class VideoGame : EntityBase
 
     public int PlatinumBonusXp { get; set; }
 
+    /// <summary>Ruta relativa al directorio de datos (portada).</summary>
+    public string? ImagePath { get; set; }
+
     public ICollection<VideoGameProgressLog> ProgressLogs { get; set; } = [];
+
+    [NotMapped]
+    public string HistoryDateLabel =>
+        (PlatinumUnlockedAt ?? StartedAt)?.ToLocalTime().ToString("dd/MM/yyyy") ?? "—";
+
+    [NotMapped]
+    public string? ImageDisplayPath => HobbyCoverPhotoStorage.ResolveAbsolutePath(ImagePath);
+
+    [NotMapped]
+    public bool HasImage => !string.IsNullOrWhiteSpace(ImageDisplayPath);
 }

@@ -1,4 +1,6 @@
 using System.Collections.ObjectModel;
+using System.Windows;
+using System.Windows.Input;
 using HobbyXP.Helpers;
 using HobbyXP.Models.Entertainment;
 using HobbyXP.Models.Enums;
@@ -6,14 +8,18 @@ using HobbyXP.Services.Abstractions;
 using HobbyXP.Services.Messaging;
 using HobbyXP.ViewModels.Common;
 using HobbyXP.ViewModels.Messaging;
+using HobbyXP.Views.Dialogs;
 
 namespace HobbyXP.ViewModels.Entertainment;
 
 public sealed class MediaViewModel : AchievementAwareViewModel
 {
     private readonly IMediaService _mediaService;
+    private readonly IFileDialogService _fileDialogService;
     private readonly IMessageDialogService _messageDialogService;
     private readonly IProfileRefreshMessenger _profileRefreshMessenger;
+    private readonly CoverImageDraft _entryCover;
+    private readonly CoverImageDraft _seriesCover;
     private string _title = string.Empty;
     private MediaType _mediaType = MediaType.Movie;
     private DateTime? _completedDate = DateTime.Today;
@@ -33,6 +39,7 @@ public sealed class MediaViewModel : AchievementAwareViewModel
         IMediaService mediaService,
         IXpService xpService,
         IWeeklyQuotaService weeklyQuotaService,
+        IFileDialogService fileDialogService,
         IMessageDialogService messageDialogService,
         IProfileRefreshMessenger profileRefreshMessenger,
         IAchievementMessenger achievementMessenger,
@@ -40,8 +47,14 @@ public sealed class MediaViewModel : AchievementAwareViewModel
         : base(achievementMessenger)
     {
         _mediaService = mediaService;
+        _fileDialogService = fileDialogService;
         _messageDialogService = messageDialogService;
         _profileRefreshMessenger = profileRefreshMessenger;
+        _entryCover = new CoverImageDraft(HobbyCoverPhotoStorage.Folders.MediaEntries);
+        _seriesCover = new CoverImageDraft(HobbyCoverPhotoStorage.Folders.MediaSeries);
+        _entryCover.Changed += OnEntryCoverChanged;
+        _seriesCover.Changed += OnSeriesCoverChanged;
+
         HobbyXp = new HobbyProgressPresenter(xpService, MilestoneSourceType.Media, weeklyQuotaService, achievementProgress);
         History = new ObservableCollection<MediaEntry>();
         InProgressSeriesRows = new ObservableCollection<SeriesProgressRowViewModel>();
@@ -53,6 +66,11 @@ public sealed class MediaViewModel : AchievementAwareViewModel
         RegisterSeriesCommand = new AsyncRelayCommand(RegisterSeriesAsync, CanRegisterSeries);
         ClearDateFilterCommand = new RelayCommand(ClearHistoryFilters);
         DeleteEntryCommand = new AsyncRelayCommand(p => DeleteEntryAsync(p));
+        PickImageCommand = new RelayCommand(() => _entryCover.Pick(_fileDialogService));
+        ClearImageCommand = new RelayCommand(() => _entryCover.Clear(), () => _entryCover.HasPreview);
+        PickSeriesImageCommand = new RelayCommand(() => _seriesCover.Pick(_fileDialogService));
+        ClearSeriesImageCommand = new RelayCommand(() => _seriesCover.Clear(), () => _seriesCover.HasPreview);
+        OpenDetailCommand = new RelayCommand(OpenDetail);
         RefreshRegisterValidation();
         RefreshSeriesValidation();
     }
@@ -112,6 +130,14 @@ public sealed class MediaViewModel : AchievementAwareViewModel
                 RefreshSeriesValidation();
         }
     }
+
+    public string? PreviewImagePath => _entryCover.PreviewPath;
+
+    public bool HasPreviewImage => _entryCover.HasPreview;
+
+    public string? SeriesPreviewImagePath => _seriesCover.PreviewPath;
+
+    public bool HasSeriesPreviewImage => _seriesCover.HasPreview;
 
     public string SearchText
     {
@@ -179,6 +205,16 @@ public sealed class MediaViewModel : AchievementAwareViewModel
 
     public AsyncRelayCommand DeleteEntryCommand { get; }
 
+    public RelayCommand PickImageCommand { get; }
+
+    public RelayCommand ClearImageCommand { get; }
+
+    public RelayCommand PickSeriesImageCommand { get; }
+
+    public RelayCommand ClearSeriesImageCommand { get; }
+
+    public RelayCommand OpenDetailCommand { get; }
+
     protected override async Task LoadCoreAsync()
     {
         await HobbyXp.RefreshAsync();
@@ -187,6 +223,34 @@ public sealed class MediaViewModel : AchievementAwareViewModel
         ApplyFilter();
         ApplySeriesRows();
         await RefreshCountersAsync();
+    }
+
+    private void OnEntryCoverChanged()
+    {
+        OnPropertyChanged(nameof(PreviewImagePath));
+        OnPropertyChanged(nameof(HasPreviewImage));
+        CommandManager.InvalidateRequerySuggested();
+    }
+
+    private void OnSeriesCoverChanged()
+    {
+        OnPropertyChanged(nameof(SeriesPreviewImagePath));
+        OnPropertyChanged(nameof(HasSeriesPreviewImage));
+        CommandManager.InvalidateRequerySuggested();
+    }
+
+    private void ResetEntryCover()
+    {
+        _entryCover.MarkSaved();
+        _entryCover.Clear();
+        OnEntryCoverChanged();
+    }
+
+    private void ResetSeriesCover()
+    {
+        _seriesCover.MarkSaved();
+        _seriesCover.Clear();
+        OnSeriesCoverChanged();
     }
 
     private void ApplyFilter()
@@ -200,7 +264,11 @@ public sealed class MediaViewModel : AchievementAwareViewModel
     {
         InProgressSeriesRows.Clear();
         foreach (var series in _allInProgressSeries)
-            InProgressSeriesRows.Add(new SeriesProgressRowViewModel(series, LogChaptersAsync));
+            InProgressSeriesRows.Add(new SeriesProgressRowViewModel(
+                series,
+                LogChaptersAsync,
+                UpdateSeriesImageAsync,
+                _fileDialogService));
     }
 
     private bool MatchesFilters(MediaEntry entry) =>
@@ -265,7 +333,9 @@ public sealed class MediaViewModel : AchievementAwareViewModel
         await RunBusyAsync(async () =>
         {
             var completedAt = DateTimeHelper.ToUtcFromLocalDate(CompletedDate ?? DateTime.Today);
-            var result = await _mediaService.RegisterCompletedAsync(Title, MediaType, completedAt);
+            var result = await _mediaService.RegisterCompletedAsync(
+                Title, MediaType, completedAt, _entryCover.PendingSourcePath);
+            ResetEntryCover();
             PublishAchievements(result.Events);
             await HobbyXp.RefreshAsync();
 
@@ -288,7 +358,9 @@ public sealed class MediaViewModel : AchievementAwareViewModel
         var chapters = int.Parse(TotalChapters);
         await RunBusyAsync(async () =>
         {
-            var series = await _mediaService.RegisterSeriesAsync(SeriesTitle, chapters);
+            var series = await _mediaService.RegisterSeriesAsync(
+                SeriesTitle, chapters, _seriesCover.PendingSourcePath);
+            ResetSeriesCover();
             _allInProgressSeries.Insert(0, series);
             ApplySeriesRows();
 
@@ -323,6 +395,51 @@ public sealed class MediaViewModel : AchievementAwareViewModel
                 ? $"{result.Value.Title}: {result.Value.ChaptersWatched}/{result.Value.TotalChapters} capítulos · +{xpGained} XP"
                 : $"{result.Value.Title}: {result.Value.ChaptersWatched}/{result.Value.TotalChapters} capítulos";
         }, "Registrando capítulos...");
+    }
+
+    private async Task<MediaSeries> UpdateSeriesImageAsync(
+        MediaSeries series,
+        string? imageSourcePath,
+        bool clearImage)
+    {
+        var updated = await _mediaService.UpdateSeriesImageAsync(
+            series.Id,
+            imageSourcePath,
+            clearImage);
+
+        var index = _allInProgressSeries.FindIndex(s => s.Id == updated.Id);
+        if (index >= 0)
+            _allInProgressSeries[index] = updated;
+
+        StatusMessage = clearImage
+            ? $"Portada quitada de «{updated.Title}»."
+            : $"Portada actualizada: «{updated.Title}».";
+        return updated;
+    }
+
+    private void OpenDetail(object? parameter)
+    {
+        if (parameter is not MediaEntry entry)
+            return;
+
+        var detailVm = new MediaEntryDetailViewModel(entry, _mediaService, _fileDialogService);
+        var dialog = new MediaEntryDetailWindow(detailVm)
+        {
+            Owner = Application.Current.MainWindow
+        };
+
+        var accepted = dialog.ShowDialog() == true;
+        if (!accepted || detailVm.SavedEntry is null)
+            return;
+
+        var index = _allHistory.FindIndex(e => e.Id == detailVm.SavedEntry.Id);
+        if (index >= 0)
+            _allHistory[index] = detailVm.SavedEntry;
+        else
+            _allHistory.Insert(0, detailVm.SavedEntry);
+
+        ApplyFilter();
+        StatusMessage = $"Obra actualizada: {detailVm.SavedEntry.Title}";
     }
 
     private async Task DeleteEntryAsync(object? parameter)

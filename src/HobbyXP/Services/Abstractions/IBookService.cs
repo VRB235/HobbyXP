@@ -13,6 +13,7 @@ public interface IBookService
         string title,
         string author,
         int totalPages,
+        string? imageSourcePath = null,
         CancellationToken cancellationToken = default);
 
     Task<OperationResult<Book>> UpdatePagesReadAsync(
@@ -25,5 +26,14 @@ public interface IBookService
         int bookId,
         string title,
         string author,
+        DateTime? completedAt = null,
+        string? imageSourcePath = null,
+        bool clearImage = false,
+        CancellationToken cancellationToken = default);
+
+    Task<Book> UpdateImageAsync(
+        int bookId,
+        string? imageSourcePath = null,
+        bool clearImage = false,
         CancellationToken cancellationToken = default);
 }

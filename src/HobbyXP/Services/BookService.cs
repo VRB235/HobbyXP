@@ -51,6 +51,7 @@ public sealed class BookService : IBookService
         string title,
         string author,
         int totalPages,
+        string? imageSourcePath = null,
         CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(title))
@@ -72,6 +73,16 @@ public sealed class BookService : IBookService
 
         db.Books.Add(book);
         await db.SaveChangesAsync(cancellationToken);
+
+        if (!string.IsNullOrWhiteSpace(imageSourcePath))
+        {
+            book.ImagePath = HobbyCoverPhotoStorage.SaveFromSource(
+                HobbyCoverPhotoStorage.Folders.Books,
+                book.Id,
+                imageSourcePath);
+            await db.SaveChangesAsync(cancellationToken);
+        }
+
         return book;
     }
 
@@ -212,6 +223,9 @@ public sealed class BookService : IBookService
         int bookId,
         string title,
         string author,
+        DateTime? completedAt = null,
+        string? imageSourcePath = null,
+        bool clearImage = false,
         CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(title))
@@ -227,8 +241,48 @@ public sealed class BookService : IBookService
 
         book.Title = title.Trim();
         book.Author = author.Trim();
+        if (book.Status == BookStatus.Completed && completedAt.HasValue)
+            book.CompletedAt = completedAt;
+        book.UpdatedAt = DateTime.UtcNow;
+        ApplyCoverImage(book, imageSourcePath, clearImage);
+
+        await db.SaveChangesAsync(cancellationToken);
+        return book;
+    }
+
+    public async Task<Book> UpdateImageAsync(
+        int bookId,
+        string? imageSourcePath = null,
+        bool clearImage = false,
+        CancellationToken cancellationToken = default)
+    {
+        await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var book = await db.Books.FindAsync([bookId], cancellationToken)
+            ?? throw new InvalidOperationException($"No existe el libro con Id {bookId}.");
+
+        ApplyCoverImage(book, imageSourcePath, clearImage);
         book.UpdatedAt = DateTime.UtcNow;
         await db.SaveChangesAsync(cancellationToken);
         return book;
+    }
+
+    private static void ApplyCoverImage(Book book, string? imageSourcePath, bool clearImage)
+    {
+        const string folder = HobbyCoverPhotoStorage.Folders.Books;
+        if (clearImage)
+        {
+            HobbyCoverPhotoStorage.DeleteStoredPhoto(folder, book.Id, book.ImagePath);
+            book.ImagePath = null;
+            return;
+        }
+
+        if (!string.IsNullOrWhiteSpace(imageSourcePath))
+        {
+            HobbyCoverPhotoStorage.DeleteStoredPhoto(folder, book.Id, book.ImagePath);
+            book.ImagePath = HobbyCoverPhotoStorage.SaveFromSource(folder, book.Id, imageSourcePath);
+            return;
+        }
+
+        book.ImagePath = HobbyCoverPhotoStorage.EnsureManaged(folder, book.Id, book.ImagePath);
     }
 }

@@ -27,6 +27,10 @@ internal sealed class VideoGameConfiguration : IEntityTypeConfiguration<VideoGam
             .HasMaxLength(32)
             .IsRequired();
 
+        builder.Property(v => v.ImagePath)
+            .HasMaxLength(500)
+            .IsRequired(false);
+
         builder.ToTable(t => t.HasCheckConstraint(
             "CK_VideoGames_CompletionPercentage",
             "[CompletionPercentage] >= 0 AND [CompletionPercentage] <= 100"));

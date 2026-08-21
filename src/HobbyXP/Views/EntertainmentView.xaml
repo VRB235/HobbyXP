@@ -3,7 +3,6 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:conv="clr-namespace:HobbyXP.Converters"
              xmlns:controls="clr-namespace:HobbyXP.Views.Controls"
-             xmlns:helpers="clr-namespace:HobbyXP.Helpers"
              VerticalAlignment="Stretch" HorizontalAlignment="Stretch">
     <UserControl.Resources>
         <conv:FlexibleNumberConverter x:Key="FlexibleNumber" />
@@ -152,64 +151,30 @@
                                             Style="{StaticResource PrimaryButton}" VerticalAlignment="Bottom" />
                                 </Grid>
 
-                                <ListView Grid.Row="1"
-                                          ItemsSource="{Binding Puzzles}"
-                                          MinHeight="280"
-                                          HorizontalAlignment="Stretch"
-                                          VerticalAlignment="Stretch"
-                                          helpers:GridViewStretchHelper.StretchColumns="True"
-                                          helpers:GridViewSortHelper.EnableSort="True">
-                                    <ListView.View>
-                                        <GridView>
-                                            <GridViewColumn Header="Nombre" DisplayMemberBinding="{Binding Name}" Width="180" />
-                                            <GridViewColumn Header="Piezas" DisplayMemberBinding="{Binding PieceCount}" Width="70" />
-                                            <GridViewColumn Header="Categoría" DisplayMemberBinding="{Binding CategoryLabel}"
-                                                            helpers:GridViewSortHelper.SortProperty="Category" Width="90" />
-                                            <GridViewColumn Header="Fecha" DisplayMemberBinding="{Binding CompletedAt, StringFormat={}{0:dd/MM/yyyy}}" Width="100" />
-                                            <GridViewColumn Header="XP" DisplayMemberBinding="{Binding XpEarned}" Width="60" />
-                                            <GridViewColumn Header="Fotos" Width="140">
-                                                <GridViewColumn.CellTemplate>
-                                                    <DataTemplate>
-                                                        <ItemsControl ItemsSource="{Binding PhotoPath, Converter={StaticResource PhotoPathsToImagesConverter}}">
-                                                            <ItemsControl.ItemsPanel>
-                                                                <ItemsPanelTemplate>
-                                                                    <WrapPanel />
-                                                                </ItemsPanelTemplate>
-                                                            </ItemsControl.ItemsPanel>
-                                                            <ItemsControl.ItemTemplate>
-                                                                <DataTemplate>
-                                                                    <Button Width="40" Height="40" Margin="0,0,4,0" Padding="0"
-                                                                            Cursor="Hand"
-                                                                            ToolTip="Clic para ampliar / abrir"
-                                                                            Background="Transparent"
-                                                                            BorderBrush="{StaticResource BorderBrush}"
-                                                                            BorderThickness="1"
-                                                                            Command="{Binding DataContext.OpenPhotoCommand, ElementName=PuzzlesScrollViewer}"
-                                                                            CommandParameter="{Binding}">
-                                                                        <Border Width="38" Height="38" CornerRadius="4" ClipToBounds="True">
-                                                                            <Image Source="{Binding Image}" Stretch="UniformToFill" />
-                                                                        </Border>
-                                                                    </Button>
-                                                                </DataTemplate>
-                                                            </ItemsControl.ItemTemplate>
-                                                        </ItemsControl>
-                                                    </DataTemplate>
-                                                </GridViewColumn.CellTemplate>
-                                            </GridViewColumn>
-                                            <GridViewColumn Header="" Width="44">
-                                                <GridViewColumn.CellTemplate>
-                                                    <DataTemplate>
-                                                        <Button Content="✕"
-                                                                Style="{StaticResource DangerIconButton}"
-                                                                ToolTip="Eliminar del historial"
-                                                                Command="{Binding DataContext.DeletePuzzleCommand, ElementName=PuzzlesScrollViewer}"
-                                                                CommandParameter="{Binding}" />
-                                                    </DataTemplate>
-                                                </GridViewColumn.CellTemplate>
-                                            </GridViewColumn>
-                                        </GridView>
-                                    </ListView.View>
-                                </ListView>
+                                <ScrollViewer Grid.Row="1"
+                                              VerticalScrollBarVisibility="Auto"
+                                              HorizontalScrollBarVisibility="Disabled"
+                                              MinHeight="280">
+                                    <ItemsControl ItemsSource="{Binding Puzzles}">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <WrapPanel />
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <controls:HistoryCoverCard Title="{Binding Name}"
+                                                                           Subtitle="{Binding CategoryLabel}"
+                                                                           DateText="{Binding CompletedAtLabel}"
+                                                                           ImagePath="{Binding ImageDisplayPath}"
+                                                                           HasImage="{Binding HasImage}"
+                                                                           Item="{Binding}"
+                                                                           OpenCommand="{Binding DataContext.OpenDetailCommand, ElementName=PuzzlesScrollViewer}"
+                                                                           DeleteCommand="{Binding DataContext.DeletePuzzleCommand, ElementName=PuzzlesScrollViewer}" />
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </ScrollViewer>
                             </Grid>
                         </GroupBox>
                     </StackPanel>
@@ -219,7 +184,7 @@
             <TabItem Header="Series y Películas">
                 <DockPanel DataContext="{Binding Media}" Margin="8">
                     <controls:HobbyXpBanner DockPanel.Dock="Top" DataContext="{Binding HobbyXp}" />
-                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <ScrollViewer x:Name="MediaScrollViewer" VerticalScrollBarVisibility="Auto">
                     <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
@@ -259,6 +224,25 @@
                             <Button Grid.Column="3" Content="Registrar" Command="{Binding RegisterCommand}"
                                     Style="{StaticResource AccentButton}" VerticalAlignment="Bottom" />
                         </Grid>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                            <Border Width="80" Height="80" CornerRadius="6" ClipToBounds="True"
+                                    Background="#1A2233" BorderBrush="{StaticResource BorderBrush}"
+                                    BorderThickness="1" Margin="0,0,8,0"
+                                    Visibility="{Binding HasPreviewImage, Converter={StaticResource BoolToVisibilityConverter}}">
+                                <Image Source="{Binding PreviewImagePath, Converter={StaticResource PathToImageSourceConverter}}"
+                                       Stretch="UniformToFill" />
+                            </Border>
+                            <Button Content="Imagen"
+                                    Command="{Binding PickImageCommand}"
+                                    Style="{StaticResource PrimaryButton}"
+                                    Margin="0,0,8,0"
+                                    VerticalAlignment="Center" />
+                            <Button Content="Quitar"
+                                    Command="{Binding ClearImageCommand}"
+                                    Style="{StaticResource AccentButton}"
+                                    VerticalAlignment="Center"
+                                    Visibility="{Binding HasPreviewImage, Converter={StaticResource BoolToVisibilityConverter}}" />
+                        </StackPanel>
                         <controls:FormValidationBanner Message="{Binding ValidationMessage}" />
                     </StackPanel>
 
@@ -284,6 +268,25 @@
                             <Button Grid.Column="2" Content="Agregar serie" Command="{Binding RegisterSeriesCommand}"
                                     Style="{StaticResource AccentButton}" VerticalAlignment="Bottom" />
                         </Grid>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,0">
+                            <Border Width="80" Height="80" CornerRadius="6" ClipToBounds="True"
+                                    Background="#1A2233" BorderBrush="{StaticResource BorderBrush}"
+                                    BorderThickness="1" Margin="0,0,8,0"
+                                    Visibility="{Binding HasSeriesPreviewImage, Converter={StaticResource BoolToVisibilityConverter}}">
+                                <Image Source="{Binding SeriesPreviewImagePath, Converter={StaticResource PathToImageSourceConverter}}"
+                                       Stretch="UniformToFill" />
+                            </Border>
+                            <Button Content="Imagen"
+                                    Command="{Binding PickSeriesImageCommand}"
+                                    Style="{StaticResource PrimaryButton}"
+                                    Margin="0,0,8,0"
+                                    VerticalAlignment="Center" />
+                            <Button Content="Quitar"
+                                    Command="{Binding ClearSeriesImageCommand}"
+                                    Style="{StaticResource AccentButton}"
+                                    VerticalAlignment="Center"
+                                    Visibility="{Binding HasSeriesPreviewImage, Converter={StaticResource BoolToVisibilityConverter}}" />
+                        </StackPanel>
                     </StackPanel>
 
                     <StackPanel Grid.Row="2" Margin="0,0,0,12">
@@ -337,33 +340,30 @@
                                         Style="{StaticResource PrimaryButton}" VerticalAlignment="Bottom" />
                             </Grid>
 
-                            <ListView Grid.Row="1"
-                                      ItemsSource="{Binding History}"
-                                      HorizontalAlignment="Stretch"
-                                      VerticalAlignment="Stretch"
-                                      helpers:GridViewStretchHelper.StretchColumns="True"
-                                      helpers:GridViewSortHelper.EnableSort="True">
-                                <ListView.View>
-                                    <GridView>
-                                        <GridViewColumn Header="Título" DisplayMemberBinding="{Binding Title}" Width="220" />
-                                        <GridViewColumn Header="Tipo" DisplayMemberBinding="{Binding MediaTypeLabel}"
-                                                        helpers:GridViewSortHelper.SortProperty="MediaType" Width="90" />
-                                        <GridViewColumn Header="Fecha" DisplayMemberBinding="{Binding CompletedAt, StringFormat={}{0:dd/MM/yyyy}}" Width="100" />
-                                        <GridViewColumn Header="XP" DisplayMemberBinding="{Binding XpEarned}" Width="60" />
-                                        <GridViewColumn Header="" Width="44">
-                                            <GridViewColumn.CellTemplate>
-                                                <DataTemplate>
-                                                    <Button Content="✕"
-                                                            Style="{StaticResource DangerIconButton}"
-                                                            ToolTip="Eliminar del historial"
-                                                            Command="{Binding DataContext.DeleteEntryCommand, RelativeSource={RelativeSource AncestorType=ListView}}"
-                                                            CommandParameter="{Binding}" />
-                                                </DataTemplate>
-                                            </GridViewColumn.CellTemplate>
-                                        </GridViewColumn>
-                                    </GridView>
-                                </ListView.View>
-                            </ListView>
+                            <ScrollViewer Grid.Row="1"
+                                          VerticalScrollBarVisibility="Auto"
+                                          HorizontalScrollBarVisibility="Disabled"
+                                          MinHeight="160">
+                                <ItemsControl ItemsSource="{Binding History}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <WrapPanel />
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <controls:HistoryCoverCard Title="{Binding Title}"
+                                                                       Subtitle="{Binding MediaTypeLabel}"
+                                                                       DateText="{Binding CompletedAtLabel}"
+                                                                       ImagePath="{Binding ImageDisplayPath}"
+                                                                       HasImage="{Binding HasImage}"
+                                                                       Item="{Binding}"
+                                                                       OpenCommand="{Binding DataContext.OpenDetailCommand, ElementName=MediaScrollViewer}"
+                                                                       DeleteCommand="{Binding DataContext.DeleteEntryCommand, ElementName=MediaScrollViewer}" />
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </ScrollViewer>
                         </Grid>
                     </GroupBox>
                 </Grid>
@@ -410,6 +410,25 @@
                                 <Button Grid.Column="4" Content="Registrar" Command="{Binding RegisterCommand}"
                                         Style="{StaticResource AccentButton}" VerticalAlignment="Bottom" />
                             </Grid>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                <Border Width="80" Height="80" CornerRadius="6" ClipToBounds="True"
+                                        Background="#1A2233" BorderBrush="{StaticResource BorderBrush}"
+                                        BorderThickness="1" Margin="0,0,8,0"
+                                        Visibility="{Binding HasPreviewImage, Converter={StaticResource BoolToVisibilityConverter}}">
+                                    <Image Source="{Binding PreviewImagePath, Converter={StaticResource PathToImageSourceConverter}}"
+                                           Stretch="UniformToFill" />
+                                </Border>
+                                <Button Content="Imagen"
+                                        Command="{Binding PickImageCommand}"
+                                        Style="{StaticResource PrimaryButton}"
+                                        Margin="0,0,8,0"
+                                        VerticalAlignment="Center" />
+                                <Button Content="Quitar"
+                                        Command="{Binding ClearImageCommand}"
+                                        Style="{StaticResource AccentButton}"
+                                        VerticalAlignment="Center"
+                                        Visibility="{Binding HasPreviewImage, Converter={StaticResource BoolToVisibilityConverter}}" />
+                            </StackPanel>
                             <controls:FormValidationBanner Message="{Binding ValidationMessage}" />
                         </StackPanel>
 
@@ -452,91 +471,106 @@
                                         <DataTemplate>
                                             <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="10" Padding="12" Margin="0,0,0,8" Background="{StaticResource BgCardBrush}">
                                                 <Grid>
-                                                    <Grid.RowDefinitions>
-                                                        <RowDefinition Height="Auto" />
-                                                        <RowDefinition Height="Auto" />
-                                                    </Grid.RowDefinitions>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="Auto" />
+                                                        <ColumnDefinition Width="*" />
+                                                    </Grid.ColumnDefinitions>
 
-                                                    <Grid Grid.Row="0">
-                                                        <StackPanel Margin="0,0,36,0">
-                                                            <TextBlock Text="{Binding Title}" FontWeight="SemiBold" />
-                                                            <TextBlock Text="{Binding PlatformLabel}" />
-                                                            <TextBlock Text="{Binding StartedAt, StringFormat=Inicio: {0:dd/MM/yyyy}}"
-                                                                       Style="{StaticResource MutedText}" FontSize="12" />
-                                                            <TextBlock Text="{Binding XpEarned, StringFormat='XP: {0}'}"
-                                                                       Foreground="{StaticResource AccentGreenBrush}" FontSize="12" Margin="0,2,0,0" />
-                                                        </StackPanel>
-                                                        <Button Content="✕"
-                                                                Style="{StaticResource DangerIconButton}"
-                                                                ToolTip="Eliminar del historial"
-                                                                HorizontalAlignment="Right"
-                                                                VerticalAlignment="Top"
-                                                                Command="{Binding DataContext.DeleteGameCommand, ElementName=VideoGamesScrollViewer}"
-                                                                CommandParameter="{Binding Game}" />
-                                                    </Grid>
+                                                    <controls:ProgressCoverThumb Grid.Column="0"
+                                                                                 VerticalAlignment="Top"
+                                                                                 ImagePath="{Binding Cover.ImageDisplayPath}"
+                                                                                 HasImage="{Binding Cover.HasImage}"
+                                                                                 ImageActionLabel="{Binding Cover.ImageActionLabel}"
+                                                                                 PickCommand="{Binding Cover.PickCommand}"
+                                                                                 ClearCommand="{Binding Cover.ClearCommand}" />
 
-                                                    <StackPanel Grid.Row="1" Margin="0,10,0,0">
-                                                        <TextBlock Text="{Binding ProgressSummary}"
-                                                                   Style="{StaticResource MutedText}"
-                                                                   FontSize="12"
-                                                                   Margin="0,0,0,6" />
-                                                        <controls:ItemProgressBar Value="{Binding ProgressPercent, Mode=OneWay}"
-                                                                                  Margin="0,0,0,10" />
-                                                        <Grid>
-                                                            <Grid.ColumnDefinitions>
-                                                                <ColumnDefinition Width="130" />
-                                                                <ColumnDefinition Width="*" />
-                                                                <ColumnDefinition Width="104" />
-                                                                <ColumnDefinition Width="Auto" />
-                                                                <ColumnDefinition Width="Auto" />
-                                                                <ColumnDefinition Width="Auto" />
-                                                            </Grid.ColumnDefinitions>
+                                                    <Grid Grid.Column="1">
+                                                        <Grid.RowDefinitions>
+                                                            <RowDefinition Height="Auto" />
+                                                            <RowDefinition Height="Auto" />
+                                                        </Grid.RowDefinitions>
 
-                                                            <DatePicker Grid.Column="0"
-                                                                        SelectedDate="{Binding ProgressDate}"
-                                                                        Margin="0,0,8,0"
-                                                                        ToolTip="Fecha del avance (permite atrasar para disciplina semanal)" />
-
-                                                            <Slider Grid.Column="1"
-                                                                    Minimum="{Binding CurrentCompletion}"
-                                                                    Maximum="100"
-                                                                    Value="{Binding TargetCompletion}"
-                                                                    VerticalAlignment="Center"
-                                                                    Margin="0,0,8,0"
-                                                                    TickFrequency="5"
-                                                                    IsSnapToTickEnabled="False" />
-
-                                                            <controls:NumericStepper Grid.Column="2"
-                                                                                     Value="{Binding TargetCompletion, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource FlexibleNumber}}"
-                                                                                     Minimum="{Binding CurrentCompletion}"
-                                                                                     Maximum="100"
-                                                                                     Margin="0,0,8,0" />
-
-                                                            <Button Grid.Column="3"
-                                                                    Content="+10"
-                                                                    Style="{StaticResource PrimaryButton}"
-                                                                    Padding="8,4"
-                                                                    Margin="0,0,6,0"
-                                                                    Command="{Binding BumpProgressCommand}"
-                                                                    CommandParameter="10"
-                                                                    ToolTip="Sumar 10% al objetivo" />
-
-                                                            <Button Grid.Column="4"
-                                                                    Content="100%"
-                                                                    Style="{StaticResource PrimaryButton}"
-                                                                    Padding="8,4"
-                                                                    Margin="0,0,6,0"
-                                                                    Command="{Binding SetFullProgressCommand}"
-                                                                    ToolTip="Marcar como completado al 100%" />
-
-                                                            <Button Grid.Column="5"
-                                                                    Content="Aplicar"
-                                                                    Style="{StaticResource AccentButton}"
-                                                                    Padding="10,4"
-                                                                    Command="{Binding ApplyProgressCommand}"
-                                                                    ToolTip="Guardar el nuevo progreso" />
+                                                        <Grid Grid.Row="0">
+                                                            <StackPanel Margin="0,0,36,0">
+                                                                <TextBlock Text="{Binding Title}" FontWeight="SemiBold" />
+                                                                <TextBlock Text="{Binding PlatformLabel}" />
+                                                                <TextBlock Text="{Binding StartedAt, StringFormat=Inicio: {0:dd/MM/yyyy}}"
+                                                                           Style="{StaticResource MutedText}" FontSize="12" />
+                                                                <TextBlock Text="{Binding XpEarned, StringFormat='XP: {0}'}"
+                                                                           Foreground="{StaticResource AccentGreenBrush}" FontSize="12" Margin="0,2,0,0" />
+                                                            </StackPanel>
+                                                            <Button Content="✕"
+                                                                    Style="{StaticResource DangerIconButton}"
+                                                                    ToolTip="Eliminar del historial"
+                                                                    HorizontalAlignment="Right"
+                                                                    VerticalAlignment="Top"
+                                                                    Command="{Binding DataContext.DeleteGameCommand, ElementName=VideoGamesScrollViewer}"
+                                                                    CommandParameter="{Binding Game}" />
                                                         </Grid>
-                                                    </StackPanel>
+
+                                                        <StackPanel Grid.Row="1" Margin="0,10,0,0">
+                                                            <TextBlock Text="{Binding ProgressSummary}"
+                                                                       Style="{StaticResource MutedText}"
+                                                                       FontSize="12"
+                                                                       Margin="0,0,0,6" />
+                                                            <controls:ItemProgressBar Value="{Binding ProgressPercent, Mode=OneWay}"
+                                                                                      Margin="0,0,0,10" />
+                                                            <Grid>
+                                                                <Grid.ColumnDefinitions>
+                                                                    <ColumnDefinition Width="130" />
+                                                                    <ColumnDefinition Width="*" />
+                                                                    <ColumnDefinition Width="104" />
+                                                                    <ColumnDefinition Width="Auto" />
+                                                                    <ColumnDefinition Width="Auto" />
+                                                                    <ColumnDefinition Width="Auto" />
+                                                                </Grid.ColumnDefinitions>
+
+                                                                <DatePicker Grid.Column="0"
+                                                                            SelectedDate="{Binding ProgressDate}"
+                                                                            Margin="0,0,8,0"
+                                                                            ToolTip="Fecha del avance (permite atrasar para disciplina semanal)" />
+
+                                                                <Slider Grid.Column="1"
+                                                                        Minimum="{Binding CurrentCompletion}"
+                                                                        Maximum="100"
+                                                                        Value="{Binding TargetCompletion}"
+                                                                        VerticalAlignment="Center"
+                                                                        Margin="0,0,8,0"
+                                                                        TickFrequency="5"
+                                                                        IsSnapToTickEnabled="False" />
+
+                                                                <controls:NumericStepper Grid.Column="2"
+                                                                                         Value="{Binding TargetCompletion, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource FlexibleNumber}}"
+                                                                                         Minimum="{Binding CurrentCompletion}"
+                                                                                         Maximum="100"
+                                                                                         Margin="0,0,8,0" />
+
+                                                                <Button Grid.Column="3"
+                                                                        Content="+10"
+                                                                        Style="{StaticResource PrimaryButton}"
+                                                                        Padding="8,4"
+                                                                        Margin="0,0,6,0"
+                                                                        Command="{Binding BumpProgressCommand}"
+                                                                        CommandParameter="10"
+                                                                        ToolTip="Sumar 10% al objetivo" />
+
+                                                                <Button Grid.Column="4"
+                                                                        Content="100%"
+                                                                        Style="{StaticResource PrimaryButton}"
+                                                                        Padding="8,4"
+                                                                        Margin="0,0,6,0"
+                                                                        Command="{Binding SetFullProgressCommand}"
+                                                                        ToolTip="Marcar como completado al 100%" />
+
+                                                                <Button Grid.Column="5"
+                                                                        Content="Aplicar"
+                                                                        Style="{StaticResource AccentButton}"
+                                                                        Padding="10,4"
+                                                                        Command="{Binding ApplyProgressCommand}"
+                                                                        ToolTip="Guardar el nuevo progreso" />
+                                                            </Grid>
+                                                        </StackPanel>
+                                                    </Grid>
                                                 </Grid>
                                             </Border>
                                         </DataTemplate>
@@ -544,32 +578,29 @@
                                 </ItemsControl>
 
                                 <TextBlock Text="Juegos platinados" Style="{StaticResource SubsectionTitleText}" Margin="0,0,0,8" />
-                                <ListView ItemsSource="{Binding PlatinumGames}"
-                                          MinHeight="160"
-                                          HorizontalAlignment="Stretch"
-                                          helpers:GridViewStretchHelper.StretchColumns="True"
-                                          helpers:GridViewSortHelper.EnableSort="True">
-                                    <ListView.View>
-                                        <GridView>
-                                            <GridViewColumn Header="Título" DisplayMemberBinding="{Binding Title}" Width="200" />
-                                            <GridViewColumn Header="Plataforma" DisplayMemberBinding="{Binding PlatformLabel}"
-                                                            helpers:GridViewSortHelper.SortProperty="Platform" Width="120" />
-                                            <GridViewColumn Header="Platino" DisplayMemberBinding="{Binding PlatinumUnlockedAt, StringFormat={}{0:dd/MM/yyyy}}" Width="100" />
-                                            <GridViewColumn Header="XP" DisplayMemberBinding="{Binding XpEarned}" Width="60" />
-                                            <GridViewColumn Header="" Width="44">
-                                                <GridViewColumn.CellTemplate>
-                                                    <DataTemplate>
-                                                        <Button Content="✕"
-                                                                Style="{StaticResource DangerIconButton}"
-                                                                ToolTip="Eliminar del historial"
-                                                                Command="{Binding DataContext.DeleteGameCommand, ElementName=VideoGamesScrollViewer}"
-                                                                CommandParameter="{Binding}" />
-                                                    </DataTemplate>
-                                                </GridViewColumn.CellTemplate>
-                                            </GridViewColumn>
-                                        </GridView>
-                                    </ListView.View>
-                                </ListView>
+                                <ScrollViewer VerticalScrollBarVisibility="Auto"
+                                              HorizontalScrollBarVisibility="Disabled"
+                                              MinHeight="160">
+                                    <ItemsControl ItemsSource="{Binding PlatinumGames}">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <WrapPanel />
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <controls:HistoryCoverCard Title="{Binding Title}"
+                                                                           Subtitle="{Binding PlatformLabel}"
+                                                                           DateText="{Binding HistoryDateLabel}"
+                                                                           ImagePath="{Binding ImageDisplayPath}"
+                                                                           HasImage="{Binding HasImage}"
+                                                                           Item="{Binding}"
+                                                                           OpenCommand="{Binding DataContext.OpenDetailCommand, ElementName=VideoGamesScrollViewer}"
+                                                                           DeleteCommand="{Binding DataContext.DeleteGameCommand, ElementName=VideoGamesScrollViewer}" />
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </ScrollViewer>
                             </StackPanel>
                         </GroupBox>
                     </StackPanel>

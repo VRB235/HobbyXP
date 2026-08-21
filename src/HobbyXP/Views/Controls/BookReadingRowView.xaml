@@ -13,103 +13,118 @@
             Padding="12"
             Margin="0,0,0,8"
             Background="{StaticResource BgCardBrush}">
-        <StackPanel>
-            <Grid Margin="0,0,0,10">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
 
-                <StackPanel Grid.Column="0" Margin="0,0,8,0">
-                    <TextBlock Text="Título" Style="{StaticResource MutedText}" FontSize="11" />
-                    <TextBox Text="{Binding EditTitle, UpdateSourceTrigger=PropertyChanged}" />
-                </StackPanel>
+            <controls:ProgressCoverThumb Grid.Column="0"
+                                         VerticalAlignment="Top"
+                                         ImagePath="{Binding Cover.ImageDisplayPath}"
+                                         HasImage="{Binding Cover.HasImage}"
+                                         ImageActionLabel="{Binding Cover.ImageActionLabel}"
+                                         PickCommand="{Binding Cover.PickCommand}"
+                                         ClearCommand="{Binding Cover.ClearCommand}" />
 
-                <StackPanel Grid.Column="1" Margin="0,0,8,0">
-                    <TextBlock Text="Autor" Style="{StaticResource MutedText}" FontSize="11" />
-                    <TextBox Text="{Binding EditAuthor, UpdateSourceTrigger=PropertyChanged}" />
-                </StackPanel>
+            <StackPanel Grid.Column="1">
+                <Grid Margin="0,0,0,10">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
 
-                <Button Grid.Column="2"
-                        Content="Guardar datos"
-                        Style="{StaticResource PrimaryButton}"
-                        Padding="10,4"
-                        VerticalAlignment="Bottom"
-                        Command="{Binding SaveMetadataCommand}"
-                        ToolTip="Actualizar título y autor" />
-            </Grid>
+                    <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                        <TextBlock Text="Título" Style="{StaticResource MutedText}" FontSize="11" />
+                        <TextBox Text="{Binding EditTitle, UpdateSourceTrigger=PropertyChanged}" />
+                    </StackPanel>
 
-            <controls:FormValidationBanner Message="{Binding MetadataValidationMessage}" Margin="0,0,0,8" />
+                    <StackPanel Grid.Column="1" Margin="0,0,8,0">
+                        <TextBlock Text="Autor" Style="{StaticResource MutedText}" FontSize="11" />
+                        <TextBox Text="{Binding EditAuthor, UpdateSourceTrigger=PropertyChanged}" />
+                    </StackPanel>
 
-            <TextBlock Text="{Binding XpEarnedDisplay}"
-                       Foreground="{StaticResource AccentGreenBrush}"
-                       FontSize="12"
-                       Margin="0,0,0,10" />
+                    <Button Grid.Column="2"
+                            Content="Guardar datos"
+                            Style="{StaticResource PrimaryButton}"
+                            Padding="10,4"
+                            VerticalAlignment="Bottom"
+                            Command="{Binding SaveMetadataCommand}"
+                            ToolTip="Actualizar título y autor" />
+                </Grid>
 
-            <TextBlock Text="{Binding ProgressSummary}"
-                       Style="{StaticResource MutedText}"
-                       FontSize="12"
-                       Margin="0,0,0,6" />
+                <controls:FormValidationBanner Message="{Binding MetadataValidationMessage}" Margin="0,0,0,8" />
 
-            <controls:ItemProgressBar Value="{Binding ProgressPercent, Mode=OneWay}"
-                                      Margin="0,0,0,10" />
+                <TextBlock Text="{Binding XpEarnedDisplay}"
+                           Foreground="{StaticResource AccentGreenBrush}"
+                           FontSize="12"
+                           Margin="0,0,0,10" />
 
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="130" />
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="104" />
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
+                <TextBlock Text="{Binding ProgressSummary}"
+                           Style="{StaticResource MutedText}"
+                           FontSize="12"
+                           Margin="0,0,0,6" />
 
-                <DatePicker Grid.Column="0"
-                            SelectedDate="{Binding ReadingDate}"
+                <controls:ItemProgressBar Value="{Binding ProgressPercent, Mode=OneWay}"
+                                          Margin="0,0,0,10" />
+
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="130" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="104" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <DatePicker Grid.Column="0"
+                                SelectedDate="{Binding ReadingDate}"
+                                Margin="0,0,8,0"
+                                ToolTip="Fecha en que leyó (permite atrasar para disciplina semanal)" />
+
+                    <Slider Grid.Column="1"
+                            Minimum="0"
+                            Maximum="100"
+                            Value="{Binding TargetPercent, Mode=TwoWay}"
+                            VerticalAlignment="Center"
                             Margin="0,0,8,0"
-                            ToolTip="Fecha en que leyó (permite atrasar para disciplina semanal)" />
+                            IsMoveToPointEnabled="True" />
 
-                <Slider Grid.Column="1"
-                        Minimum="0"
-                        Maximum="100"
-                        Value="{Binding TargetPercent, Mode=TwoWay}"
-                        VerticalAlignment="Center"
-                        Margin="0,0,8,0"
-                        IsMoveToPointEnabled="True" />
+                    <controls:NumericStepper Grid.Column="2"
+                                             Value="{Binding TargetPagesRead, Converter={StaticResource FlexibleNumber}}"
+                                             Minimum="{Binding CurrentPagesRead}"
+                                             Maximum="{Binding TotalPages}"
+                                             Margin="0,0,8,0" />
 
-                <controls:NumericStepper Grid.Column="2"
-                                         Value="{Binding TargetPagesRead, Converter={StaticResource FlexibleNumber}}"
-                                         Minimum="{Binding CurrentPagesRead}"
-                                         Maximum="{Binding TotalPages}"
-                                         Margin="0,0,8,0" />
+                    <Button Grid.Column="3"
+                            Content="+10"
+                            Style="{StaticResource PrimaryButton}"
+                            Padding="8,4"
+                            Margin="0,0,6,0"
+                            Command="{Binding BumpPagesCommand}"
+                            CommandParameter="10"
+                            ToolTip="Sumar 10 páginas al objetivo" />
 
-                <Button Grid.Column="3"
-                        Content="+10"
-                        Style="{StaticResource PrimaryButton}"
-                        Padding="8,4"
-                        Margin="0,0,6,0"
-                        Command="{Binding BumpPagesCommand}"
-                        CommandParameter="10"
-                        ToolTip="Sumar 10 páginas al objetivo" />
+                    <Button Grid.Column="4"
+                            Content="Terminar"
+                            Style="{StaticResource PrimaryButton}"
+                            Padding="8,4"
+                            Margin="0,0,6,0"
+                            Command="{Binding SetCompleteCommand}"
+                            ToolTip="Marcar todas las páginas como leídas" />
 
-                <Button Grid.Column="4"
-                        Content="Terminar"
-                        Style="{StaticResource PrimaryButton}"
-                        Padding="8,4"
-                        Margin="0,0,6,0"
-                        Command="{Binding SetCompleteCommand}"
-                        ToolTip="Marcar todas las páginas como leídas" />
+                    <Button Grid.Column="5"
+                            Content="Aplicar"
+                            Style="{StaticResource AccentButton}"
+                            Padding="10,4"
+                            Command="{Binding ApplyPagesCommand}"
+                            ToolTip="Guardar el progreso de lectura" />
+                </Grid>
 
-                <Button Grid.Column="5"
-                        Content="Aplicar"
-                        Style="{StaticResource AccentButton}"
-                        Padding="10,4"
-                        Command="{Binding ApplyPagesCommand}"
-                        ToolTip="Guardar el progreso de lectura" />
-            </Grid>
-
-            <controls:FormValidationBanner Message="{Binding ValidationMessage}" Margin="0,8,0,0" />
-        </StackPanel>
+                <controls:FormValidationBanner Message="{Binding ValidationMessage}" Margin="0,8,0,0" />
+            </StackPanel>
+        </Grid>
     </Border>
 </UserControl>

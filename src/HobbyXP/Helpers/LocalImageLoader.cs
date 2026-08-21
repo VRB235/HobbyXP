@@ -18,6 +18,7 @@ public static class LocalImageLoader
             var bitmap = new BitmapImage();
             bitmap.BeginInit();
             bitmap.CacheOption = BitmapCacheOption.OnLoad;
+            bitmap.CreateOptions = BitmapCreateOptions.IgnoreImageCache;
             bitmap.UriSource = new Uri(resolved, UriKind.Absolute);
             bitmap.EndInit();
             bitmap.Freeze();
@@ -43,8 +44,18 @@ public static class LocalImageLoader
         if (fromRace is not null)
             return fromRace;
 
-        if (string.IsNullOrWhiteSpace(path) || Path.IsPathRooted(path))
+        var fromCover = HobbyCoverPhotoStorage.ResolveAbsolutePath(path);
+        if (fromCover is not null)
+            return fromCover;
+
+        if (string.IsNullOrWhiteSpace(path))
             return null;
+
+        if (Path.IsPathRooted(path))
+        {
+            var absolute = Path.GetFullPath(path);
+            return File.Exists(absolute) ? absolute : null;
+        }
 
         var fromData = Path.Combine(DatabaseConstants.GetDatabaseDirectory(), path);
         return File.Exists(fromData) ? fromData : null;

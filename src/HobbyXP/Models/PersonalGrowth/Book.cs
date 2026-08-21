@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations.Schema;
+using HobbyXP.Helpers;
 using HobbyXP.Models.Common;
 using HobbyXP.Models.Enums;
 
@@ -19,5 +21,17 @@ public class Book : EntityBase
 
     public int XpEarned { get; set; }
 
+    /// <summary>Ruta relativa al directorio de datos (portada).</summary>
+    public string? ImagePath { get; set; }
+
     public ICollection<BookReadingLog> ReadingLogs { get; set; } = [];
+
+    [NotMapped]
+    public string CompletedAtLabel => CompletedAt?.ToLocalTime().ToString("dd/MM/yyyy") ?? "—";
+
+    [NotMapped]
+    public string? ImageDisplayPath => HobbyCoverPhotoStorage.ResolveAbsolutePath(ImagePath);
+
+    [NotMapped]
+    public bool HasImage => !string.IsNullOrWhiteSpace(ImageDisplayPath);
 }

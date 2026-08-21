@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations.Schema;
+using HobbyXP.Helpers;
 using HobbyXP.Models.Common;
 using HobbyXP.Models.Enums;
 
@@ -20,8 +22,17 @@ public class MediaSeries : EntityBase
 
     public int XpEarned { get; set; }
 
+    /// <summary>Ruta relativa al directorio de datos (portada).</summary>
+    public string? ImagePath { get; set; }
+
     /// <summary>Entrada de historial creada al completar (si aplica).</summary>
     public int? CompletedMediaEntryId { get; set; }
 
     public ICollection<MediaSeriesChapterLog> ChapterLogs { get; set; } = [];
+
+    [NotMapped]
+    public string? ImageDisplayPath => HobbyCoverPhotoStorage.ResolveAbsolutePath(ImagePath);
+
+    [NotMapped]
+    public bool HasImage => !string.IsNullOrWhiteSpace(ImageDisplayPath);
 }

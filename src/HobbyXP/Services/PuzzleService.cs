@@ -108,6 +108,48 @@ public sealed class PuzzleService : IPuzzleService
         return OperationResult<Puzzle>.WithEvents(puzzle, events.ToArray());
     }
 
+    public async Task<Puzzle> UpdateAsync(
+        int puzzleId,
+        string name,
+        int pieceCount,
+        PuzzleCategory category,
+        DateTime completedAt,
+        IReadOnlyList<string>? photoPaths = null,
+        bool replacePhotos = false,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+            throw new ArgumentException("El nombre es obligatorio.", nameof(name));
+
+        if (pieceCount <= 0)
+            throw new ArgumentOutOfRangeException(nameof(pieceCount));
+
+        await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var puzzle = await db.Puzzles.FindAsync([puzzleId], cancellationToken)
+            ?? throw new InvalidOperationException($"No existe el rompecabezas con Id {puzzleId}.");
+
+        puzzle.Name = name.Trim();
+        puzzle.PieceCount = pieceCount;
+        puzzle.Category = category;
+        puzzle.CompletedAt = completedAt;
+        puzzle.UpdatedAt = DateTime.UtcNow;
+
+        if (replacePhotos)
+        {
+            PuzzlePhotoStorage.DeleteStoredPhotos(puzzle.Id, puzzle.PhotoPath);
+            puzzle.PhotoPath = null;
+
+            if (photoPaths is { Count: > 0 })
+            {
+                var savedPhotos = PuzzlePhotoStorage.SavePhotos(puzzle.Id, photoPaths);
+                puzzle.PhotoPath = PuzzlePhotoStorage.Serialize(savedPhotos);
+            }
+        }
+
+        await db.SaveChangesAsync(cancellationToken);
+        return puzzle;
+    }
+
     public async Task<bool> DeleteAsync(int puzzleId, CancellationToken cancellationToken = default)
     {
         await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);

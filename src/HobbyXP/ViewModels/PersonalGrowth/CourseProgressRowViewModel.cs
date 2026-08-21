@@ -1,5 +1,6 @@
 using HobbyXP.Helpers;
 using HobbyXP.Models.PersonalGrowth;
+using HobbyXP.Services.Abstractions;
 using HobbyXP.ViewModels.Common;
 
 namespace HobbyXP.ViewModels.PersonalGrowth;
@@ -7,14 +8,26 @@ namespace HobbyXP.ViewModels.PersonalGrowth;
 public sealed class CourseProgressRowViewModel : ViewModelBase
 {
     private readonly Func<Course, DateTime, int, Task> _logSessionsAsync;
+    private readonly Func<Course, string?, bool, Task<Course>> _updateImageAsync;
     private DateTime? _sessionDate = DateTime.Today;
     private int _sessionsToLog = 1;
     private string? _validationMessage;
 
-    public CourseProgressRowViewModel(Course course, Func<Course, DateTime, int, Task> logSessionsAsync)
+    public CourseProgressRowViewModel(
+        Course course,
+        Func<Course, DateTime, int, Task> logSessionsAsync,
+        Func<Course, string?, bool, Task<Course>> updateImageAsync,
+        IFileDialogService fileDialogService)
     {
         Course = course;
         _logSessionsAsync = logSessionsAsync;
+        _updateImageAsync = updateImageAsync;
+
+        Cover = new ProgressCoverController(
+            HobbyCoverPhotoStorage.Folders.Courses,
+            course.ImageDisplayPath,
+            fileDialogService,
+            PersistCoverAsync);
 
         LogSessionsCommand = new AsyncRelayCommand(LogSessionsAsync, CanLogSessions);
         BumpSessionsCommand = new RelayCommand(BumpSessions);
@@ -22,7 +35,19 @@ public sealed class CourseProgressRowViewModel : ViewModelBase
         RefreshValidation();
     }
 
-    public Course Course { get; }
+    public Course Course { get; private set; }
+
+    public ProgressCoverController Cover { get; }
+
+    public string? ImageDisplayPath => Cover.ImageDisplayPath;
+
+    public bool HasImage => Cover.HasImage;
+
+    public string ImageActionLabel => Cover.ImageActionLabel;
+
+    public AsyncRelayCommand PickImageCommand => Cover.PickCommand;
+
+    public AsyncRelayCommand ClearImageCommand => Cover.ClearCommand;
 
     public string Name => Course.Name;
 
@@ -77,6 +102,17 @@ public sealed class CourseProgressRowViewModel : ViewModelBase
     public RelayCommand BumpSessionsCommand { get; }
 
     public RelayCommand CompleteAllCommand { get; }
+
+    private async Task<string?> PersistCoverAsync(string? imageSourcePath, bool clearImage)
+    {
+        var updated = await _updateImageAsync(Course, imageSourcePath, clearImage);
+        Course = updated;
+        OnPropertyChanged(nameof(Name));
+        OnPropertyChanged(nameof(Platform));
+        OnPropertyChanged(nameof(XpEarned));
+        OnPropertyChanged(nameof(XpEarnedDisplay));
+        return updated.ImageDisplayPath;
+    }
 
     private ValidationResult ValidateForm()
     {

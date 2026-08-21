@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations.Schema;
 using HobbyXP.Helpers;
 using HobbyXP.Models.Common;
 using HobbyXP.Models.Enums;
@@ -26,4 +27,13 @@ public class Puzzle : EntityBase
     public DateTime CompletedAt { get; set; } = DateTime.UtcNow;
 
     public int XpEarned { get; set; }
+
+    [NotMapped]
+    public string CompletedAtLabel => CompletedAt.ToLocalTime().ToString("dd/MM/yyyy");
+
+    [NotMapped]
+    public string? ImageDisplayPath => PuzzlePhotoStorage.Deserialize(PhotoPath).FirstOrDefault();
+
+    [NotMapped]
+    public bool HasImage => !string.IsNullOrWhiteSpace(ImageDisplayPath);
 }

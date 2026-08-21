@@ -1,5 +1,7 @@
+using HobbyXP.Helpers;
 using HobbyXP.Models.Entertainment;
 using HobbyXP.Models.Enums;
+using HobbyXP.Services.Abstractions;
 using HobbyXP.ViewModels.Common;
 
 namespace HobbyXP.ViewModels.Entertainment;
@@ -7,21 +9,45 @@ namespace HobbyXP.ViewModels.Entertainment;
 public sealed class VideoGameProgressRowViewModel : ViewModelBase
 {
     private readonly Func<VideoGame, int, DateTime, Task> _applyAsync;
+    private readonly Func<VideoGame, string?, bool, Task<VideoGame>> _updateImageAsync;
     private int _targetCompletion;
     private DateTime? _progressDate = DateTime.Today;
 
-    public VideoGameProgressRowViewModel(VideoGame game, Func<VideoGame, int, DateTime, Task> applyAsync)
+    public VideoGameProgressRowViewModel(
+        VideoGame game,
+        Func<VideoGame, int, DateTime, Task> applyAsync,
+        Func<VideoGame, string?, bool, Task<VideoGame>> updateImageAsync,
+        IFileDialogService fileDialogService)
     {
         Game = game;
         _applyAsync = applyAsync;
+        _updateImageAsync = updateImageAsync;
         _targetCompletion = game.CompletionPercentage;
+
+        Cover = new ProgressCoverController(
+            HobbyCoverPhotoStorage.Folders.VideoGames,
+            game.ImageDisplayPath,
+            fileDialogService,
+            PersistCoverAsync);
 
         ApplyProgressCommand = new AsyncRelayCommand(ApplyProgressAsync, CanApply);
         BumpProgressCommand = new RelayCommand(BumpProgress);
         SetFullProgressCommand = new RelayCommand(SetFullProgress);
     }
 
-    public VideoGame Game { get; }
+    public VideoGame Game { get; private set; }
+
+    public ProgressCoverController Cover { get; }
+
+    public string? ImageDisplayPath => Cover.ImageDisplayPath;
+
+    public bool HasImage => Cover.HasImage;
+
+    public string ImageActionLabel => Cover.ImageActionLabel;
+
+    public AsyncRelayCommand PickImageCommand => Cover.PickCommand;
+
+    public AsyncRelayCommand ClearImageCommand => Cover.ClearCommand;
 
     public string Title => Game.Title;
 
@@ -73,6 +99,19 @@ public sealed class VideoGameProgressRowViewModel : ViewModelBase
     public RelayCommand BumpProgressCommand { get; }
 
     public RelayCommand SetFullProgressCommand { get; }
+
+    private async Task<string?> PersistCoverAsync(string? imageSourcePath, bool clearImage)
+    {
+        var updated = await _updateImageAsync(Game, imageSourcePath, clearImage);
+        Game = updated;
+        OnPropertyChanged(nameof(Title));
+        OnPropertyChanged(nameof(PlatformLabel));
+        OnPropertyChanged(nameof(XpEarned));
+        OnPropertyChanged(nameof(CurrentCompletion));
+        OnPropertyChanged(nameof(ProgressPercent));
+        OnPropertyChanged(nameof(ProgressSummary));
+        return updated.ImageDisplayPath;
+    }
 
     private bool CanApply() => HasPendingChange && ProgressDate.HasValue;
 
