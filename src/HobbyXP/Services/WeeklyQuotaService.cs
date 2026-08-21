@@ -204,10 +204,21 @@ public sealed class WeeklyQuotaService : IWeeklyQuotaService
         var isClosedWeek = WeekDateHelper.IsClosedWeek(weekStartLocal, today);
         await EvaluateWeekAsync(sourceType, weekStartLocal, applyPenaltyIfNeeded: isClosedWeek, cancellationToken);
 
-        if (DailyQuotaRules.IsTracked(sourceType) && activityDay >= await EnsureDailyTrackingStartAsync(cancellationToken))
+        if (DailyQuotaRules.IsTracked(sourceType))
         {
-            var isClosedDay = WeekDateHelper.IsClosedDay(activityDay, today);
-            await EvaluateDayAsync(sourceType, activityDay, applyPenaltyIfNeeded: isClosedDay, cancellationToken);
+            var dailyStart = await EnsureDailyTrackingStartAsync(cancellationToken);
+            // Solo la semana de la actividad: semanal cumplida / exceso de páginas
+            // puede marcar o restaurar otros días de esa misma semana.
+            var weekLastLocal = weekStartLocal.AddDays(6);
+            var lastDay = today < weekLastLocal ? today : weekLastLocal;
+            for (var day = weekStartLocal; day <= lastDay; day = day.AddDays(1))
+            {
+                if (day < dailyStart)
+                    continue;
+
+                var isClosedDay = WeekDateHelper.IsClosedDay(day, today);
+                await EvaluateDayAsync(sourceType, day, applyPenaltyIfNeeded: isClosedDay, cancellationToken);
+            }
         }
     }
 
@@ -956,13 +967,84 @@ public sealed class WeeklyQuotaService : IWeeklyQuotaService
         DateTime dayLocal,
         CancellationToken cancellationToken)
     {
+        // Cuota semanal cumplida ⇒ la diaria ya no aplica (queda cumplida).
+        if (await IsWeeklyQuotaMetForContainingWeekAsync(sourceType, dayLocal, cancellationToken))
+            return true;
+
         if (sourceType == MilestoneSourceType.Book)
         {
+            if (need.Primary <= 0)
+                return false;
+
             var completed = await AnyBookCompletedOnDayAsync(dayLocal, cancellationToken);
-            return DailyQuotaRules.IsBookQuotaMet(need.Primary, actualPrimary, completed);
+            if (DailyQuotaRules.IsBookQuotaMet(need.Primary, actualPrimary, completed))
+                return true;
+
+            // Exceso de páginas de días previos (o del mismo día) cubre este día.
+            return await IsBookDayMetByPageBankAsync(need.Primary, dayLocal, cancellationToken);
         }
 
         return DailyQuotaRules.IsMet(need.Primary, actualPrimary);
+    }
+
+    private async Task<bool> IsWeeklyQuotaMetForContainingWeekAsync(
+        MilestoneSourceType sourceType,
+        DateTime dayLocal,
+        CancellationToken cancellationToken)
+    {
+        var weekStartLocal = WeekDateHelper.GetWeekStartLocal(dayLocal);
+        var need = await ResolveRequirementAsync(sourceType, weekStartLocal, cancellationToken);
+        if (need.Primary <= 0 && need.Secondary <= 0)
+            return false;
+
+        var counts = await CountActivityForSourceAsync(sourceType, weekStartLocal, cancellationToken);
+        return await IsQuotaMetAsync(
+            sourceType,
+            need,
+            counts.Primary,
+            counts.Secondary,
+            weekStartLocal,
+            cancellationToken);
+    }
+
+    private async Task<bool> IsBookDayMetByPageBankAsync(
+        int requiredPages,
+        DateTime dayLocal,
+        CancellationToken cancellationToken)
+    {
+        var weekStartLocal = WeekDateHelper.GetWeekStartLocal(dayLocal);
+        var dayIndex = (dayLocal.Date - weekStartLocal).Days;
+        if (dayIndex < 0)
+            return false;
+
+        var dayStartUtc = DateTimeHelper.ToUtcFromLocalDate(dayLocal);
+        var dayEndUtc = dayStartUtc.AddDays(1);
+        var weekStartUtc = DateTimeHelper.ToUtcFromLocalDate(weekStartLocal);
+
+        await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var current = await FindCurrentReadingBookAsync(db, dayStartUtc, dayEndUtc, cancellationToken);
+        if (current is null)
+            return false;
+
+        var logs = await db.BookReadingLogs
+            .AsNoTracking()
+            .Where(l => l.BookId == current.Id &&
+                        l.ReadDate >= weekStartUtc &&
+                        l.ReadDate < dayEndUtc)
+            .GroupBy(l => l.ReadDate)
+            .Select(g => new { ReadDate = g.Key, Pages = g.Sum(x => x.PagesDone) })
+            .ToListAsync(cancellationToken);
+
+        var pagesPerDay = new int[dayIndex + 1];
+        foreach (var log in logs)
+        {
+            var offset = (int)(log.ReadDate - weekStartUtc).TotalDays;
+            if (offset < 0 || offset > dayIndex)
+                continue;
+            pagesPerDay[offset] += log.Pages;
+        }
+
+        return DailyQuotaRules.IsBookDayMetByPageBank(requiredPages, pagesPerDay, dayIndex);
     }
 
     private async Task<QuotaNeed> ResolveRequirementAsync(

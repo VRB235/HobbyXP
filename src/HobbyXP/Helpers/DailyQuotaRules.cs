@@ -61,4 +61,43 @@ public static class DailyQuotaRules
 
     public static bool IsBookQuotaMet(int requiredPages, int pagesReadToday, bool completedBookToday) =>
         completedBookToday || (requiredPages > 0 && pagesReadToday >= requiredPages);
+
+    /// <summary>
+    /// El exceso de páginas se arrastra hacia días posteriores de la misma semana
+    /// (p. ej. 164 con cuota 82 ⇒ dos días cubiertos). No rellena días anteriores fallidos.
+    /// </summary>
+    /// <param name="requiredPages">Páginas diarias del libro.</param>
+    /// <param name="pagesPerDayFromWeekStart">Páginas por día desde el lunes hasta el día evaluado (inclusive).</param>
+    /// <param name="dayIndexInWeek">Índice 0 = lunes.</param>
+    public static bool IsBookDayMetByPageBank(
+        int requiredPages,
+        IReadOnlyList<int> pagesPerDayFromWeekStart,
+        int dayIndexInWeek)
+    {
+        if (requiredPages <= 0 ||
+            dayIndexInWeek < 0 ||
+            pagesPerDayFromWeekStart.Count <= dayIndexInWeek)
+        {
+            return false;
+        }
+
+        var bank = 0;
+        for (var i = 0; i <= dayIndexInWeek; i++)
+        {
+            bank += pagesPerDayFromWeekStart[i];
+            if (bank < requiredPages)
+            {
+                if (i == dayIndexInWeek)
+                    return false;
+                continue;
+            }
+
+            if (i == dayIndexInWeek)
+                return true;
+
+            bank -= requiredPages;
+        }
+
+        return false;
+    }
 }

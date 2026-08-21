@@ -92,6 +92,37 @@ public sealed class WeeklyQuotaRulesTests
     }
 
     [Fact]
+    public void Book_PageBank_ExcessCoversFollowingDays()
+    {
+        // 164 con cuota 82 ⇒ lunes y martes cubiertos; miércoles no.
+        var pages = new[] { 164, 0, 0 };
+        Assert.True(DailyQuotaRules.IsBookDayMetByPageBank(82, pages, 0));
+        Assert.True(DailyQuotaRules.IsBookDayMetByPageBank(82, pages, 1));
+        Assert.False(DailyQuotaRules.IsBookDayMetByPageBank(82, pages, 2));
+    }
+
+    [Fact]
+    public void Book_PageBank_DoesNotBackfillMissedDay()
+    {
+        // Lunes/martes fallidos; el exceso del miércoles no los salva.
+        var pages = new[] { 40, 0, 164 };
+        Assert.False(DailyQuotaRules.IsBookDayMetByPageBank(82, pages, 0));
+        Assert.False(DailyQuotaRules.IsBookDayMetByPageBank(82, pages, 1));
+        Assert.True(DailyQuotaRules.IsBookDayMetByPageBank(82, pages, 2));
+        // Crédito restante (40+164-82=122) cubre el jueves.
+        Assert.True(DailyQuotaRules.IsBookDayMetByPageBank(82, [40, 0, 164, 0], 3));
+        Assert.False(DailyQuotaRules.IsBookDayMetByPageBank(82, [40, 0, 164, 0, 0], 4));
+    }
+
+    [Fact]
+    public void Book_PageBank_AccumulatesAcrossDaysTowardOneQuota()
+    {
+        var pages = new[] { 40, 42 };
+        Assert.False(DailyQuotaRules.IsBookDayMetByPageBank(82, pages, 0));
+        Assert.True(DailyQuotaRules.IsBookDayMetByPageBank(82, pages, 1));
+    }
+
+    [Fact]
     public void Daily_RunningGymCourse_RequireOneSession()
     {
         Assert.Equal(1, DailyQuotaRules.GetRequiredPrimary(Models.Enums.MilestoneSourceType.Running));

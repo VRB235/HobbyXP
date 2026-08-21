@@ -113,6 +113,7 @@ public sealed class WeeklyQuotaProgressTests : IDisposable
 
         Assert.True(bookQuota.IsWeeklyMet);
         Assert.Equal(1, bookQuota.ActualPrimary);
+        Assert.True(bookQuota.IsDailyMet);
         Assert.Contains("libro terminado", bookQuota.RequirementLabel, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -191,6 +192,79 @@ public sealed class WeeklyQuotaProgressTests : IDisposable
 
         Assert.True(courseQuota.IsWeeklyMet);
         Assert.Equal(5, courseQuota.ActualPrimary);
+        Assert.True(courseQuota.IsDailyMet);
+        Assert.True(courseQuota.IsMet);
+    }
+
+    [Fact]
+    public async Task Book_ExcessPages_CoversNextDayDailyQuota()
+    {
+        var weekStart = WeekDateHelper.GetWeekStartLocal(DateTime.Today);
+        if (DateTime.Today <= weekStart)
+        {
+            // Sin día previo en la semana no se puede verificar el carry-forward.
+            return;
+        }
+
+        var readDay = DateTime.Today.AddDays(-1);
+        await using (var db = _factory.CreateDbContext())
+        {
+            var book = new Book { Title = "Dune", Author = "Herbert", TotalPages = 410, Status = BookStatus.Reading };
+            db.Books.Add(book);
+            await db.SaveChangesAsync();
+            db.BookReadingLogs.Add(new BookReadingLog
+            {
+                BookId = book.Id,
+                ReadDate = DateTimeHelper.ToUtcFromLocalDate(readDay),
+                PagesDone = 164 // 2 × 82
+            });
+            await db.SaveChangesAsync();
+        }
+
+        var progress = await _sut.GetCurrentWeekProgressAsync();
+        var bookQuota = progress.Single(p => p.SourceType == MilestoneSourceType.Book);
+
+        Assert.Equal(82, bookQuota.DailyRequiredPrimary);
+        Assert.Equal(0, bookQuota.DailyActualPrimary);
+        Assert.True(bookQuota.IsDailyMet);
+        Assert.True(bookQuota.IsMet);
+        Assert.False(bookQuota.IsWeeklyMet);
+    }
+
+    [Fact]
+    public async Task Course_WeeklyMet_MarksDailyMetWithoutSessionToday()
+    {
+        var weekStart = WeekDateHelper.GetWeekStartLocal(DateTime.Today);
+        var sessionDay = weekStart == DateTime.Today ? DateTime.Today : weekStart;
+
+        await using (var db = _factory.CreateDbContext())
+        {
+            var course = new Course
+            {
+                Name = "Azure",
+                Platform = "Learn",
+                TotalSessions = 10,
+                Status = CourseStatus.InProgress
+            };
+            db.Courses.Add(course);
+            await db.SaveChangesAsync();
+            db.CourseSessionLogs.Add(new CourseSessionLog
+            {
+                CourseId = course.Id,
+                SessionDate = DateTimeHelper.ToUtcFromLocalDate(sessionDay),
+                SessionsDone = 5
+            });
+            await db.SaveChangesAsync();
+        }
+
+        var progress = await _sut.GetCurrentWeekProgressAsync();
+        var courseQuota = progress.Single(p => p.SourceType == MilestoneSourceType.Course);
+
+        Assert.True(courseQuota.IsWeeklyMet);
+        Assert.True(courseQuota.IsDailyMet);
+        Assert.True(courseQuota.IsMet);
+        if (sessionDay != DateTime.Today)
+            Assert.Equal(0, courseQuota.DailyActualPrimary);
     }
 
     [Fact]
