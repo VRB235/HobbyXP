@@ -331,39 +331,6 @@
                 </StackPanel>
             </Expander>
 
-            <!-- Hitos -->
-            <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
-                <TextBlock Text="Últimos hitos" Style="{StaticResource SectionTitleText}" VerticalAlignment="Center" />
-                <Button Content="↻ Actualizar" Command="{Binding RefreshCommand}" Style="{StaticResource PrimaryButton}"
-                        Margin="16,0,0,0" Padding="10,6" FontSize="12" />
-            </StackPanel>
-
-            <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" Margin="0,0,0,8">
-                <ItemsControl ItemsSource="{Binding RecentMilestones}">
-                    <ItemsControl.ItemsPanel>
-                        <ItemsPanelTemplate>
-                            <StackPanel Orientation="Horizontal" />
-                        </ItemsPanelTemplate>
-                    </ItemsControl.ItemsPanel>
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate>
-                            <Border Style="{StaticResource MilestoneCard}">
-                                <StackPanel>
-                                    <TextBlock Text="{Binding SourceType, Converter={StaticResource MilestoneIconConverter}}"
-                                               FontSize="32" Margin="0,0,0,8" />
-                                    <TextBlock Text="{Binding Title}" Style="{StaticResource CardTitleText}" MaxHeight="48" TextTrimming="CharacterEllipsis" />
-                                    <TextBlock Margin="0,8,0,0" Foreground="{StaticResource AccentGreenBrush}" FontWeight="Bold">
-                                        <Run Text="+" /><Run Text="{Binding PointsEarned, Mode=OneWay}" /><Run Text=" XP" />
-                                    </TextBlock>
-                                    <TextBlock Text="{Binding CompletedAt, StringFormat={}{0:dd/MM/yyyy HH:mm}}"
-                                               Style="{StaticResource MutedText}" Margin="0,6,0,0" FontSize="12" />
-                                </StackPanel>
-                            </Border>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-            </ScrollViewer>
-
             <TextBlock Text="{Binding ErrorMessage}" Foreground="{StaticResource DangerBrush}" Margin="0,8,0,0" />
         </StackPanel>
     </ScrollViewer>

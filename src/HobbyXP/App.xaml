@@ -18,7 +18,6 @@
                 <ResourceDictionary Source="Themes/DarkRpgTheme.xaml" />
             </ResourceDictionary.MergedDictionaries>
 
-            <conv:MilestoneSourceToIconConverter x:Key="MilestoneIconConverter" />
             <conv:MedalCodeToEmojiConverter x:Key="MedalCodeToEmojiConverter" />
             <conv:PathToImageSourceConverter x:Key="PathToImageSourceConverter" />
             <conv:UtcToLocalDateTimeConverter x:Key="UtcToLocalDateTimeConverter" />

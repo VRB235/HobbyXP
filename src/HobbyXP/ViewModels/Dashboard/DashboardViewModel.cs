@@ -1,7 +1,6 @@
 using System.Collections.ObjectModel;
 using System.Windows.Media;
 using HobbyXP.Helpers;
-using HobbyXP.Models.Core;
 using HobbyXP.Services.Abstractions;
 using HobbyXP.Services.Messaging;
 using HobbyXP.Services.Results;
@@ -62,18 +61,15 @@ public sealed class DashboardViewModel : LoadableViewModelBase
         _weeklyQuotaService = weeklyQuotaService;
         _achievementProgress = achievementProgress;
         _imagePreviewService = imagePreviewService;
-        RecentMilestones = new ObservableCollection<Milestone>();
         SuggestedActivities = new ObservableCollection<LevelUpSuggestion>();
         HobbyProgressItems = new ObservableCollection<HobbyProgressInfo>();
         WeeklyQuotaItems = new ObservableCollection<WeeklyQuotaProgress>();
-        RefreshCommand = new AsyncRelayCommand(() => LoadAsync());
         OpenFeaturedRewardImageCommand = new RelayCommand(OpenFeaturedRewardImage, CanOpenFeaturedRewardImage);
         applicationDataResetMessenger.ApplicationDataReset += OnApplicationDataReset;
     }
 
     public RelayCommand OpenFeaturedRewardImageCommand { get; }
 
-    public ObservableCollection<Milestone> RecentMilestones { get; }
     public ObservableCollection<LevelUpSuggestion> SuggestedActivities { get; }
     public ObservableCollection<HobbyProgressInfo> HobbyProgressItems { get; }
     public ObservableCollection<WeeklyQuotaProgress> WeeklyQuotaItems { get; }
@@ -167,8 +163,6 @@ public sealed class DashboardViewModel : LoadableViewModelBase
         private set => SetProperty(ref _hasHobbyDistribution, value);
     }
 
-    public AsyncRelayCommand RefreshCommand { get; }
-
     public AchievementHubSnapshot? AchievementHub
     {
         get => _achievementHub;
@@ -233,10 +227,6 @@ public sealed class DashboardViewModel : LoadableViewModelBase
         await LoadHobbyProgressAsync();
         await LoadWeeklyQuotasAsync();
         AchievementHub = await _achievementProgress.GetHubSnapshotAsync();
-
-        RecentMilestones.Clear();
-        foreach (var milestone in summary.RecentMilestones)
-            RecentMilestones.Add(milestone);
 
         OnPropertyChanged(nameof(LevelProgressText));
         OnPropertyChanged(nameof(XpHeroSummary));

@@ -30,14 +30,13 @@ public sealed class DashboardService : IDashboardService
         var levelProgress = await _playerProfileService.GetLevelProgressAsync(cancellationToken);
         var weeklyXp = await _xpService.GetDailyXpForLastDaysAsync(7, cancellationToken);
         var monthlyDistribution = await GetMonthlyHobbyDistributionAsync(cancellationToken);
-        var milestones = await GetRecentMilestonesAsync(cancellationToken);
         var rules = await _achievementEngineService.GetAllRulesAsync(cancellationToken);
         var xpRemaining = Math.Max(0, levelProgress.XpRequiredForNextLevel - levelProgress.XpIntoCurrentLevel);
         var suggestions = levelProgress.TotalXp == 0
             ? Array.Empty<LevelUpSuggestion>()
             : LevelUpSuggestionBuilder.Build(xpRemaining, monthlyDistribution, rules);
 
-        return new DashboardSummary(levelProgress, weeklyXp, monthlyDistribution, milestones, suggestions);
+        return new DashboardSummary(levelProgress, weeklyXp, monthlyDistribution, suggestions);
     }
 
     private async Task<IReadOnlyList<HobbyDistributionSlice>> GetMonthlyHobbyDistributionAsync(
@@ -65,17 +64,6 @@ public sealed class DashboardService : IDashboardService
                 x.Count,
                 Math.Round(x.Count * 100d / total, 1)))
             .ToList();
-    }
-
-    private async Task<IReadOnlyList<Models.Core.Milestone>> GetRecentMilestonesAsync(
-        CancellationToken cancellationToken)
-    {
-        await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
-        return await db.Milestones
-            .AsNoTracking()
-            .OrderByDescending(m => m.CompletedAt)
-            .Take(20)
-            .ToListAsync(cancellationToken);
     }
 
     private static string GetCategoryLabel(MilestoneSourceType sourceType) => sourceType switch
