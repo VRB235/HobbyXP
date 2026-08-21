@@ -1,4 +1,6 @@
 using System.Collections.ObjectModel;
+using System.Windows;
+using System.Windows.Input;
 using HobbyXP.Helpers;
 using HobbyXP.Models.Enums;
 using HobbyXP.Models.Physical;
@@ -7,6 +9,7 @@ using HobbyXP.Services.Messaging;
 using HobbyXP.Services.Results;
 using HobbyXP.ViewModels.Common;
 using HobbyXP.ViewModels.Messaging;
+using HobbyXP.Views.Dialogs;
 
 namespace HobbyXP.ViewModels.Physical;
 
@@ -14,6 +17,7 @@ public sealed class RunningViewModel : AchievementAwareViewModel
 {
     private readonly IRunningService _runningService;
     private readonly IMessageDialogService _messageDialogService;
+    private readonly IFileDialogService _fileDialogService;
     private readonly IProfileRefreshMessenger _profileRefreshMessenger;
     private string _distanceKm = string.Empty;
     private string _durationMinutes = string.Empty;
@@ -26,6 +30,8 @@ public sealed class RunningViewModel : AchievementAwareViewModel
     private string _newRaceDistanceKm = string.Empty;
     private DateTime? _newRaceEventDate;
     private string _newRaceLocation = string.Empty;
+    private string? _newRacePreviewImagePath;
+    private string? _newRacePendingImagePath;
     private DateTime? _sessionsFromDate;
     private DateTime? _sessionsToDate;
     private RunningSessionTypeOption _selectedSessionTypeOption;
@@ -51,6 +57,7 @@ public sealed class RunningViewModel : AchievementAwareViewModel
         IXpService xpService,
         IWeeklyQuotaService weeklyQuotaService,
         IMessageDialogService messageDialogService,
+        IFileDialogService fileDialogService,
         IProfileRefreshMessenger profileRefreshMessenger,
         IAchievementMessenger achievementMessenger,
         IAchievementProgressService achievementProgress)
@@ -58,6 +65,7 @@ public sealed class RunningViewModel : AchievementAwareViewModel
     {
         _runningService = runningService;
         _messageDialogService = messageDialogService;
+        _fileDialogService = fileDialogService;
         _profileRefreshMessenger = profileRefreshMessenger;
         HobbyXp = new HobbyProgressPresenter(xpService, MilestoneSourceType.Running, weeklyQuotaService, achievementProgress);
         OfficialRaceXp = new HobbyProgressPresenter(xpService, MilestoneSourceType.OfficialRace, achievementProgress: achievementProgress);
@@ -81,6 +89,9 @@ public sealed class RunningViewModel : AchievementAwareViewModel
         DeleteOfficialRaceCommand = new AsyncRelayCommand(
             p => DeleteOfficialRaceAsync(p),
             p => p is OfficialRace || SelectedRace is not null);
+        OpenRaceDetailCommand = new RelayCommand(p => OpenRaceDetail(p), p => p is OfficialRace || SelectedRace is not null);
+        PickNewRaceImageCommand = new RelayCommand(PickNewRaceImage);
+        ClearNewRaceImageCommand = new RelayCommand(ClearNewRaceImage, () => HasNewRacePreviewImage);
         ApplyFirstSeriesToAllCommand = new RelayCommand(ApplyFirstSeriesToAll, () => SeriesRows.Count > 1);
         RefreshSessionValidation();
         RefreshRaceValidation();
@@ -251,6 +262,8 @@ public sealed class RunningViewModel : AchievementAwareViewModel
                 return;
 
             DeleteOfficialRaceCommand.RaiseCanExecuteChanged();
+            CompleteRaceCommand.RaiseCanExecuteChanged();
+            CommandManager.InvalidateRequerySuggested();
             _ = LoadRaceStatsAsync();
         }
     }
@@ -292,6 +305,21 @@ public sealed class RunningViewModel : AchievementAwareViewModel
         get => _newRaceLocation;
         set => SetProperty(ref _newRaceLocation, value);
     }
+
+    public string? NewRacePreviewImagePath
+    {
+        get => _newRacePreviewImagePath;
+        private set
+        {
+            if (SetProperty(ref _newRacePreviewImagePath, value))
+            {
+                OnPropertyChanged(nameof(HasNewRacePreviewImage));
+                CommandManager.InvalidateRequerySuggested();
+            }
+        }
+    }
+
+    public bool HasNewRacePreviewImage => !string.IsNullOrWhiteSpace(NewRacePreviewImagePath);
 
     public DateTime? SessionsFromDate
     {
@@ -360,6 +388,12 @@ public sealed class RunningViewModel : AchievementAwareViewModel
     public AsyncRelayCommand DeleteSessionCommand { get; }
 
     public AsyncRelayCommand DeleteOfficialRaceCommand { get; }
+
+    public RelayCommand OpenRaceDetailCommand { get; }
+
+    public RelayCommand PickNewRaceImageCommand { get; }
+
+    public RelayCommand ClearNewRaceImageCommand { get; }
 
     protected override async Task LoadCoreAsync()
     {
@@ -638,7 +672,10 @@ public sealed class RunningViewModel : AchievementAwareViewModel
                 CreatedAt = DateTime.UtcNow
             };
 
-            var saved = await _runningService.SaveOfficialRaceAsync(race);
+            var saved = await _runningService.SaveOfficialRaceAsync(
+                race,
+                imageSourcePath: _newRacePendingImagePath);
+            _newRacePendingImagePath = null;
             _allOfficialRaces.Insert(0, saved);
             ApplyOfficialRacesFilter();
             SyncRaceOptions();
@@ -648,10 +685,82 @@ public sealed class RunningViewModel : AchievementAwareViewModel
             NewRaceDistanceKm = string.Empty;
             NewRaceEventDate = null;
             NewRaceLocation = string.Empty;
+            NewRacePreviewImagePath = null;
             RaceValidationMessage = null;
 
             StatusMessage = $"Carrera oficial registrada: {saved.Name} ({saved.DistanceKm:0.##} km)";
         }, "Registrando carrera...");
+    }
+
+    private void PickNewRaceImage()
+    {
+        var path = _fileDialogService.PickImageFile();
+        if (string.IsNullOrWhiteSpace(path))
+            return;
+
+        DiscardNewRaceStagingImage();
+
+        var persisted = RacePhotoStorage.ImportToStaging(path);
+        if (persisted is null)
+        {
+            ErrorMessage = "No se pudo copiar la imagen al almacén de la aplicación.";
+            return;
+        }
+
+        ErrorMessage = null;
+        _newRacePendingImagePath = persisted;
+        NewRacePreviewImagePath = persisted;
+    }
+
+    private void ClearNewRaceImage()
+    {
+        DiscardNewRaceStagingImage();
+        NewRacePreviewImagePath = null;
+    }
+
+    private void DiscardNewRaceStagingImage()
+    {
+        if (_newRacePendingImagePath is null)
+            return;
+
+        RacePhotoStorage.DeleteStagingFile(_newRacePendingImagePath);
+        _newRacePendingImagePath = null;
+    }
+
+    private void OpenRaceDetail(object? parameter)
+    {
+        var race = parameter as OfficialRace ?? SelectedRace;
+        if (race is null)
+            return;
+
+        SelectedRace = race;
+
+        var detailVm = new OfficialRaceDetailViewModel(race, _runningService, _fileDialogService);
+        var dialog = new OfficialRaceDetailWindow(detailVm)
+        {
+            Owner = Application.Current.MainWindow
+        };
+
+        var accepted = dialog.ShowDialog() == true;
+        if (!accepted || detailVm.SavedRace is null)
+            return;
+
+        UpdateOfficialRace(detailVm.SavedRace);
+        SyncRaceOptions();
+        SelectedRace = OfficialRaces.FirstOrDefault(r => r.Id == detailVm.SavedRace.Id)
+            ?? detailVm.SavedRace;
+
+        if (detailVm.CompletionEvents.Length > 0)
+        {
+            PublishAchievements(detailVm.CompletionEvents);
+            _ = OfficialRaceXp.RefreshAsync();
+            _profileRefreshMessenger.RequestRefresh();
+            StatusMessage = $"¡Carrera completada! +{detailVm.SavedRace.BonusXpAwarded} XP";
+        }
+        else
+        {
+            StatusMessage = $"Carrera actualizada: {detailVm.SavedRace.Name}";
+        }
     }
 
     private bool CanSaveSession() => ValidateSessionForm().IsValid;

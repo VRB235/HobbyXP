@@ -200,6 +200,27 @@
                                             Style="{StaticResource AccentButton}"
                                             VerticalAlignment="Bottom" />
                                 </Grid>
+
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                    <Border Width="72" Height="48" CornerRadius="6" ClipToBounds="True"
+                                            Background="#1A2233" BorderBrush="{StaticResource BorderBrush}"
+                                            BorderThickness="1" Margin="0,0,8,0"
+                                            Visibility="{Binding HasNewRacePreviewImage, Converter={StaticResource BoolToVisibilityConverter}}">
+                                        <Image Source="{Binding NewRacePreviewImagePath, Converter={StaticResource PathToImageSourceConverter}}"
+                                               Stretch="UniformToFill" />
+                                    </Border>
+                                    <Button Content="Imagen"
+                                            Command="{Binding PickNewRaceImageCommand}"
+                                            Style="{StaticResource PrimaryButton}"
+                                            Margin="0,0,8,0"
+                                            VerticalAlignment="Center" />
+                                    <Button Content="Quitar"
+                                            Command="{Binding ClearNewRaceImageCommand}"
+                                            Style="{StaticResource AccentButton}"
+                                            VerticalAlignment="Center"
+                                            Visibility="{Binding HasNewRacePreviewImage, Converter={StaticResource BoolToVisibilityConverter}}" />
+                                </StackPanel>
+
                                 <controls:FormValidationBanner Message="{Binding RaceValidationMessage}" />
                             </StackPanel>
                         </Expander>
@@ -220,6 +241,10 @@
                                     <TextBlock Text="{Binding TrainingSessionCount, StringFormat=Entrenamientos: {0}}" />
                                     <TextBlock Text="{Binding TotalTrainingKm, StringFormat=Km totales: {0:0.##}}" />
                                     <TextBlock Text="{Binding BestPaceMinPerKm, StringFormat=Mejor ritmo: {0:0.00} min/km}" />
+                                    <TextBlock Text="Clic en una carrera para editarla."
+                                               Style="{StaticResource MutedText}"
+                                               Margin="0,12,0,0"
+                                               TextWrapping="Wrap" />
                                 </StackPanel>
 
                                 <Grid Grid.Column="1" VerticalAlignment="Stretch">
@@ -261,43 +286,104 @@
                                                 Margin="0,0,8,0" />
                                         <Button Content="Eliminar"
                                                 Command="{Binding DeleteOfficialRaceCommand}"
-                                                Style="{StaticResource DangerIconButton}"
-                                                ToolTip="Eliminar carrera del historial"
-                                                Padding="12,6" />
+                                                Style="{StaticResource DangerButton}"
+                                                ToolTip="Eliminar carrera del historial" />
                                     </StackPanel>
 
-                                    <ListView Grid.Row="2"
-                                              ItemsSource="{Binding OfficialRaces}"
-                                              SelectedItem="{Binding SelectedRace}"
-                                              MinHeight="480"
-                                              HorizontalAlignment="Stretch"
-                                              VerticalAlignment="Stretch"
-                                              helpers:GridViewStretchHelper.StretchColumns="True"
-                                              helpers:GridViewSortHelper.EnableSort="True">
-                                        <ListView.View>
-                                            <GridView>
-                                                <GridViewColumn Header="Nombre" DisplayMemberBinding="{Binding Name}" Width="180" />
-                                                <GridViewColumn Header="Fecha" DisplayMemberBinding="{Binding EventDateLabel}"
-                                                                helpers:GridViewSortHelper.SortProperty="EventDate" Width="90" />
-                                                <GridViewColumn Header="Km" DisplayMemberBinding="{Binding DistanceKm, StringFormat={}{0:0.##}}" Width="55" />
-                                                <GridViewColumn Header="Ubicación" DisplayMemberBinding="{Binding LocationLabel}"
-                                                                helpers:GridViewSortHelper.SortProperty="Location" Width="140" />
-                                                <GridViewColumn Header="Estado" DisplayMemberBinding="{Binding StatusLabel}"
-                                                                helpers:GridViewSortHelper.SortProperty="IsCompleted" Width="90" />
-                                                <GridViewColumn Header="" Width="44">
-                                                    <GridViewColumn.CellTemplate>
-                                                        <DataTemplate>
-                                                            <Button Content="✕"
+                                    <ScrollViewer Grid.Row="2"
+                                                  VerticalScrollBarVisibility="Auto"
+                                                  HorizontalScrollBarVisibility="Disabled"
+                                                  MinHeight="480">
+                                        <ItemsControl ItemsSource="{Binding OfficialRaces}">
+                                            <ItemsControl.ItemsPanel>
+                                                <ItemsPanelTemplate>
+                                                    <WrapPanel />
+                                                </ItemsPanelTemplate>
+                                            </ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Border Width="168"
+                                                            Margin="0,0,12,12"
+                                                            Background="#152033"
+                                                            BorderBrush="{StaticResource BorderBrush}"
+                                                            BorderThickness="1"
+                                                            CornerRadius="10">
+                                                        <Grid>
+                                                            <Grid.RowDefinitions>
+                                                                <RowDefinition Height="110" />
+                                                                <RowDefinition Height="Auto" />
+                                                            </Grid.RowDefinitions>
+
+                                                            <Button Grid.Row="0"
+                                                                    Grid.RowSpan="2"
+                                                                    Command="{Binding DataContext.OpenRaceDetailCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                                    CommandParameter="{Binding}"
+                                                                    Cursor="Hand"
+                                                                    Background="Transparent"
+                                                                    BorderThickness="0"
+                                                                    Padding="0"
+                                                                    HorizontalContentAlignment="Stretch"
+                                                                    VerticalContentAlignment="Stretch"
+                                                                    ToolTip="Ver y editar carrera">
+                                                                <Grid>
+                                                                    <Grid.RowDefinitions>
+                                                                        <RowDefinition Height="110" />
+                                                                        <RowDefinition Height="Auto" />
+                                                                    </Grid.RowDefinitions>
+
+                                                                    <Border Grid.Row="0"
+                                                                            Background="#1A2233"
+                                                                            CornerRadius="10,10,0,0"
+                                                                            ClipToBounds="True">
+                                                                        <Grid>
+                                                                            <TextBlock Text="Sin imagen"
+                                                                                       Style="{StaticResource MutedText}"
+                                                                                       HorizontalAlignment="Center"
+                                                                                       VerticalAlignment="Center"
+                                                                                       Visibility="{Binding HasImage, Converter={StaticResource InverseBoolToVisibilityConverter}}" />
+                                                                            <Image Source="{Binding ImageDisplayPath, Converter={StaticResource PathToImageSourceConverter}}"
+                                                                                   Stretch="UniformToFill"
+                                                                                   Visibility="{Binding HasImage, Converter={StaticResource BoolToVisibilityConverter}}" />
+                                                                        </Grid>
+                                                                    </Border>
+
+                                                                    <StackPanel Grid.Row="1" Margin="10,8,10,10">
+                                                                        <TextBlock Text="{Binding Name}"
+                                                                                   FontWeight="SemiBold"
+                                                                                   TextWrapping="Wrap"
+                                                                                   MaxHeight="40"
+                                                                                   ToolTip="{Binding Name}" />
+                                                                        <TextBlock Text="{Binding EventDateLabel}"
+                                                                                   Style="{StaticResource MutedText}"
+                                                                                   Margin="0,4,0,0" />
+                                                                        <DockPanel Margin="0,2,0,0">
+                                                                            <TextBlock DockPanel.Dock="Right"
+                                                                                       Text="{Binding StatusLabel}"
+                                                                                       Style="{StaticResource MutedText}" />
+                                                                            <TextBlock Text="{Binding DistanceLabel}" />
+                                                                        </DockPanel>
+                                                                    </StackPanel>
+                                                                </Grid>
+                                                            </Button>
+
+                                                            <Button Grid.Row="0"
+                                                                    Content="✕"
+                                                                    Width="28" Height="28"
+                                                                    Padding="0"
+                                                                    HorizontalAlignment="Right"
+                                                                    VerticalAlignment="Top"
+                                                                    Margin="0,6,6,0"
+                                                                    Panel.ZIndex="1"
                                                                     Style="{StaticResource DangerIconButton}"
                                                                     ToolTip="Eliminar del historial"
-                                                                    Command="{Binding DataContext.DeleteOfficialRaceCommand, RelativeSource={RelativeSource AncestorType=ListView}}"
+                                                                    Command="{Binding DataContext.DeleteOfficialRaceCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
                                                                     CommandParameter="{Binding}" />
-                                                        </DataTemplate>
-                                                    </GridViewColumn.CellTemplate>
-                                                </GridViewColumn>
-                                            </GridView>
-                                        </ListView.View>
-                                    </ListView>
+                                                        </Grid>
+                                                    </Border>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </ScrollViewer>
                                 </Grid>
                             </Grid>
                         </Expander>

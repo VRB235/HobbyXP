@@ -39,6 +39,10 @@ public static class LocalImageLoader
         if (fromReward is not null)
             return fromReward;
 
+        var fromRace = RacePhotoStorage.ResolveAbsolutePath(path);
+        if (fromRace is not null)
+            return fromRace;
+
         if (string.IsNullOrWhiteSpace(path) || Path.IsPathRooted(path))
             return null;
 

@@ -24,6 +24,9 @@ internal sealed class OfficialRaceConfiguration : IEntityTypeConfiguration<Offic
         builder.Property(r => r.Description)
             .HasMaxLength(1000);
 
+        builder.Property(r => r.ImagePath)
+            .HasMaxLength(500);
+
         builder.HasIndex(r => r.IsCompleted);
     }
 }

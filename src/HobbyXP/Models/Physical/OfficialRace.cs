@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations.Schema;
+using HobbyXP.Helpers;
 using HobbyXP.Models.Common;
 
 namespace HobbyXP.Models.Physical;
@@ -18,6 +19,9 @@ public class OfficialRace : EntityBase
 
     public string? Description { get; set; }
 
+    /// <summary>Ruta relativa al directorio de datos (copia gestionada por la app).</summary>
+    public string? ImagePath { get; set; }
+
     public bool IsCompleted { get; set; }
 
     public DateTime? CompletedAt { get; set; }
@@ -34,4 +38,13 @@ public class OfficialRace : EntityBase
 
     [NotMapped]
     public string LocationLabel => string.IsNullOrWhiteSpace(Location) ? "—" : Location;
+
+    [NotMapped]
+    public string DistanceLabel => $"{DistanceKm:0.##} km";
+
+    [NotMapped]
+    public string? ImageDisplayPath => RacePhotoStorage.ResolveAbsolutePath(ImagePath);
+
+    [NotMapped]
+    public bool HasImage => !string.IsNullOrWhiteSpace(ImageDisplayPath);
 }

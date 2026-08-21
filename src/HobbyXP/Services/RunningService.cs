@@ -203,30 +203,56 @@ public sealed class RunningService : IRunningService
 
     public async Task<OfficialRace> SaveOfficialRaceAsync(
         OfficialRace race,
+        string? imageSourcePath = null,
+        bool clearImage = false,
         CancellationToken cancellationToken = default)
     {
         await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
 
         if (race.Id == 0)
         {
+            // La imagen se copia tras obtener Id (carpeta por carrera).
+            race.ImagePath = null;
             db.OfficialRaces.Add(race);
+            await db.SaveChangesAsync(cancellationToken);
+
+            if (!string.IsNullOrWhiteSpace(imageSourcePath))
+            {
+                race.ImagePath = RacePhotoStorage.SaveFromSource(race.Id, imageSourcePath);
+                race.UpdatedAt = DateTime.UtcNow;
+                await db.SaveChangesAsync(cancellationToken);
+            }
+
+            return race;
+        }
+
+        var existing = await db.OfficialRaces.FindAsync([race.Id], cancellationToken)
+            ?? throw new InvalidOperationException($"No existe la carrera con Id {race.Id}.");
+
+        existing.Name = race.Name;
+        existing.DistanceKm = race.DistanceKm;
+        existing.EventDate = race.EventDate;
+        existing.Location = race.Location;
+        existing.Description = race.Description;
+        existing.UpdatedAt = DateTime.UtcNow;
+
+        if (clearImage)
+        {
+            RacePhotoStorage.DeleteStoredPhoto(existing.Id, existing.ImagePath);
+            existing.ImagePath = null;
+        }
+        else if (!string.IsNullOrWhiteSpace(imageSourcePath))
+        {
+            RacePhotoStorage.DeleteStoredPhoto(existing.Id, existing.ImagePath);
+            existing.ImagePath = RacePhotoStorage.SaveFromSource(existing.Id, imageSourcePath);
         }
         else
         {
-            var existing = await db.OfficialRaces.FindAsync([race.Id], cancellationToken)
-                ?? throw new InvalidOperationException($"No existe la carrera con Id {race.Id}.");
-
-            existing.Name = race.Name;
-            existing.DistanceKm = race.DistanceKm;
-            existing.EventDate = race.EventDate;
-            existing.Location = race.Location;
-            existing.Description = race.Description;
-            existing.UpdatedAt = DateTime.UtcNow;
-            race = existing;
+            existing.ImagePath = RacePhotoStorage.EnsureManaged(existing.Id, existing.ImagePath);
         }
 
         await db.SaveChangesAsync(cancellationToken);
-        return race;
+        return existing;
     }
 
     public async Task<OperationResult<OfficialRace>> CompleteOfficialRaceAsync(
@@ -281,6 +307,24 @@ public sealed class RunningService : IRunningService
         events.AddRange(medalEvents);
 
         return OperationResult<OfficialRace>.WithEvents(race, events.ToArray());
+    }
+
+    public async Task<OfficialRace> MarkOfficialRacePendingAsync(
+        int raceId,
+        CancellationToken cancellationToken = default)
+    {
+        await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var race = await db.OfficialRaces.FindAsync([raceId], cancellationToken)
+            ?? throw new InvalidOperationException($"No existe la carrera con Id {raceId}.");
+
+        if (!race.IsCompleted)
+            return race;
+
+        race.IsCompleted = false;
+        race.CompletedAt = null;
+        race.UpdatedAt = DateTime.UtcNow;
+        await db.SaveChangesAsync(cancellationToken);
+        return race;
     }
 
     public async Task<RacePreparationStats> GetRacePreparationStatsAsync(
@@ -369,6 +413,7 @@ public sealed class RunningService : IRunningService
             $"Eliminado del historial: carrera oficial {race.Name}",
             cancellationToken);
 
+        RacePhotoStorage.DeleteRaceFolder(raceId);
         db.OfficialRaces.Remove(race);
         await db.SaveChangesAsync(cancellationToken);
         return true;

@@ -24,9 +24,15 @@ public interface IRunningService
 
     Task<OfficialRace> SaveOfficialRaceAsync(
         OfficialRace race,
+        string? imageSourcePath = null,
+        bool clearImage = false,
         CancellationToken cancellationToken = default);
 
     Task<OperationResult<OfficialRace>> CompleteOfficialRaceAsync(
+        int raceId,
+        CancellationToken cancellationToken = default);
+
+    Task<OfficialRace> MarkOfficialRacePendingAsync(
         int raceId,
         CancellationToken cancellationToken = default);
 
