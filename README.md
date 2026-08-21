@@ -2,7 +2,7 @@
 
 Aplicativo de escritorio **WPF (.NET 8)** para gamificar hobbies personales (running, gimnasio, **dieta**, entretenimiento, libros/cursos) con sistema de **XP, niveles, medallas, premios y disciplina semanal**.
 
-**Versión actual: 1.6.0** (producción: rama `main`, tag [`v1.6.0`](https://github.com/VRB235/HobbyXP/releases/tag/v1.6.0)).
+**Versión actual: 1.7.0** (producción: rama `main`, tag [`v1.7.0`](https://github.com/VRB235/HobbyXP/releases/tag/v1.7.0)).
 
 - **Plataforma**: Windows 10/11, `net8.0-windows10.0.19041`.
 - **Arquitectura**: MVVM con inyección de dependencias (`Microsoft.Extensions.Hosting`).
@@ -40,17 +40,20 @@ El `README.md` se mantiene como **vista ejecutiva y técnica resumida** del esta
   - Registro de actividades por dominio (running, gym, **dieta**, puzzles, media/series, videojuegos, libros, cursos).
   - **Pools de XP por hobby** + nivel global meta (`HobbyLevelUp`); títulos alegóricos por nivel (`HobbyLevelTitles`).
   - **Saldo canjeable** (`SpendableXp`) independiente del XP de progresión; tienda de premios **por módulo** (Running, Gimnasio, …), inventario, equipar reliquia y costo **base × nivel**.
+  - Premios enriquecidos: imagen local, precio estimado, enlace y texto de motivación; banner de módulo muestra el **premio más cercano** por XP faltante.
   - **Logros visibles**: siguiente medalla en cada hobby, widget en Dashboard, overlay al desbloquear, badge en sidebar. Cada medalla otorga saldo, título de honor e **inmunidad de disciplina 7 días**.
-  - **Disciplina** (diaria + semanal lun–dom): incumplimiento baja un nivel del hobby; actividad atrasada puede restaurar. **Diario** (Running/Gym/Libros/Cursos): 1 sesión; libros ≥20% páginas del libro actual (terminarlo también cumple el día). **Semanal**: Running 4, Gym 5, Curso 5 sesiones, Libro 1 terminado. Series: 1 serie terminada si hay serie en progreso, más 2 películas.
+  - **Disciplina** (diaria + semanal lun–dom): incumplimiento baja un nivel del hobby; actividad atrasada puede restaurar. **Diario** (Running/Gym/Libros/Cursos): 1 sesión; libros ≥20% páginas del libro actual (terminarlo también cumple el día; **semanal ya cumplida** o **exceso de páginas** también cubren la diaria). **Semanal**: Running 4, Gym 5, Curso 5 sesiones, Libro 1 terminado. Series: 1 serie terminada si hay serie en progreso, más 2 películas.
+  - Running: sesiones umbral con **series** (cantidad, distancia m/km, tiempo) y resumen en historial; **carreras oficiales** en grilla con imagen persistente y ventana de detalle/edición.
   - Gimnasio: ejercicios con **grupo muscular** opcional (Pecho, Tríceps, Bíceps, Hombros, Core, Espalda, Cuádriceps, Gemelos, Glúteos, Abductores, Aductores, Isquiotibiales); catálogo agrupado, filtro al armar el entrenamiento, **preservar ejercicios al filtrar**, carga de referencia del último entreno y asignación a ejercicios legacy.
   - **Dieta**: adherencia por 4 comidas (En plan / Fuera de plan); día bueno ≥ 3/4; cuota 5 días buenos/semana.
+  - Entretenimiento y crecimiento: **portadas** (libros, cursos, series, entradas de media, videojuegos) con miniatura en filas de progreso, almacén local y ventanas de detalle.
   - Otorgamiento y deducción de XP mediante `XpService` y registro de transacciones/hitos.
   - Motor de medallas `AchievementEngineService` basado en reglas (`AchievementActionType`).
   - Sistema de recompensas (`Reward`) canjeables por XP (inventario y reliquia equipable).
-  - **Sugerencias**: registro local de mejoras y errores (con imágenes, fecha y estado resuelta/pendiente); filtros por texto, tipo, estado y rango de fechas. Clic en miniatura para ampliar y abrir en el sistema. Sin XP.
+  - **Sugerencias**: registro local de mejoras y errores (con imágenes, fecha y estado resuelta/pendiente); filtros por texto, tipo, estado y rango de fechas. Detalle modal con texto completo y copia al portapapeles. Clic en miniatura para ampliar y abrir en el sistema. Sin XP.
 - **Interfaz**:
   - Sidebar con perfil, navegación lateral y estado de XP/nivel.
-  - Dashboard con gráficos de XP, **hub de logros/premios**, cuotas semanales y hitos recientes.
+  - Dashboard con gráficos de XP, **hub de logros/premios** y cuotas semanales (sin bloque de “últimos hitos”).
   - Overlay de celebración al subir de nivel (`LevelUpOverlay`) y al desbloquear medalla (`MedalUnlockOverlay`).
   - Vitrina de medallas por hobby, con secciones colapsables.
   - Tablas de historial (running, gimnasio, **dieta**, media, libros, cursos, logros, **sugerencias**) con **ordenación por columna** (clic en cabecera Asc/Desc; helper `GridViewSortHelper`).
@@ -108,13 +111,18 @@ Copy-Item "$env:LOCALAPPDATA\HobbyXP\*" "$env:LOCALAPPDATA\HobbyXP-Dev\" -Recurs
 
 ---
 
-## Mejoras incluidas en 1.6.0
+## Mejoras incluidas en 1.7.0
 
 | Área | Qué cambió |
 |------|------------|
-| **Disciplina** | Cuota diaria + ajuste de cuota semanal de libro terminado. |
-| **Sugerencias** | Nueva sección del sidebar: registrar mejoras/errores con imágenes, fecha, marcar resuelta y filtrar por rango de fechas (además de tipo/estado/texto). Clic en miniatura abre visor + «Abrir en el sistema». Migración `AddSuggestions`. |
-| **Versión** | 1.5.0 → **1.6.0** (csproj, Inno Setup, manifiesto MSIX). |
+| **Sugerencias** | Ventana de detalle con título, descripción completa, metadatos e imágenes; copia de la descripción al portapapeles. |
+| **Disciplina** | Semanal ya cumplida y exceso de páginas del libro cubren la cuota diaria (`DailyQuotaRules` / `WeeklyQuotaService`). |
+| **Premios** | Imagen, precio, enlace y motivación; edición completa; almacén local de fotos; premio más cercano por módulo en banner/dashboard. Migración `AddRewardPurchaseDetails`. |
+| **Dashboard** | Eliminada la sección de últimos hitos. |
+| **Running** | Series por sesión umbral (cantidad, distancia m/km, tiempo) con resumen en historial. Migración `AddRunningSessionSeries`. |
+| **Carreras oficiales** | Grilla con imagen persistente y ventana de detalle/edición. Migración `AddOfficialRaceImagePath`. |
+| **Portadas** | Imagen en libros, cursos, series, media y videojuegos; miniaturas en filas de progreso; ventanas de detalle. Migración `AddHobbyCoverImagePaths`. |
+| **Versión** | 1.6.0 → **1.7.0** (csproj, Inno Setup, manifiesto MSIX). |
 
 ---
 
@@ -139,7 +147,7 @@ Para generar un ZIP portable autocontenido:
 .\scripts\package-portable.ps1
 ```
 
-Salida: `artifacts\HobbyXP-win-x64-Release.zip`. Release GitHub: [`v1.6.0`](https://github.com/VRB235/HobbyXP/releases/tag/v1.6.0).
+Salida: `artifacts\HobbyXP-win-x64-Release.zip`. Release GitHub: [`v1.7.0`](https://github.com/VRB235/HobbyXP/releases/tag/v1.7.0).
 
 MSIX e instalador Inno Setup: ver [`docs/DISTRIBUCION.md`](docs/DISTRIBUCION.md).
 
