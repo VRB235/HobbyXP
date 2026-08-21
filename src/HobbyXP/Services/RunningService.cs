@@ -33,6 +33,7 @@ public sealed class RunningService : IRunningService
         return await db.RunningSessions
             .AsNoTracking()
             .Include(s => s.Carrera)
+            .Include(s => s.Series)
             .OrderByDescending(s => s.RecordedAt)
             .ToListAsync(cancellationToken);
     }
@@ -62,6 +63,7 @@ public sealed class RunningService : IRunningService
         DateTime recordedAt,
         int? carreraId = null,
         string? notes = null,
+        IReadOnlyList<RunningSeriesDraft>? series = null,
         CancellationToken cancellationToken = default)
     {
         if (distanceKm <= 0)
@@ -72,6 +74,8 @@ public sealed class RunningService : IRunningService
 
         if (!Enum.IsDefined(sessionType))
             throw new ArgumentOutOfRangeException(nameof(sessionType), "Tipo de sesión inválido.");
+
+        ValidateSeriesDrafts(sessionType, series);
 
         await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
 
@@ -92,6 +96,19 @@ public sealed class RunningService : IRunningService
             Notes = notes,
             RecordedAt = DateTimeHelper.ToUtcFromLocalDate(recordedAt)
         };
+
+        if (series is { Count: > 0 })
+        {
+            foreach (var draft in series.OrderBy(s => s.SortOrder))
+            {
+                session.Series.Add(new RunningSessionSeries
+                {
+                    SortOrder = draft.SortOrder,
+                    DistanceKm = draft.DistanceKm,
+                    Duration = draft.Duration
+                });
+            }
+        }
 
         db.RunningSessions.Add(session);
         await db.SaveChangesAsync(cancellationToken);
@@ -155,6 +172,33 @@ public sealed class RunningService : IRunningService
         await _weeklyQuotaService.NotifyActivityAsync(MilestoneSourceType.Running, recordedAt.Date, cancellationToken);
 
         return OperationResult<RunningSession>.WithEvents(session, events.ToArray());
+    }
+
+    private static void ValidateSeriesDrafts(
+        RunningSessionType sessionType,
+        IReadOnlyList<RunningSeriesDraft>? series)
+    {
+        if (series is null || series.Count == 0)
+            return;
+
+        if (sessionType != RunningSessionType.Umbral)
+            throw new ArgumentException("Las series solo aplican a sesiones de tipo Umbral.", nameof(series));
+
+        var orders = new HashSet<int>();
+        foreach (var draft in series)
+        {
+            if (draft.SortOrder <= 0)
+                throw new ArgumentOutOfRangeException(nameof(series), "El orden de serie debe ser mayor que cero.");
+
+            if (!orders.Add(draft.SortOrder))
+                throw new ArgumentException($"Hay series duplicadas con orden {draft.SortOrder}.", nameof(series));
+
+            if (draft.DistanceKm <= 0)
+                throw new ArgumentOutOfRangeException(nameof(series), "La distancia de cada serie debe ser mayor que cero.");
+
+            if (draft.Duration <= TimeSpan.Zero)
+                throw new ArgumentOutOfRangeException(nameof(series), "El tiempo de cada serie debe ser mayor que cero.");
+        }
     }
 
     public async Task<OfficialRace> SaveOfficialRaceAsync(
@@ -273,12 +317,18 @@ public sealed class RunningService : IRunningService
         await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
         var session = await db.RunningSessions
             .Include(s => s.Carrera)
+            .Include(s => s.Series)
             .FirstOrDefaultAsync(s => s.Id == sessionId, cancellationToken);
         if (session is null)
             return null;
 
         session.SessionType = sessionType;
         session.UpdatedAt = DateTime.UtcNow;
+
+        // Las series solo tienen sentido en umbral; al cambiar de tipo se eliminan.
+        if (sessionType != RunningSessionType.Umbral && session.Series.Count > 0)
+            db.RunningSessionSeries.RemoveRange(session.Series);
+
         await db.SaveChangesAsync(cancellationToken);
 
         // Detach-friendly copy for UI (AsNoTracking-style consumers).

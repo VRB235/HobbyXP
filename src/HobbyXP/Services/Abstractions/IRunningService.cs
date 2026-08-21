@@ -19,6 +19,7 @@ public interface IRunningService
         DateTime recordedAt,
         int? carreraId = null,
         string? notes = null,
+        IReadOnlyList<RunningSeriesDraft>? series = null,
         CancellationToken cancellationToken = default);
 
     Task<OfficialRace> SaveOfficialRaceAsync(

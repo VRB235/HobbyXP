@@ -44,6 +44,7 @@ public sealed class RunningViewModel : AchievementAwareViewModel
     private bool _isOfficialRacesExpanded;
     private bool _isSessionsExpanded;
     private bool _suppressSectionAccordion;
+    private int _seriesCount;
 
     public RunningViewModel(
         IRunningService runningService,
@@ -63,6 +64,7 @@ public sealed class RunningViewModel : AchievementAwareViewModel
         Sessions = new ObservableCollection<RunningSession>();
         OfficialRaces = new ObservableCollection<OfficialRace>();
         RaceOptions = new ObservableCollection<RaceOption> { RaceOption.None };
+        SeriesRows = new ObservableCollection<RunningSeriesRowViewModel>();
         SessionTypeOptions = RunningSessionTypeOption.CreateCatalogOptions();
         SessionTypeFilterOptions = RunningSessionTypeOption.CreateFilterOptions();
         _selectedSessionTypeOption = SessionTypeOptions[0];
@@ -79,6 +81,7 @@ public sealed class RunningViewModel : AchievementAwareViewModel
         DeleteOfficialRaceCommand = new AsyncRelayCommand(
             p => DeleteOfficialRaceAsync(p),
             p => p is OfficialRace || SelectedRace is not null);
+        ApplyFirstSeriesToAllCommand = new RelayCommand(ApplyFirstSeriesToAll, () => SeriesRows.Count > 1);
         RefreshSessionValidation();
         RefreshRaceValidation();
     }
@@ -129,14 +132,39 @@ public sealed class RunningViewModel : AchievementAwareViewModel
 
     public ObservableCollection<RaceOption> RaceOptions { get; }
 
+    public ObservableCollection<RunningSeriesRowViewModel> SeriesRows { get; }
+
     public IReadOnlyList<RunningSessionTypeOption> SessionTypeOptions { get; }
 
     public IReadOnlyList<RunningSessionTypeOption> SessionTypeFilterOptions { get; }
 
+    public bool ShowUmbralSeriesPanel => SelectedSessionTypeOption.Value == RunningSessionType.Umbral;
+
+    public int SeriesCount
+    {
+        get => _seriesCount;
+        set
+        {
+            var clamped = Math.Clamp(value, 0, 30);
+            if (!SetProperty(ref _seriesCount, clamped))
+                return;
+
+            SyncSeriesRows();
+            RefreshSessionValidation();
+        }
+    }
+
     public RunningSessionTypeOption SelectedSessionTypeOption
     {
         get => _selectedSessionTypeOption;
-        set => SetProperty(ref _selectedSessionTypeOption, value);
+        set
+        {
+            if (!SetProperty(ref _selectedSessionTypeOption, value))
+                return;
+
+            OnPropertyChanged(nameof(ShowUmbralSeriesPanel));
+            RefreshSessionValidation();
+        }
     }
 
     public RunningSessionTypeOption SessionsTypeFilterOption
@@ -318,6 +346,8 @@ public sealed class RunningViewModel : AchievementAwareViewModel
     public AsyncRelayCommand SaveSessionCommand { get; }
 
     public AsyncRelayCommand UpdateSessionTypeCommand { get; }
+
+    public RelayCommand ApplyFirstSeriesToAllCommand { get; }
 
     public AsyncRelayCommand RegisterOfficialRaceCommand { get; }
 
@@ -502,9 +532,66 @@ public sealed class RunningViewModel : AchievementAwareViewModel
         if (!SessionDate.HasValue)
             return ValidationResult.Fail("Indique la fecha de la sesión.");
 
-        return min == 0 && sec == 0
-            ? ValidationResult.Fail("Indique una duración mayor que cero.")
-            : ValidationResult.Ok();
+        if (min == 0 && sec == 0)
+            return ValidationResult.Fail("Indique una duración mayor que cero.");
+
+        if (ShowUmbralSeriesPanel && SeriesRows.Count > 0)
+        {
+            foreach (var row in SeriesRows)
+            {
+                if (!row.TryBuildDraft(out _, out var seriesError))
+                    return ValidationResult.Fail(seriesError ?? "Complete las series de umbral.");
+            }
+        }
+
+        return ValidationResult.Ok();
+    }
+
+    private void SyncSeriesRows()
+    {
+        while (SeriesRows.Count > SeriesCount)
+            SeriesRows.RemoveAt(SeriesRows.Count - 1);
+
+        while (SeriesRows.Count < SeriesCount)
+        {
+            var order = SeriesRows.Count + 1;
+            var previous = SeriesRows.LastOrDefault();
+            var row = new RunningSeriesRowViewModel(order, RefreshSessionValidation);
+            if (previous is not null &&
+                !string.IsNullOrWhiteSpace(previous.Distance) &&
+                !string.IsNullOrWhiteSpace(previous.DurationMinutes))
+            {
+                row.Distance = previous.Distance;
+                row.DistanceUnit = previous.DistanceUnit;
+                row.DurationMinutes = previous.DurationMinutes;
+                row.DurationSeconds = previous.DurationSeconds;
+            }
+
+            SeriesRows.Add(row);
+        }
+    }
+
+    private void ApplyFirstSeriesToAll()
+    {
+        if (SeriesRows.Count == 0)
+            return;
+
+        var first = SeriesRows[0];
+        for (var i = 1; i < SeriesRows.Count; i++)
+        {
+            SeriesRows[i].Distance = first.Distance;
+            SeriesRows[i].DistanceUnit = first.DistanceUnit;
+            SeriesRows[i].DurationMinutes = first.DurationMinutes;
+            SeriesRows[i].DurationSeconds = first.DurationSeconds;
+        }
+
+        RefreshSessionValidation();
+    }
+
+    private void ClearSeriesForm()
+    {
+        SeriesCount = 0;
+        SeriesRows.Clear();
     }
 
     private ValidationResult ValidateRaceForm() =>
@@ -582,15 +669,35 @@ public sealed class RunningViewModel : AchievementAwareViewModel
         FormValidation.RequireIntInRange(DurationSeconds, "Los segundos", 0, 59, out var sec);
         var duration = new TimeSpan(0, min, sec);
         var raceId = SelectedRaceOption?.Id;
+        var sessionType = SelectedSessionTypeOption.Value ?? RunningSessionType.Regenerativa;
+
+        IReadOnlyList<RunningSeriesDraft>? seriesDrafts = null;
+        if (sessionType == RunningSessionType.Umbral && SeriesRows.Count > 0)
+        {
+            var drafts = new List<RunningSeriesDraft>(SeriesRows.Count);
+            foreach (var row in SeriesRows)
+            {
+                if (!row.TryBuildDraft(out var draft, out _) || draft is null)
+                {
+                    RefreshSessionValidation();
+                    return;
+                }
+
+                drafts.Add(draft);
+            }
+
+            seriesDrafts = drafts;
+        }
 
         await RunBusyAsync(async () =>
         {
             var result = await _runningService.SaveSessionAsync(
                 distance,
                 duration,
-                SelectedSessionTypeOption.Value ?? RunningSessionType.Regenerativa,
+                sessionType,
                 SessionDate ?? DateTime.Today,
-                raceId);
+                raceId,
+                series: seriesDrafts);
             PublishAchievements(result.Events);
             await HobbyXp.RefreshAsync();
             _allSessions.Insert(0, result.Value);
@@ -609,11 +716,15 @@ public sealed class RunningViewModel : AchievementAwareViewModel
             DurationSeconds = string.Empty;
             SessionDate = DateTime.Today;
             SelectedSessionTypeOption = SessionTypeOptions[0];
+            ClearSeriesForm();
             SessionValidationMessage = null;
             // El acordeón deja "Nueva sesión" abierta por defecto; abrir el historial
             // para que el alta sea visible sin un clic extra.
             IsSessionsExpanded = true;
-            StatusMessage = $"Sesión {result.Value.SessionTypeLabel} · Ritmo: {result.Value.PaceMinPerKm:0.00} min/km · +{result.Value.XpEarned} XP";
+            var seriesNote = result.Value.Series.Count > 0
+                ? $" · Series: {result.Value.SeriesSummary}"
+                : string.Empty;
+            StatusMessage = $"Sesión {result.Value.SessionTypeLabel} · Ritmo: {result.Value.PaceMinPerKm:0.00} min/km · +{result.Value.XpEarned} XP{seriesNote}";
         }, "Guardando sesión...");
     }
 

@@ -40,9 +40,44 @@ public class RunningSession : EntityBase
 
     public OfficialRace? Carrera { get; set; }
 
+    public ICollection<RunningSessionSeries> Series { get; set; } = new List<RunningSessionSeries>();
+
     [NotMapped]
     public string CarreraOficialNombre => Carrera?.Name ?? "(Sin carrera)";
 
     [NotMapped]
     public string SessionTypeLabel => RunningSessionTypeLabels.GetOrUnassigned(SessionType);
+
+    /// <summary>Resumen de series para historial (p. ej. "5×1 km" o "4×800 m").</summary>
+    [NotMapped]
+    public string SeriesSummary
+    {
+        get
+        {
+            if (Series is null || Series.Count == 0)
+                return "—";
+
+            var ordered = Series.OrderBy(s => s.SortOrder).ToList();
+            var first = ordered[0];
+            var sameDistance = ordered.All(s => s.DistanceKm == first.DistanceKm);
+            var sameDuration = ordered.All(s => s.Duration == first.Duration);
+
+            if (sameDistance && sameDuration)
+                return $"{ordered.Count}× {FormatSeriesDistance(first.DistanceKm)} · {first.Duration:mm\\:ss}";
+
+            if (sameDistance)
+                return $"{ordered.Count}× {FormatSeriesDistance(first.DistanceKm)}";
+
+            return $"{ordered.Count} series";
+        }
+    }
+
+    private static string FormatSeriesDistance(decimal distanceKm)
+    {
+        var meters = distanceKm * 1000m;
+        if (meters == decimal.Truncate(meters) && meters is >= 1 and < 1000)
+            return $"{meters:0} m";
+
+        return $"{distanceKm:0.###} km";
+    }
 }

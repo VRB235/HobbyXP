@@ -72,6 +72,92 @@
 
                                     <Button Grid.Column="10" Content="Guardar" Command="{Binding SaveSessionCommand}" Style="{StaticResource AccentButton}" Margin="12,0,0,0" />
                                 </Grid>
+                                <Border Margin="0,8,0,4"
+                                        Padding="12,10"
+                                        Background="{StaticResource BgCardBrush}"
+                                        CornerRadius="6"
+                                        Visibility="{Binding ShowUmbralSeriesPanel, Converter={StaticResource BoolToVisibility}}">
+                                    <StackPanel>
+                                        <Grid Margin="0,0,0,8">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="90" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0"
+                                                       Text="Series de umbral:"
+                                                       VerticalAlignment="Center"
+                                                       Margin="0,0,8,0"
+                                                       FontWeight="SemiBold" />
+                                            <controls:NumericStepper Grid.Column="1"
+                                                                     Value="{Binding SeriesCount, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource FlexibleNumber}}"
+                                                                     Minimum="0"
+                                                                     Maximum="30" />
+                                            <TextBlock Grid.Column="2"
+                                                       Text="Cantidad (0 = sin detalle). Distancia y tiempo por serie."
+                                                       VerticalAlignment="Center"
+                                                       Margin="12,0,0,0"
+                                                       Style="{StaticResource MutedText}" />
+                                            <Button Grid.Column="3"
+                                                    Content="Copiar serie 1 → todas"
+                                                    Command="{Binding ApplyFirstSeriesToAllCommand}"
+                                                    Style="{StaticResource PrimaryButton}"
+                                                    Margin="12,0,0,0"
+                                                    ToolTip="Replica distancia y tiempo de la primera serie en el resto" />
+                                        </Grid>
+                                        <ItemsControl ItemsSource="{Binding SeriesRows}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Grid Margin="0,0,0,6">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="70" />
+                                                            <ColumnDefinition Width="Auto" />
+                                                            <ColumnDefinition Width="90" />
+                                                            <ColumnDefinition Width="70" />
+                                                            <ColumnDefinition Width="Auto" />
+                                                            <ColumnDefinition Width="70" />
+                                                            <ColumnDefinition Width="Auto" />
+                                                            <ColumnDefinition Width="70" />
+                                                        </Grid.ColumnDefinitions>
+                                                        <TextBlock Grid.Column="0"
+                                                                   Text="{Binding SeriesLabel}"
+                                                                   VerticalAlignment="Center"
+                                                                   Margin="0,0,8,0" />
+                                                        <TextBlock Grid.Column="1"
+                                                                   Text="Dist:"
+                                                                   VerticalAlignment="Center"
+                                                                   Margin="0,0,6,0"
+                                                                   Style="{StaticResource MutedText}" />
+                                                        <TextBox Grid.Column="2"
+                                                                 Text="{Binding Distance, UpdateSourceTrigger=PropertyChanged}"
+                                                                 Margin="0,0,6,0" />
+                                                        <ComboBox Grid.Column="3"
+                                                                  ItemsSource="{Binding DistanceUnits}"
+                                                                  SelectedItem="{Binding DistanceUnit}"
+                                                                  DisplayMemberPath="Label"
+                                                                  Margin="0,0,12,0" />
+                                                        <TextBlock Grid.Column="4"
+                                                                   Text="Min:"
+                                                                   VerticalAlignment="Center"
+                                                                   Margin="0,0,6,0"
+                                                                   Style="{StaticResource MutedText}" />
+                                                        <TextBox Grid.Column="5"
+                                                                 Text="{Binding DurationMinutes, UpdateSourceTrigger=PropertyChanged}"
+                                                                 Margin="0,0,6,0" />
+                                                        <TextBlock Grid.Column="6"
+                                                                   Text="Seg:"
+                                                                   VerticalAlignment="Center"
+                                                                   Margin="0,0,6,0"
+                                                                   Style="{StaticResource MutedText}" />
+                                                        <TextBox Grid.Column="7"
+                                                                 Text="{Binding DurationSeconds, UpdateSourceTrigger=PropertyChanged}" />
+                                                    </Grid>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </StackPanel>
+                                </Border>
                                 <controls:FormValidationBanner Message="{Binding SessionValidationMessage}" />
                             </StackPanel>
                         </Expander>
@@ -266,6 +352,7 @@
                                             <GridViewColumn Header="Tipo" DisplayMemberBinding="{Binding SessionTypeLabel}"
                                                             helpers:GridViewSortHelper.SortProperty="SessionType" Width="120" />
                                             <GridViewColumn Header="Km" DisplayMemberBinding="{Binding DistanceKm, StringFormat={}{0:0.##}}" Width="50" />
+                                            <GridViewColumn Header="Series" DisplayMemberBinding="{Binding SeriesSummary}" Width="140" />
                                             <GridViewColumn Header="Ritmo" DisplayMemberBinding="{Binding PaceMinPerKm, StringFormat={}{0:0.00} min/km}" Width="110" />
                                             <GridViewColumn Header="XP" DisplayMemberBinding="{Binding XpEarned}" Width="50" />
                                             <GridViewColumn Header="Carrera oficial" DisplayMemberBinding="{Binding CarreraOficialNombre}" Width="160" />
