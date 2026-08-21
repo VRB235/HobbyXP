@@ -30,6 +30,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IFileDialogService, FileDialogService>();
         services.AddSingleton<IMessageDialogService, MessageDialogService>();
         services.AddSingleton<IImagePreviewService, ImagePreviewService>();
+        services.AddSingleton<ISuggestionDetailService, SuggestionDetailService>();
         services.AddSingleton<ILevelUpMessenger, LevelUpMessenger>();
         services.AddSingleton<IProfileRefreshMessenger, ProfileRefreshMessenger>();
         services.AddSingleton<IApplicationDataResetMessenger, ApplicationDataResetMessenger>();

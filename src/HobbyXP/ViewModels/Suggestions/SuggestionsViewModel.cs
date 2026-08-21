@@ -14,6 +14,7 @@ public sealed class SuggestionsViewModel : LoadableViewModelBase
     private readonly IFileDialogService _fileDialogService;
     private readonly IMessageDialogService _messageDialogService;
     private readonly IImagePreviewService _imagePreviewService;
+    private readonly ISuggestionDetailService _suggestionDetailService;
     private string _title = string.Empty;
     private string _description = string.Empty;
     private SuggestionKind _kind = SuggestionKind.Improvement;
@@ -29,12 +30,14 @@ public sealed class SuggestionsViewModel : LoadableViewModelBase
         ISuggestionService suggestionService,
         IFileDialogService fileDialogService,
         IMessageDialogService messageDialogService,
-        IImagePreviewService imagePreviewService)
+        IImagePreviewService imagePreviewService,
+        ISuggestionDetailService suggestionDetailService)
     {
         _suggestionService = suggestionService;
         _fileDialogService = fileDialogService;
         _messageDialogService = messageDialogService;
         _imagePreviewService = imagePreviewService;
+        _suggestionDetailService = suggestionDetailService;
 
         Suggestions = new ObservableCollection<Suggestion>();
         SelectedPhotos = new ObservableCollection<SuggestionPhotoItem>();
@@ -53,6 +56,7 @@ public sealed class SuggestionsViewModel : LoadableViewModelBase
         PickPhotosCommand = new RelayCommand(PickPhotos);
         RemovePhotoCommand = new RelayCommand(RemovePhoto);
         OpenPhotoCommand = new RelayCommand(OpenPhoto);
+        OpenSuggestionDetailCommand = new RelayCommand(OpenSuggestionDetail);
         ClearFiltersCommand = new RelayCommand(ClearHistoryFilters);
         ToggleResolvedCommand = new AsyncRelayCommand(ToggleResolvedAsync);
         DeleteSuggestionCommand = new AsyncRelayCommand(DeleteSuggestionAsync);
@@ -163,6 +167,8 @@ public sealed class SuggestionsViewModel : LoadableViewModelBase
 
     public RelayCommand OpenPhotoCommand { get; }
 
+    public RelayCommand OpenSuggestionDetailCommand { get; }
+
     public RelayCommand ClearFiltersCommand { get; }
 
     public AsyncRelayCommand ToggleResolvedCommand { get; }
@@ -255,6 +261,14 @@ public sealed class SuggestionsViewModel : LoadableViewModelBase
             return;
 
         _imagePreviewService.Show(path);
+    }
+
+    private void OpenSuggestionDetail(object? parameter)
+    {
+        if (parameter is not Suggestion suggestion)
+            return;
+
+        _suggestionDetailService.Show(suggestion);
     }
 
     private ValidationResult ValidateRegisterForm() =>

@@ -168,10 +168,30 @@
                               HorizontalAlignment="Stretch"
                               VerticalAlignment="Stretch"
                               helpers:GridViewStretchHelper.StretchColumns="True"
-                              helpers:GridViewSortHelper.EnableSort="True">
+                              helpers:GridViewSortHelper.EnableSort="True"
+                              MouseDoubleClick="OnSuggestionsMouseDoubleClick">
                         <ListView.View>
                             <GridView>
-                                <GridViewColumn Header="Título" DisplayMemberBinding="{Binding Title}" Width="160" />
+                                <GridViewColumn Header="Título" Width="160"
+                                                helpers:GridViewSortHelper.SortProperty="Title">
+                                    <GridViewColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Button Command="{Binding DataContext.OpenSuggestionDetailCommand, ElementName=SuggestionsScrollViewer}"
+                                                    CommandParameter="{Binding}"
+                                                    ToolTip="Ver detalle completo"
+                                                    Cursor="Hand"
+                                                    Background="Transparent"
+                                                    BorderThickness="0"
+                                                    Padding="0"
+                                                    HorizontalAlignment="Stretch"
+                                                    HorizontalContentAlignment="Left">
+                                                <TextBlock Text="{Binding Title}"
+                                                           Foreground="{StaticResource AccentCyanBrush}"
+                                                           TextTrimming="CharacterEllipsis" />
+                                            </Button>
+                                        </DataTemplate>
+                                    </GridViewColumn.CellTemplate>
+                                </GridViewColumn>
                                 <GridViewColumn Header="Tipo" DisplayMemberBinding="{Binding KindLabel}"
                                                 helpers:GridViewSortHelper.SortProperty="Kind" Width="80" />
                                 <GridViewColumn Header="Estado" DisplayMemberBinding="{Binding StatusLabel}"
@@ -180,7 +200,26 @@
                                                 helpers:GridViewSortHelper.SortProperty="ReportedAt" Width="100" />
                                 <GridViewColumn Header="Resuelta" DisplayMemberBinding="{Binding ResolvedAt, StringFormat={}{0:dd/MM/yyyy}}"
                                                 helpers:GridViewSortHelper.SortProperty="ResolvedAt" Width="100" />
-                                <GridViewColumn Header="Descripción" DisplayMemberBinding="{Binding Description}" Width="220" />
+                                <GridViewColumn Header="Descripción" Width="220"
+                                                helpers:GridViewSortHelper.SortProperty="Description">
+                                    <GridViewColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Button Command="{Binding DataContext.OpenSuggestionDetailCommand, ElementName=SuggestionsScrollViewer}"
+                                                    CommandParameter="{Binding}"
+                                                    ToolTip="Ver detalle completo"
+                                                    Cursor="Hand"
+                                                    Background="Transparent"
+                                                    BorderThickness="0"
+                                                    Padding="0"
+                                                    HorizontalAlignment="Stretch"
+                                                    HorizontalContentAlignment="Left">
+                                                <TextBlock Text="{Binding Description}"
+                                                           Foreground="{StaticResource TextPrimaryBrush}"
+                                                           TextTrimming="CharacterEllipsis" />
+                                            </Button>
+                                        </DataTemplate>
+                                    </GridViewColumn.CellTemplate>
+                                </GridViewColumn>
                                 <GridViewColumn Header="Imágenes" Width="140">
                                     <GridViewColumn.CellTemplate>
                                         <DataTemplate>
