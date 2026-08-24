@@ -267,251 +267,269 @@
             <TabItem Header="Tienda">
                 <ScrollViewer x:Name="RewardShopScroll" DataContext="{Binding Rewards}">
                     <StackPanel Margin="8">
-                        <TextBlock Text="{Binding BalanceText}" Style="{StaticResource SubsectionTitleText}" Margin="0,0,0,12" />
+                        <DockPanel Margin="0,0,0,12">
+                            <Button DockPanel.Dock="Right"
+                                    Content="+ Nuevo premio"
+                                    Command="{Binding OpenCreateRewardCommand}"
+                                    Style="{StaticResource AccentButton}"
+                                    VerticalAlignment="Center" />
+                            <TextBlock Text="{Binding BalanceText}"
+                                       Style="{StaticResource SubsectionTitleText}"
+                                       VerticalAlignment="Center" />
+                        </DockPanel>
 
-                        <GroupBox Header="{Binding FormTitle}" Padding="12" Margin="0,0,0,12">
-                            <StackPanel>
-                                <Grid Margin="0,0,0,8">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="160" />
-                                        <ColumnDefinition Width="180" />
-                                        <ColumnDefinition Width="100" />
-                                        <ColumnDefinition Width="100" />
-                                        <ColumnDefinition Width="*" MinWidth="140" />
-                                    </Grid.ColumnDefinitions>
-
-                                    <StackPanel Grid.Column="0" Margin="0,0,8,0">
-                                        <TextBlock Text="Módulo" Style="{StaticResource MutedText}" />
-                                        <ComboBox ItemsSource="{Binding ModuleOptions}"
-                                                  SelectedItem="{Binding SelectedModule}"
-                                                  DisplayMemberPath="Label" />
-                                    </StackPanel>
-
-                                    <StackPanel Grid.Column="1" Margin="0,0,8,0">
-                                        <TextBlock Text="Nombre" Style="{StaticResource MutedText}" />
-                                        <TextBox Text="{Binding Name}" HorizontalAlignment="Stretch" />
-                                    </StackPanel>
-
-                                    <StackPanel Grid.Column="2" Margin="0,0,8,0">
-                                        <TextBlock Text="Costo base (XP)" Style="{StaticResource MutedText}" />
-                                        <TextBox Text="{Binding CostInPoints}" HorizontalAlignment="Stretch" />
-                                    </StackPanel>
-
-                                    <StackPanel Grid.Column="3" Margin="0,0,8,0">
-                                        <TextBlock Text="Precio ($)" Style="{StaticResource MutedText}" />
-                                        <TextBox Text="{Binding PriceText}" HorizontalAlignment="Stretch" />
-                                    </StackPanel>
-
-                                    <StackPanel Grid.Column="4">
-                                        <TextBlock Text="Descripción (opcional)" Style="{StaticResource MutedText}" />
-                                        <TextBox Text="{Binding Description}" HorizontalAlignment="Stretch" />
-                                    </StackPanel>
-                                </Grid>
-
-                                <Grid Margin="0,0,0,8">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="Auto" />
-                                        <ColumnDefinition Width="Auto" />
-                                    </Grid.ColumnDefinitions>
-
-                                    <StackPanel Grid.Column="0" Margin="0,0,8,0">
-                                        <TextBlock Text="Link de compra" Style="{StaticResource MutedText}" />
-                                        <TextBox Text="{Binding PurchaseUrl}" HorizontalAlignment="Stretch" />
-                                    </StackPanel>
-
-                                    <Button Grid.Column="1"
-                                            Content="Abrir link"
-                                            Command="{Binding OpenPurchaseUrlCommand}"
-                                            Style="{StaticResource AccentButton}"
-                                            Margin="0,16,8,0"
-                                            VerticalAlignment="Top" />
-
-                                    <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="0,16,0,0">
-                                        <Border Width="56" Height="56" CornerRadius="6" ClipToBounds="True"
-                                                Background="#1A2233" BorderBrush="{StaticResource BorderBrush}"
-                                                BorderThickness="1" Margin="0,0,8,0"
-                                                Visibility="{Binding HasPreviewImage, Converter={StaticResource BoolToVisibilityConverter}}">
-                                            <Button Command="{Binding OpenPhotoCommand}"
-                                                    CommandParameter="{Binding PreviewImagePath}"
-                                                    ToolTip="Clic para ampliar · Abrir en el sistema desde el visor"
-                                                    Cursor="Hand"
-                                                    Background="Transparent"
-                                                    BorderThickness="0"
-                                                    Padding="0">
-                                                <Image Source="{Binding PreviewImagePath, Converter={StaticResource PathToImageSourceConverter}}"
-                                                       Stretch="UniformToFill"
-                                                       Width="56" Height="56" />
-                                            </Button>
-                                        </Border>
-                                        <Button Content="Ver" Command="{Binding OpenPhotoCommand}"
-                                                CommandParameter="{Binding PreviewImagePath}"
-                                                Style="{StaticResource AccentButton}" Margin="0,0,8,0" VerticalAlignment="Center"
-                                                Visibility="{Binding HasPreviewImage, Converter={StaticResource BoolToVisibilityConverter}}" />
-                                        <Button Content="Imagen" Command="{Binding PickImageCommand}"
-                                                Style="{StaticResource PrimaryButton}" Margin="0,0,8,0" VerticalAlignment="Center" />
-                                        <Button Content="Quitar" Command="{Binding ClearImageCommand}"
-                                                Style="{StaticResource AccentButton}" VerticalAlignment="Center" />
-                                    </StackPanel>
-                                </Grid>
-
-                                <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
-                                    <Button Content="{Binding PrimaryActionLabel}"
-                                            Command="{Binding CreateRewardCommand}"
-                                            Style="{StaticResource PrimaryButton}"
-                                            Margin="0,0,8,0"
-                                            Visibility="{Binding IsEditing, Converter={StaticResource InverseBoolToVisibilityConverter}}" />
-                                    <Button Content="{Binding PrimaryActionLabel}"
-                                            Command="{Binding SaveRewardCommand}"
-                                            Style="{StaticResource PrimaryButton}"
-                                            Margin="0,0,8,0"
-                                            Visibility="{Binding IsEditing, Converter={StaticResource BoolToVisibilityConverter}}" />
-                                    <Button Content="Nuevo" Command="{Binding ClearFormCommand}"
-                                            Style="{StaticResource AccentButton}" Margin="0,0,8,0" />
-                                    <Button Content="Asignar módulo" Command="{Binding AssignModuleCommand}"
-                                            Style="{StaticResource AccentButton}" Margin="0,0,8,0" />
-                                    <Button Content="Eliminar" Command="{Binding DeleteRewardCommand}"
-                                            Style="{StaticResource AccentButton}"
-                                            Visibility="{Binding IsEditing, Converter={StaticResource BoolToVisibilityConverter}}" />
-                                </StackPanel>
-
-                                <TextBlock Text="Al canjear se cobra base × nivel global actual. Seleccione un premio para editar nombre, precio, link, imagen y módulo."
-                                           Style="{StaticResource MutedText}" FontSize="12" />
-                                <controls:FormValidationBanner Message="{Binding ValidationMessage}" />
-                            </StackPanel>
-                        </GroupBox>
+                        <TextBlock Text="Clic en un premio para ver detalle, editar o canjear."
+                                   Style="{StaticResource MutedText}"
+                                   FontSize="12"
+                                   Margin="0,0,0,12" />
 
                         <GroupBox Header="Disponibles" Padding="12" Margin="0,0,0,12">
-                            <StackPanel>
-                                <ItemsControl ItemsSource="{Binding AvailableSections}">
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate>
-                                            <Expander Header="{Binding}"
-                                                      IsExpanded="{Binding IsExpanded, Mode=TwoWay}"
-                                                      Margin="0,0,0,8">
-                                                <Expander.HeaderTemplate>
-                                                    <DataTemplate>
-                                                        <DockPanel>
-                                                            <TextBlock DockPanel.Dock="Right"
-                                                                       Text="{Binding ProgressText}"
+                            <ItemsControl ItemsSource="{Binding AvailableRewards}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <WrapPanel />
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Width="168"
+                                                Margin="0,0,12,12"
+                                                Background="#152033"
+                                                BorderBrush="{StaticResource BorderBrush}"
+                                                BorderThickness="1"
+                                                CornerRadius="10">
+                                            <Border.Style>
+                                                <Style TargetType="Border">
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding CanRedeem}" Value="True">
+                                                            <Setter Property="BorderBrush" Value="{StaticResource AccentGreenBrush}" />
+                                                            <Setter Property="BorderThickness" Value="2" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Border.Style>
+                                            <Grid>
+                                                <Button Command="{Binding DataContext.OpenRewardDetailCommand, ElementName=RewardShopScroll}"
+                                                        CommandParameter="{Binding}"
+                                                        Cursor="Hand"
+                                                        Background="Transparent"
+                                                        BorderThickness="0"
+                                                        Padding="0"
+                                                        HorizontalContentAlignment="Stretch"
+                                                        VerticalContentAlignment="Stretch"
+                                                        ToolTip="{Binding RedeemStatusToolTip}">
+                                                    <Grid>
+                                                        <Grid.RowDefinitions>
+                                                            <RowDefinition Height="110" />
+                                                            <RowDefinition Height="Auto" />
+                                                        </Grid.RowDefinitions>
+
+                                                        <Border Grid.Row="0"
+                                                                Background="#1A2233"
+                                                                CornerRadius="10,10,0,0"
+                                                                ClipToBounds="True">
+                                                            <Grid>
+                                                                <TextBlock Text="Sin imagen"
+                                                                           Style="{StaticResource MutedText}"
+                                                                           HorizontalAlignment="Center"
+                                                                           VerticalAlignment="Center"
+                                                                           Visibility="{Binding HasImage, Converter={StaticResource InverseBoolToVisibilityConverter}}" />
+                                                                <Image Source="{Binding ImageDisplayPath, Converter={StaticResource PathToImageSourceConverter}}"
+                                                                       Stretch="UniformToFill"
+                                                                       Visibility="{Binding HasImage, Converter={StaticResource BoolToVisibilityConverter}}" />
+                                                                <Border CornerRadius="4"
+                                                                        Padding="6,2"
+                                                                        HorizontalAlignment="Left"
+                                                                        VerticalAlignment="Top"
+                                                                        Margin="6">
+                                                                    <Border.Style>
+                                                                        <Style TargetType="Border">
+                                                                            <Setter Property="Background" Value="#80443322" />
+                                                                            <Style.Triggers>
+                                                                                <DataTrigger Binding="{Binding CanRedeem}" Value="True">
+                                                                                    <Setter Property="Background" Value="#803A7A5A" />
+                                                                                </DataTrigger>
+                                                                                <MultiDataTrigger>
+                                                                                    <MultiDataTrigger.Conditions>
+                                                                                        <Condition Binding="{Binding HasModule}" Value="True" />
+                                                                                        <Condition Binding="{Binding CanRedeem}" Value="False" />
+                                                                                    </MultiDataTrigger.Conditions>
+                                                                                    <Setter Property="Background" Value="#80553A10" />
+                                                                                </MultiDataTrigger>
+                                                                            </Style.Triggers>
+                                                                        </Style>
+                                                                    </Border.Style>
+                                                                    <TextBlock Text="{Binding RedeemStatusLabel}"
+                                                                               FontSize="10"
+                                                                               FontWeight="SemiBold"
+                                                                               TextWrapping="Wrap"
+                                                                               MaxWidth="140">
+                                                                        <TextBlock.Style>
+                                                                            <Style TargetType="TextBlock">
+                                                                                <Setter Property="Foreground" Value="#FFB39A" />
+                                                                                <Style.Triggers>
+                                                                                    <DataTrigger Binding="{Binding CanRedeem}" Value="True">
+                                                                                        <Setter Property="Foreground" Value="{StaticResource AccentGreenBrush}" />
+                                                                                    </DataTrigger>
+                                                                                    <MultiDataTrigger>
+                                                                                        <MultiDataTrigger.Conditions>
+                                                                                            <Condition Binding="{Binding HasModule}" Value="True" />
+                                                                                            <Condition Binding="{Binding CanRedeem}" Value="False" />
+                                                                                        </MultiDataTrigger.Conditions>
+                                                                                        <Setter Property="Foreground" Value="#FF9100" />
+                                                                                    </MultiDataTrigger>
+                                                                                </Style.Triggers>
+                                                                            </Style>
+                                                                        </TextBlock.Style>
+                                                                    </TextBlock>
+                                                                </Border>
+                                                            </Grid>
+                                                        </Border>
+
+                                                        <StackPanel Grid.Row="1" Margin="10,8,10,10">
+                                                            <TextBlock Text="{Binding Name}"
+                                                                       FontWeight="SemiBold"
+                                                                       TextWrapping="Wrap"
+                                                                       MaxHeight="40"
+                                                                       ToolTip="{Binding Name}" />
+                                                            <TextBlock Text="{Binding CostLabel}"
                                                                        Style="{StaticResource MutedText}"
-                                                                       FontWeight="Normal"
-                                                                       VerticalAlignment="Center"
-                                                                       Margin="16,0,0,0" />
-                                                            <TextBlock Text="{Binding DisplayName}" VerticalAlignment="Center" />
-                                                        </DockPanel>
-                                                    </DataTemplate>
-                                                </Expander.HeaderTemplate>
-                                                <ListView ItemsSource="{Binding Rewards}"
-                                                          SelectedItem="{Binding DataContext.SelectedAvailable, ElementName=RewardShopScroll}"
-                                                          MinHeight="48"
-                                                          MaxHeight="180"
-                                                          Margin="0,4,0,0"
-                                                          helpers:GridViewStretchHelper.StretchColumns="True"
-                                                          helpers:GridViewSortHelper.EnableSort="True">
-                                                    <ListView.View>
-                                                        <GridView>
-                                                            <GridViewColumn Header="" Width="44">
-                                                                <GridViewColumn.CellTemplate>
-                                                                    <DataTemplate>
-                                                                        <Button Command="{Binding DataContext.OpenPhotoCommand, ElementName=RewardShopScroll}"
-                                                                                CommandParameter="{Binding}"
-                                                                                ToolTip="Ver imagen"
-                                                                                Cursor="Hand"
-                                                                                Background="Transparent"
-                                                                                BorderThickness="0"
-                                                                                Padding="0"
-                                                                                Visibility="{Binding HasImage, Converter={StaticResource BoolToVisibilityConverter}}">
-                                                                            <Image Width="28" Height="28"
-                                                                                   Source="{Binding ImageDisplayPath, Converter={StaticResource PathToImageSourceConverter}}"
-                                                                                   Stretch="UniformToFill" />
-                                                                        </Button>
-                                                                    </DataTemplate>
-                                                                </GridViewColumn.CellTemplate>
-                                                            </GridViewColumn>
-                                                            <GridViewColumn Header="Nombre" DisplayMemberBinding="{Binding Name}" Width="160" />
-                                                            <GridViewColumn Header="Costo efectivo" DisplayMemberBinding="{Binding CostLabel}" Width="200" />
-                                                            <GridViewColumn Header="Precio" DisplayMemberBinding="{Binding PriceLabel}" Width="80" />
-                                                            <GridViewColumn Header="Estado" DisplayMemberBinding="{Binding StatusLabel}" Width="90" />
-                                                        </GridView>
-                                                    </ListView.View>
-                                                </ListView>
-                                            </Expander>
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
-                                <TextBlock Text="{Binding SelectedRewardRedeemHint}" Margin="0,0,0,8" />
-                                <Button Content="Canjear" Command="{Binding RedeemRewardCommand}" HorizontalAlignment="Left"
-                                        Style="{StaticResource AccentButton}" />
-                            </StackPanel>
+                                                                       Margin="0,4,0,0"
+                                                                       TextWrapping="Wrap" />
+                                                            <TextBlock Text="{Binding RedeemStatusLabel}"
+                                                                       FontSize="11"
+                                                                       FontWeight="SemiBold"
+                                                                       Margin="0,4,0,0"
+                                                                       TextWrapping="Wrap">
+                                                                <TextBlock.Style>
+                                                                    <Style TargetType="TextBlock">
+                                                                        <Setter Property="Foreground" Value="#FFB39A" />
+                                                                        <Style.Triggers>
+                                                                            <DataTrigger Binding="{Binding CanRedeem}" Value="True">
+                                                                                <Setter Property="Foreground" Value="{StaticResource AccentGreenBrush}" />
+                                                                            </DataTrigger>
+                                                                            <MultiDataTrigger>
+                                                                                <MultiDataTrigger.Conditions>
+                                                                                    <Condition Binding="{Binding HasModule}" Value="True" />
+                                                                                    <Condition Binding="{Binding CanRedeem}" Value="False" />
+                                                                                </MultiDataTrigger.Conditions>
+                                                                                <Setter Property="Foreground" Value="#FF9100" />
+                                                                            </MultiDataTrigger>
+                                                                        </Style.Triggers>
+                                                                    </Style>
+                                                                </TextBlock.Style>
+                                                            </TextBlock>
+                                                            <DockPanel Margin="0,4,0,0">
+                                                                <TextBlock DockPanel.Dock="Right"
+                                                                           Text="{Binding PriceLabel}"
+                                                                           Style="{StaticResource MutedText}" />
+                                                                <TextBlock Text="{Binding ModuleLabel}"
+                                                                           Style="{StaticResource MutedText}" />
+                                                            </DockPanel>
+                                                        </StackPanel>
+                                                    </Grid>
+                                                </Button>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
                         </GroupBox>
 
                         <GroupBox Header="Inventario (canjeados)" Padding="12">
-                            <StackPanel>
-                                <ItemsControl ItemsSource="{Binding InventorySections}">
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate>
-                                            <Expander Header="{Binding}"
-                                                      IsExpanded="{Binding IsExpanded, Mode=TwoWay}"
-                                                      Margin="0,0,0,8">
-                                                <Expander.HeaderTemplate>
-                                                    <DataTemplate>
-                                                        <DockPanel>
-                                                            <TextBlock DockPanel.Dock="Right"
-                                                                       Text="{Binding ProgressText}"
+                            <ItemsControl ItemsSource="{Binding InventoryRewards}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <WrapPanel />
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Width="168"
+                                                Margin="0,0,12,12"
+                                                Background="#152033"
+                                                BorderBrush="{StaticResource BorderBrush}"
+                                                BorderThickness="1"
+                                                CornerRadius="10">
+                                            <Border.Style>
+                                                <Style TargetType="Border">
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsEquipped}" Value="True">
+                                                            <Setter Property="BorderBrush" Value="{StaticResource AccentGreenBrush}" />
+                                                            <Setter Property="BorderThickness" Value="2" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Border.Style>
+                                            <Grid>
+                                                <Button Command="{Binding DataContext.OpenRewardDetailCommand, ElementName=RewardShopScroll}"
+                                                        CommandParameter="{Binding}"
+                                                        Cursor="Hand"
+                                                        Background="Transparent"
+                                                        BorderThickness="0"
+                                                        Padding="0"
+                                                        HorizontalContentAlignment="Stretch"
+                                                        VerticalContentAlignment="Stretch"
+                                                        ToolTip="Ver o equipar reliquia">
+                                                    <Grid>
+                                                        <Grid.RowDefinitions>
+                                                            <RowDefinition Height="110" />
+                                                            <RowDefinition Height="Auto" />
+                                                        </Grid.RowDefinitions>
+
+                                                        <Border Grid.Row="0"
+                                                                Background="#1A2233"
+                                                                CornerRadius="10,10,0,0"
+                                                                ClipToBounds="True">
+                                                            <Grid>
+                                                                <TextBlock Text="Sin imagen"
+                                                                           Style="{StaticResource MutedText}"
+                                                                           HorizontalAlignment="Center"
+                                                                           VerticalAlignment="Center"
+                                                                           Visibility="{Binding HasImage, Converter={StaticResource InverseBoolToVisibilityConverter}}" />
+                                                                <Image Source="{Binding ImageDisplayPath, Converter={StaticResource PathToImageSourceConverter}}"
+                                                                       Stretch="UniformToFill"
+                                                                       Visibility="{Binding HasImage, Converter={StaticResource BoolToVisibilityConverter}}" />
+                                                                <Border Background="#80000000"
+                                                                        CornerRadius="4"
+                                                                        Padding="6,2"
+                                                                        HorizontalAlignment="Left"
+                                                                        VerticalAlignment="Top"
+                                                                        Margin="6"
+                                                                        Visibility="{Binding IsEquipped, Converter={StaticResource BoolToVisibilityConverter}}">
+                                                                    <TextBlock Text="Equipado"
+                                                                               Foreground="{StaticResource AccentGreenBrush}"
+                                                                               FontSize="11"
+                                                                               FontWeight="SemiBold" />
+                                                                </Border>
+                                                            </Grid>
+                                                        </Border>
+
+                                                        <StackPanel Grid.Row="1" Margin="10,8,10,10">
+                                                            <TextBlock Text="{Binding Name}"
+                                                                       FontWeight="SemiBold"
+                                                                       TextWrapping="Wrap"
+                                                                       MaxHeight="40"
+                                                                       ToolTip="{Binding Name}" />
+                                                            <TextBlock Text="{Binding CostLabel}"
                                                                        Style="{StaticResource MutedText}"
-                                                                       FontWeight="Normal"
-                                                                       VerticalAlignment="Center"
-                                                                       Margin="16,0,0,0" />
-                                                            <TextBlock Text="{Binding DisplayName}" VerticalAlignment="Center" />
-                                                        </DockPanel>
-                                                    </DataTemplate>
-                                                </Expander.HeaderTemplate>
-                                                <ListView ItemsSource="{Binding Rewards}"
-                                                          SelectedItem="{Binding DataContext.SelectedInventory, ElementName=RewardShopScroll}"
-                                                          MinHeight="48"
-                                                          MaxHeight="180"
-                                                          Margin="0,4,0,0"
-                                                          helpers:GridViewStretchHelper.StretchColumns="True"
-                                                          helpers:GridViewSortHelper.EnableSort="True">
-                                                    <ListView.View>
-                                                        <GridView>
-                                                            <GridViewColumn Header="" Width="44">
-                                                                <GridViewColumn.CellTemplate>
-                                                                    <DataTemplate>
-                                                                        <Button Command="{Binding DataContext.OpenPhotoCommand, ElementName=RewardShopScroll}"
-                                                                                CommandParameter="{Binding}"
-                                                                                ToolTip="Ver imagen"
-                                                                                Cursor="Hand"
-                                                                                Background="Transparent"
-                                                                                BorderThickness="0"
-                                                                                Padding="0"
-                                                                                Visibility="{Binding HasImage, Converter={StaticResource BoolToVisibilityConverter}}">
-                                                                            <Image Width="28" Height="28"
-                                                                                   Source="{Binding ImageDisplayPath, Converter={StaticResource PathToImageSourceConverter}}"
-                                                                                   Stretch="UniformToFill" />
-                                                                        </Button>
-                                                                    </DataTemplate>
-                                                                </GridViewColumn.CellTemplate>
-                                                            </GridViewColumn>
-                                                            <GridViewColumn Header="Nombre" DisplayMemberBinding="{Binding Name}" Width="160" />
-                                                            <GridViewColumn Header="Canje" DisplayMemberBinding="{Binding CostLabel}" Width="150" />
-                                                            <GridViewColumn Header="Precio" DisplayMemberBinding="{Binding PriceLabel}" Width="80" />
-                                                            <GridViewColumn Header="Equipo" DisplayMemberBinding="{Binding EquipButtonLabel}" Width="90" />
-                                                        </GridView>
-                                                    </ListView.View>
-                                                </ListView>
-                                            </Expander>
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
-                                <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-                                    <Button Content="Equipar reliquia" Command="{Binding EquipRewardCommand}"
-                                            Style="{StaticResource AccentButton}" Margin="0,0,8,0" />
-                                    <Button Content="Desequipar" Command="{Binding UnequipRewardCommand}"
-                                            Style="{StaticResource PrimaryButton}" />
-                                </StackPanel>
-                            </StackPanel>
+                                                                       Margin="0,4,0,0"
+                                                                       TextWrapping="Wrap" />
+                                                            <DockPanel Margin="0,4,0,0">
+                                                                <TextBlock DockPanel.Dock="Right"
+                                                                           Text="{Binding EquipButtonLabel}"
+                                                                           Style="{StaticResource MutedText}" />
+                                                                <TextBlock Text="{Binding ModuleLabel}"
+                                                                           Style="{StaticResource MutedText}" />
+                                                            </DockPanel>
+                                                        </StackPanel>
+                                                    </Grid>
+                                                </Button>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
                         </GroupBox>
 
                         <TextBlock Text="{Binding StatusMessage}"
