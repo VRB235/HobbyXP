@@ -194,8 +194,43 @@
                                 </GridViewColumn>
                                 <GridViewColumn Header="Tipo" DisplayMemberBinding="{Binding KindLabel}"
                                                 helpers:GridViewSortHelper.SortProperty="Kind" Width="80" />
-                                <GridViewColumn Header="Estado" DisplayMemberBinding="{Binding StatusLabel}"
-                                                helpers:GridViewSortHelper.SortProperty="Status" Width="90" />
+                                <GridViewColumn Header="Estado"
+                                                helpers:GridViewSortHelper.SortProperty="Status"
+                                                Width="110">
+                                    <GridViewColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Border CornerRadius="4"
+                                                    Padding="8,3"
+                                                    HorizontalAlignment="Left"
+                                                    VerticalAlignment="Center">
+                                                <Border.Style>
+                                                    <Style TargetType="Border">
+                                                        <Setter Property="Background" Value="#80553A10" />
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsResolved}" Value="True">
+                                                                <Setter Property="Background" Value="#803A7A5A" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Border.Style>
+                                                <TextBlock Text="{Binding StatusLabel}"
+                                                           FontSize="11"
+                                                           FontWeight="SemiBold">
+                                                    <TextBlock.Style>
+                                                        <Style TargetType="TextBlock">
+                                                            <Setter Property="Foreground" Value="#FF9100" />
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding IsResolved}" Value="True">
+                                                                    <Setter Property="Foreground" Value="{StaticResource AccentGreenBrush}" />
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </TextBlock.Style>
+                                                </TextBlock>
+                                            </Border>
+                                        </DataTemplate>
+                                    </GridViewColumn.CellTemplate>
+                                </GridViewColumn>
                                 <GridViewColumn Header="Fecha" DisplayMemberBinding="{Binding ReportedAt, StringFormat={}{0:dd/MM/yyyy}}"
                                                 helpers:GridViewSortHelper.SortProperty="ReportedAt" Width="100" />
                                 <GridViewColumn Header="Resuelta" DisplayMemberBinding="{Binding ResolvedAt, StringFormat={}{0:dd/MM/yyyy}}"
