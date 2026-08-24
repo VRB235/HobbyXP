@@ -48,6 +48,7 @@ public class HobbyXpDbContext : DbContext
     public DbSet<AchievementRule> AchievementRules => Set<AchievementRule>();
     public DbSet<Reward> Rewards => Set<Reward>();
     public DbSet<Suggestion> Suggestions => Set<Suggestion>();
+    public DbSet<ModuleDisciplinePause> ModuleDisciplinePauses => Set<ModuleDisciplinePause>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

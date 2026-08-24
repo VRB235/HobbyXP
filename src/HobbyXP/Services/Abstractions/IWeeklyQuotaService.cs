@@ -28,4 +28,8 @@ public interface IWeeklyQuotaService
     Task<IReadOnlyList<string>> GetActivePenaltyRemindersAsync(
         MilestoneSourceType sourceType,
         CancellationToken cancellationToken = default);
+
+    Task<bool> IsDisciplinePausedAsync(
+        MilestoneSourceType sourceType,
+        CancellationToken cancellationToken = default);
 }

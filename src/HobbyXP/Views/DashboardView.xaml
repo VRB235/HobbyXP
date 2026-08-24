@@ -183,6 +183,10 @@
                                                             <Setter Property="Text" Value="No aplica" />
                                                             <Setter Property="Foreground" Value="{StaticResource TextMutedBrush}" />
                                                         </DataTrigger>
+                                                        <DataTrigger Binding="{Binding IsPaused}" Value="True">
+                                                            <Setter Property="Text" Value="Pausada" />
+                                                            <Setter Property="Foreground" Value="#FF9100" />
+                                                        </DataTrigger>
                                                     </Style.Triggers>
                                                 </Style>
                                             </TextBlock.Style>

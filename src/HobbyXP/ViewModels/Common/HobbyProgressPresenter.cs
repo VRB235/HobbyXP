@@ -21,6 +21,7 @@ public sealed class HobbyProgressPresenter : ViewModelBase
     private int _xpRequiredForNextLevel = 1;
     private double _progressPercentage;
     private string? _penaltyReminder;
+    private string? _disciplinePauseText;
     private string? _nextMedalText;
     private double _nextMedalPercent;
     private string? _nearestRewardText;
@@ -90,6 +91,18 @@ public sealed class HobbyProgressPresenter : ViewModelBase
     }
 
     public bool HasPenaltyReminder => !string.IsNullOrWhiteSpace(PenaltyReminder);
+
+    public string? DisciplinePauseText
+    {
+        get => _disciplinePauseText;
+        private set
+        {
+            if (SetProperty(ref _disciplinePauseText, value))
+                OnPropertyChanged(nameof(HasDisciplinePause));
+        }
+    }
+
+    public bool HasDisciplinePause => !string.IsNullOrWhiteSpace(DisciplinePauseText);
 
     public string? NextMedalText
     {
@@ -170,13 +183,23 @@ public sealed class HobbyProgressPresenter : ViewModelBase
 
         if (_weeklyQuotaService is not null)
         {
-            var reminders = await _weeklyQuotaService.GetActivePenaltyRemindersAsync(_sourceType, cancellationToken);
-            PenaltyReminder = reminders.Count == 0
-                ? null
-                : string.Join(Environment.NewLine, reminders);
+            if (await _weeklyQuotaService.IsDisciplinePausedAsync(_sourceType, cancellationToken))
+            {
+                DisciplinePauseText = "Disciplina en pausa. Puede seguir registrando actividad y ganando XP.";
+                PenaltyReminder = null;
+            }
+            else
+            {
+                DisciplinePauseText = null;
+                var reminders = await _weeklyQuotaService.GetActivePenaltyRemindersAsync(_sourceType, cancellationToken);
+                PenaltyReminder = reminders.Count == 0
+                    ? null
+                    : string.Join(Environment.NewLine, reminders);
+            }
         }
         else
         {
+            DisciplinePauseText = null;
             PenaltyReminder = null;
         }
 

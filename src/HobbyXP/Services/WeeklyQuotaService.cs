@@ -23,13 +23,16 @@ public sealed class WeeklyQuotaService : IWeeklyQuotaService
 
     private readonly IDbContextFactory<HobbyXpDbContext> _dbContextFactory;
     private readonly IXpService _xpService;
+    private readonly IModuleDisciplineService _moduleDisciplineService;
 
     public WeeklyQuotaService(
         IDbContextFactory<HobbyXpDbContext> dbContextFactory,
-        IXpService xpService)
+        IXpService xpService,
+        IModuleDisciplineService? moduleDisciplineService = null)
     {
         _dbContextFactory = dbContextFactory;
         _xpService = xpService;
+        _moduleDisciplineService = moduleDisciplineService ?? new ModuleDisciplineService(dbContextFactory);
     }
 
     public async Task<WeeklyQuotaEvaluationSummary> EvaluateClosedWeeksAsync(
@@ -233,6 +236,7 @@ public sealed class WeeklyQuotaService : IWeeklyQuotaService
         var result = new List<WeeklyQuotaProgress>();
         foreach (var source in WeeklyQuotaRules.TrackedSources)
         {
+            var isPaused = await _moduleDisciplineService.IsPausedAsync(source, cancellationToken);
             var need = await ResolveRequirementAsync(source, weekStartLocal, cancellationToken);
             var (actualPrimary, actualSecondary) = counts[source];
             var weeklyMet = await IsQuotaMetAsync(source, need, actualPrimary, actualSecondary, weekStartLocal, cancellationToken);
@@ -286,9 +290,11 @@ public sealed class WeeklyQuotaService : IWeeklyQuotaService
                 ? null
                 : string.Join(Environment.NewLine, reminderParts);
 
-            var requirementLabel = hasDaily && dailyNeed is not null && dailyNeed.Value.Primary > 0
-                ? $"{dailyNeed.Value.Label} · {need.Label}"
-                : need.Label;
+            var requirementLabel = isPaused
+                ? "Disciplina en pausa"
+                : hasDaily && dailyNeed is not null && dailyNeed.Value.Primary > 0
+                    ? $"{dailyNeed.Value.Label} · {need.Label}"
+                    : need.Label;
 
             result.Add(new WeeklyQuotaProgress(
                 source,
@@ -309,7 +315,8 @@ public sealed class WeeklyQuotaService : IWeeklyQuotaService
                 DailyActualPrimary: dailyActual,
                 DailyPrimaryUnitLabel: dailyNeed?.PrimaryUnit,
                 IsDailyMet: dailyMet,
-                IsWeeklyMet: weeklyMet));
+                IsWeeklyMet: weeklyMet,
+                IsPaused: isPaused));
         }
 
         return result;
@@ -343,6 +350,11 @@ public sealed class WeeklyQuotaService : IWeeklyQuotaService
             .Concat(daily.Select(WeeklyQuotaPenaltyMessages.FormatReminder))
             .ToList();
     }
+
+    public Task<bool> IsDisciplinePausedAsync(
+        MilestoneSourceType sourceType,
+        CancellationToken cancellationToken = default) =>
+        _moduleDisciplineService.IsPausedAsync(sourceType, cancellationToken);
 
     private async Task<EvaluationTick?> EvaluateWeekAsync(
         MilestoneSourceType sourceType,
@@ -1052,6 +1064,16 @@ public sealed class WeeklyQuotaService : IWeeklyQuotaService
         DateTime weekStartLocal,
         CancellationToken cancellationToken)
     {
+        if (await _moduleDisciplineService.IsPausedAsync(sourceType, cancellationToken))
+        {
+            return new QuotaNeed(
+                0,
+                0,
+                "Disciplina en pausa",
+                WeeklyQuotaRules.GetPrimaryUnitLabel(sourceType),
+                WeeklyQuotaRules.GetSecondaryUnitLabel(sourceType));
+        }
+
         var startUtc = DateTimeHelper.ToUtcFromLocalDate(weekStartLocal);
         var endUtc = WeekDateHelper.GetWeekEndExclusiveUtc(startUtc);
         var (staticPrimary, staticSecondary) = WeeklyQuotaRules.GetRequired(sourceType);
@@ -1096,6 +1118,14 @@ public sealed class WeeklyQuotaService : IWeeklyQuotaService
         DateTime dayLocal,
         CancellationToken cancellationToken)
     {
+        if (await _moduleDisciplineService.IsPausedAsync(sourceType, cancellationToken))
+        {
+            return new DailyNeed(
+                0,
+                "Disciplina en pausa",
+                DailyQuotaRules.GetPrimaryUnitLabel(sourceType));
+        }
+
         var startUtc = DateTimeHelper.ToUtcFromLocalDate(dayLocal);
         var endUtc = startUtc.AddDays(1);
 

@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using HobbyXP.Data;
 using HobbyXP.Helpers;
 using HobbyXP.Services.Abstractions;
@@ -12,6 +13,7 @@ public sealed class SettingsViewModel : LoadableViewModelBase
     private readonly IDatabaseMaintenanceService _databaseMaintenanceService;
     private readonly IFileDialogService _fileDialogService;
     private readonly IMessageDialogService _messageDialogService;
+    private readonly IModuleDisciplineService _moduleDisciplineService;
     private readonly IProfileRefreshMessenger _profileRefreshMessenger;
     private readonly IApplicationDataResetMessenger _applicationDataResetMessenger;
 
@@ -26,6 +28,7 @@ public sealed class SettingsViewModel : LoadableViewModelBase
         IDatabaseMaintenanceService databaseMaintenanceService,
         IFileDialogService fileDialogService,
         IMessageDialogService messageDialogService,
+        IModuleDisciplineService moduleDisciplineService,
         IProfileRefreshMessenger profileRefreshMessenger,
         IApplicationDataResetMessenger applicationDataResetMessenger)
     {
@@ -33,13 +36,19 @@ public sealed class SettingsViewModel : LoadableViewModelBase
         _databaseMaintenanceService = databaseMaintenanceService;
         _fileDialogService = fileDialogService;
         _messageDialogService = messageDialogService;
+        _moduleDisciplineService = moduleDisciplineService;
         _profileRefreshMessenger = profileRefreshMessenger;
         _applicationDataResetMessenger = applicationDataResetMessenger;
+
+        DisciplineModules = new ObservableCollection<ModuleDisciplineItemViewModel>();
 
         SaveBaseXpPerLevelCommand = new AsyncRelayCommand(SaveBaseXpPerLevelAsync, CanSaveBaseXpPerLevel);
         ExportDatabaseCommand = new AsyncRelayCommand(ExportDatabaseAsync);
         ResetApplicationDataCommand = new AsyncRelayCommand(ResetApplicationDataAsync);
+        ToggleModulePauseCommand = new AsyncRelayCommand(ToggleModulePauseAsync);
     }
+
+    public ObservableCollection<ModuleDisciplineItemViewModel> DisciplineModules { get; }
 
     public string BaseXpPerLevelText
     {
@@ -86,6 +95,8 @@ public sealed class SettingsViewModel : LoadableViewModelBase
 
     public AsyncRelayCommand ResetApplicationDataCommand { get; }
 
+    public AsyncRelayCommand ToggleModulePauseCommand { get; }
+
     protected override async Task LoadCoreAsync()
     {
         DatabasePath = DatabaseConstants.GetDatabasePath();
@@ -93,10 +104,20 @@ public sealed class SettingsViewModel : LoadableViewModelBase
 
         var profile = await _playerProfileService.GetProfileAsync();
         var progress = await _playerProfileService.GetLevelProgressAsync();
+        var pauseStates = await _moduleDisciplineService.GetPauseStatesAsync();
 
         BaseXpPerLevelText = profile.BaseXpPerLevel.ToString();
         CurrentLevel = progress.CurrentLevel;
         TotalXp = progress.TotalXp;
+
+        DisciplineModules.Clear();
+        foreach (var source in WeeklyQuotaRules.TrackedSources)
+        {
+            DisciplineModules.Add(new ModuleDisciplineItemViewModel(
+                source,
+                HobbyProgressCatalog.GetDisplayName(source),
+                pauseStates.GetValueOrDefault(source, false)));
+        }
 
         ClearValidation();
         RefreshBaseXpValidation();
@@ -178,5 +199,22 @@ public sealed class SettingsViewModel : LoadableViewModelBase
     {
         var result = FormValidation.RequirePositiveInt(BaseXpPerLevelText, "El XP base por nivel", out _);
         RefreshValidation(result, SaveBaseXpPerLevelCommand);
+    }
+
+    private async Task ToggleModulePauseAsync(object? parameter)
+    {
+        if (parameter is not ModuleDisciplineItemViewModel item)
+            return;
+
+        var newState = !item.IsPaused;
+        await RunBusyAsync(async () =>
+        {
+            await _moduleDisciplineService.SetPausedAsync(item.SourceType, newState);
+            item.IsPaused = newState;
+            _profileRefreshMessenger.RequestRefresh();
+            StatusMessage = newState
+                ? $"Disciplina pausada en {item.DisplayName}."
+                : $"Disciplina reanudada en {item.DisplayName}.";
+        }, newState ? "Pausando disciplina…" : "Reanudando disciplina…");
     }
 }

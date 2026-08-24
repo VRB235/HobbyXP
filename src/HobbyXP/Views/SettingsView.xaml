@@ -33,6 +33,52 @@
 
             <Border Style="{StaticResource DarkCard}" Margin="0,0,0,16" Padding="20">
                 <StackPanel>
+                    <TextBlock Text="Disciplina por módulo" Style="{StaticResource SectionTitleText}" Margin="0,0,0,4" />
+                    <TextBlock Text="Pausa las cuotas diarias/semanales y los castigos de un hobby sin dejar de registrar actividad ni ganar XP."
+                               Style="{StaticResource MutedText}" TextWrapping="Wrap" Margin="0,0,0,12" />
+
+                    <ItemsControl ItemsSource="{Binding DisciplineModules}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Background="#1A2233"
+                                        BorderBrush="{StaticResource BorderBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="8"
+                                        Padding="12,10"
+                                        Margin="0,0,0,8">
+                                    <DockPanel>
+                                        <CheckBox DockPanel.Dock="Right"
+                                                  Content="Pausada"
+                                                  IsChecked="{Binding IsPaused, Mode=OneWay}"
+                                                  Command="{Binding DataContext.ToggleModulePauseCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                  CommandParameter="{Binding}"
+                                                  VerticalAlignment="Center" />
+                                        <StackPanel>
+                                            <TextBlock Text="{Binding DisplayName}" Style="{StaticResource SubsectionTitleText}" />
+                                            <TextBlock FontSize="12">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock" BasedOn="{StaticResource MutedText}">
+                                                        <Setter Property="Text" Value="Cuotas y castigos activos" />
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsPaused}" Value="True">
+                                                                <Setter Property="Text" Value="Sin cuotas ni castigos mientras esté pausado" />
+                                                                <Setter Property="Foreground" Value="#FF9100" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
+                                        </StackPanel>
+                                    </DockPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource DarkCard}" Margin="0,0,0,16" Padding="20">
+                <StackPanel>
                     <TextBlock Text="Datos locales" Style="{StaticResource SectionTitleText}" Margin="0,0,0,4" />
                     <TextBlock Text="HobbyXP guarda toda la información en su carpeta de datos de Windows."
                                Style="{StaticResource MutedText}" TextWrapping="Wrap" Margin="0,0,0,12" />

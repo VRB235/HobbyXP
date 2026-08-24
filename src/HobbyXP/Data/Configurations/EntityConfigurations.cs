@@ -578,3 +578,19 @@ internal sealed class SuggestionConfiguration : IEntityTypeConfiguration<Suggest
         builder.HasIndex(s => s.Kind);
     }
 }
+
+internal sealed class ModuleDisciplinePauseConfiguration : IEntityTypeConfiguration<ModuleDisciplinePause>
+{
+    public void Configure(EntityTypeBuilder<ModuleDisciplinePause> builder)
+    {
+        builder.ToTable("ModuleDisciplinePauses");
+
+        builder.Property(p => p.SourceType)
+            .HasConversion<string>()
+            .HasMaxLength(32)
+            .IsRequired();
+
+        builder.HasIndex(p => p.SourceType)
+            .IsUnique();
+    }
+}

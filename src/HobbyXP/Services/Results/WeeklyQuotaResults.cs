@@ -28,17 +28,22 @@ public sealed record WeeklyQuotaProgress(
     int DailyActualPrimary = 0,
     string? DailyPrimaryUnitLabel = null,
     bool IsDailyMet = false,
-    bool IsWeeklyMet = false)
+    bool IsWeeklyMet = false,
+    bool IsPaused = false)
 {
     public bool IsApplicable =>
-        RequiredPrimary > 0 ||
+        !IsPaused &&
+        (RequiredPrimary > 0 ||
         RequiredSecondary > 0 ||
-        (HasDailyQuota && DailyRequiredPrimary > 0);
+        (HasDailyQuota && DailyRequiredPrimary > 0));
 
     public string ProgressText
     {
         get
         {
+            if (IsPaused)
+                return "Disciplina en pausa";
+
             if (!IsApplicable)
                 return "Sin actividad activa esta semana";
 
