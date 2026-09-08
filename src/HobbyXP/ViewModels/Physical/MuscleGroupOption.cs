@@ -36,23 +36,24 @@ public sealed class MuscleGroupOption
     public static IReadOnlyList<MuscleGroupOption> CreateCatalogOptions()
     {
         var options = new List<MuscleGroupOption> { Create(null, "Sin grupo") };
-
-        foreach (MuscleGroup group in Enum.GetValues<MuscleGroup>())
-            options.Add(Create(group, MuscleGroupLabels.Get(group)));
-
+        options.AddRange(CreateAlphabeticalGroupOptions());
         return options;
     }
 
     public static IReadOnlyList<MuscleGroupOption> CreateFilterOptions()
     {
-        var options = new List<MuscleGroupOption> { Create(null, "Todos los grupos") };
-
-        foreach (MuscleGroup group in Enum.GetValues<MuscleGroup>())
-            options.Add(Create(group, MuscleGroupLabels.Get(group)));
-
-        options.Add(CreateUnassignedOnly("Sin grupo"));
+        var options = new List<MuscleGroupOption>
+        {
+            Create(null, "Todos los grupos"),
+            CreateUnassignedOnly("Sin grupo")
+        };
+        options.AddRange(CreateAlphabeticalGroupOptions());
         return options;
     }
+
+    private static IEnumerable<MuscleGroupOption> CreateAlphabeticalGroupOptions() =>
+        MuscleGroupLabels.OrderedAlphabetically
+            .Select(group => Create(group, MuscleGroupLabels.Get(group)));
 
     public bool Matches(MuscleGroup? muscleGroup)
     {

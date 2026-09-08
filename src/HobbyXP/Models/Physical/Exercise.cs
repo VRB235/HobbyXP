@@ -28,7 +28,7 @@ public class Exercise : EntityBase
     public string ExerciseTypeLabel => ExerciseTypeLabels.Get(ExerciseType);
 
     [NotMapped]
-    public int MuscleGroupSortOrder => MuscleGroup is null ? int.MaxValue : (int)MuscleGroup.Value;
+    public int MuscleGroupSortOrder => MuscleGroupLabels.GetSortOrder(MuscleGroup);
 
     /// <summary>
     /// Texto del ComboBox de entrenamiento (grupo · nombre).

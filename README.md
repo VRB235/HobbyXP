@@ -2,7 +2,7 @@
 
 Aplicativo de escritorio **WPF (.NET 8)** para gamificar hobbies personales (running, gimnasio, **dieta**, entretenimiento, libros/cursos) con sistema de **XP, niveles, medallas, premios y disciplina semanal**.
 
-**Versión actual: 1.8.0** (producción: rama `main`, tag [`v1.8.0`](https://github.com/VRB235/HobbyXP/releases/tag/v1.8.0)).
+**Versión actual: 1.8.1** (producción: rama `main`, tag [`v1.8.1`](https://github.com/VRB235/HobbyXP/releases/tag/v1.8.1)).
 
 - **Plataforma**: Windows 10/11, `net8.0-windows10.0.19041`.
 - **Arquitectura**: MVVM con inyección de dependencias (`Microsoft.Extensions.Hosting`).
@@ -44,9 +44,9 @@ El `README.md` se mantiene como **vista ejecutiva y técnica resumida** del esta
   - **Logros visibles**: siguiente medalla en cada hobby, widget en Dashboard, overlay al desbloquear, badge en sidebar. Cada medalla otorga saldo, título de honor e **inmunidad de disciplina 7 días**.
   - **Disciplina** (diaria + semanal lun–dom): incumplimiento baja un nivel del hobby; actividad atrasada puede restaurar. **Pausa por módulo** en Configuración (sin cuotas ni castigos; sigue registrando actividad y XP). **Diario** (Running/Gym/Libros/Cursos): 1 sesión; libros ≥20% páginas del libro actual (terminarlo también cumple el día; **semanal ya cumplida** o **exceso de páginas** también cubren la diaria). **Semanal**: Running 4, Gym 5, Curso 5 sesiones, Libro 1 terminado. Series: 1 serie terminada si hay serie en progreso, más 2 películas.
   - Running: sesiones umbral con **series** (cantidad, distancia m/km, tiempo) y resumen en historial; **carreras oficiales** en grilla con imagen persistente y ventana de detalle/edición.
-  - Gimnasio: ejercicios con **grupo muscular** opcional (Pecho, Tríceps, Bíceps, Hombros, Core, Espalda, Cuádriceps, Gemelos, Glúteos, Abductores, Aductores, Isquiotibiales); catálogo agrupado, filtro al armar el entrenamiento, **preservar ejercicios al filtrar**, carga de referencia del último entreno y asignación a ejercicios legacy.
+  - Gimnasio: ejercicios con **grupo muscular** opcional (ComboBox: Sin grupo primero, resto A–Z: Abductores, Aductores, Bíceps, Core, Cuádriceps, Espalda, Gemelos, Glúteos, Hombros, Isquiotibiales, Pecho, Tríceps); catálogo agrupado, filtro al armar el entrenamiento, **preservar ejercicios al filtrar**, carga de referencia del último entreno y asignación a ejercicios legacy.
   - **Dieta**: adherencia por 4 comidas (En plan / Fuera de plan); día bueno ≥ 3/4; cuota 5 días buenos/semana.
-  - Entretenimiento y crecimiento: **portadas** (libros, cursos, series, entradas de media, videojuegos) con miniatura en filas de progreso, almacén local y ventanas de detalle.
+  - Entretenimiento y crecimiento: **portadas** (libros, cursos, series, entradas de media, videojuegos) con miniatura en filas de progreso, almacén local y ventanas de detalle. Historial en cards con **imagen a pantalla completa**, pie semitransparente y meta (tipo/fecha) al **hover**.
   - Otorgamiento y deducción de XP mediante `XpService` y registro de transacciones/hitos.
   - Motor de medallas `AchievementEngineService` basado en reglas (`AchievementActionType`).
   - Sistema de recompensas (`Reward`) canjeables por XP (inventario y reliquia equipable); **tienda en grid** con cards, modal de detalle/canje y marcas de XP faltante por módulo.
@@ -111,6 +111,15 @@ Copy-Item "$env:LOCALAPPDATA\HobbyXP\*" "$env:LOCALAPPDATA\HobbyXP-Dev\" -Recurs
 
 ---
 
+## Mejoras incluidas en 1.8.1
+
+| Área | Qué cambió |
+|------|------------|
+| **Gimnasio** | Seleccionable de músculos en orden alfabético (es), con **Sin grupo** primero; mismo criterio en filtros y agrupación del catálogo. |
+| **Historial (portadas)** | `HistoryCoverCard` más alta, imagen full-bleed, pie en degradado semitransparente; subtítulo/fecha en hover con contraste alto. |
+| **Tienda** | Cards de premios con el mismo tratamiento visual (imagen full-bleed, meta al hover). |
+| **Versión** | 1.8.0 → **1.8.1** (csproj, Inno Setup, manifiesto MSIX). |
+
 ## Mejoras incluidas en 1.8.0
 
 | Área | Qué cambió |
@@ -156,7 +165,7 @@ Para generar un ZIP portable autocontenido:
 .\scripts\package-portable.ps1
 ```
 
-Salida: `artifacts\HobbyXP-win-x64-Release.zip`. Release GitHub: [`v1.8.0`](https://github.com/VRB235/HobbyXP/releases/tag/v1.8.0).
+Salida: `artifacts\HobbyXP-win-x64-Release.zip`. Release GitHub: [`v1.8.1`](https://github.com/VRB235/HobbyXP/releases/tag/v1.8.1).
 
 MSIX e instalador Inno Setup: ver [`docs/DISTRIBUCION.md`](docs/DISTRIBUCION.md).
 

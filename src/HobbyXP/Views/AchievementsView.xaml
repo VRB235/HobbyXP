@@ -293,11 +293,13 @@
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
                                         <Border Width="168"
+                                                Height="232"
                                                 Margin="0,0,12,12"
                                                 Background="#152033"
                                                 BorderBrush="{StaticResource BorderBrush}"
                                                 BorderThickness="1"
-                                                CornerRadius="10">
+                                                CornerRadius="10"
+                                                ClipToBounds="True">
                                             <Border.Style>
                                                 <Style TargetType="Border">
                                                     <Style.Triggers>
@@ -308,128 +310,170 @@
                                                     </Style.Triggers>
                                                 </Style>
                                             </Border.Style>
-                                            <Grid>
-                                                <Button Command="{Binding DataContext.OpenRewardDetailCommand, ElementName=RewardShopScroll}"
-                                                        CommandParameter="{Binding}"
-                                                        Cursor="Hand"
-                                                        Background="Transparent"
-                                                        BorderThickness="0"
-                                                        Padding="0"
-                                                        HorizontalContentAlignment="Stretch"
-                                                        VerticalContentAlignment="Stretch"
-                                                        ToolTip="{Binding RedeemStatusToolTip}">
-                                                    <Grid>
-                                                        <Grid.RowDefinitions>
-                                                            <RowDefinition Height="110" />
-                                                            <RowDefinition Height="Auto" />
-                                                        </Grid.RowDefinitions>
+                                            <Button Command="{Binding DataContext.OpenRewardDetailCommand, ElementName=RewardShopScroll}"
+                                                    CommandParameter="{Binding}"
+                                                    Cursor="Hand"
+                                                    Background="Transparent"
+                                                    BorderThickness="0"
+                                                    Padding="0"
+                                                    HorizontalContentAlignment="Stretch"
+                                                    VerticalContentAlignment="Stretch"
+                                                    ToolTip="{Binding RedeemStatusToolTip}">
+                                                <Button.Template>
+                                                    <ControlTemplate TargetType="Button">
+                                                        <Border Background="Transparent" SnapsToDevicePixels="True">
+                                                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                                                              VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
+                                                        </Border>
+                                                    </ControlTemplate>
+                                                </Button.Template>
+                                                <Grid>
+                                                    <Border Background="#1A2233">
+                                                        <Grid>
+                                                            <TextBlock Text="Sin imagen"
+                                                                       Foreground="#B0B8C8"
+                                                                       FontSize="13"
+                                                                       HorizontalAlignment="Center"
+                                                                       VerticalAlignment="Center"
+                                                                       Visibility="{Binding HasImage, Converter={StaticResource InverseBoolToVisibilityConverter}}" />
+                                                            <Image Source="{Binding ImageDisplayPath, Converter={StaticResource PathToImageSourceConverter}}"
+                                                                   Stretch="UniformToFill"
+                                                                   Visibility="{Binding HasImage, Converter={StaticResource BoolToVisibilityConverter}}" />
+                                                        </Grid>
+                                                    </Border>
 
-                                                        <Border Grid.Row="0"
-                                                                Background="#1A2233"
-                                                                CornerRadius="10,10,0,0"
-                                                                ClipToBounds="True">
-                                                            <Grid>
-                                                                <TextBlock Text="Sin imagen"
-                                                                           Style="{StaticResource MutedText}"
-                                                                           HorizontalAlignment="Center"
-                                                                           VerticalAlignment="Center"
-                                                                           Visibility="{Binding HasImage, Converter={StaticResource InverseBoolToVisibilityConverter}}" />
-                                                                <Image Source="{Binding ImageDisplayPath, Converter={StaticResource PathToImageSourceConverter}}"
-                                                                       Stretch="UniformToFill"
-                                                                       Visibility="{Binding HasImage, Converter={StaticResource BoolToVisibilityConverter}}" />
-                                                                <Border CornerRadius="4"
-                                                                        Padding="6,2"
-                                                                        HorizontalAlignment="Left"
-                                                                        VerticalAlignment="Top"
-                                                                        Margin="6">
-                                                                    <Border.Style>
-                                                                        <Style TargetType="Border">
-                                                                            <Setter Property="Background" Value="#80443322" />
+                                                    <Border CornerRadius="4"
+                                                            Padding="6,2"
+                                                            HorizontalAlignment="Left"
+                                                            VerticalAlignment="Top"
+                                                            Margin="6"
+                                                            Panel.ZIndex="1">
+                                                        <Border.Style>
+                                                            <Style TargetType="Border">
+                                                                <Setter Property="Background" Value="#B0443322" />
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding CanRedeem}" Value="True">
+                                                                        <Setter Property="Background" Value="#B03A7A5A" />
+                                                                    </DataTrigger>
+                                                                    <MultiDataTrigger>
+                                                                        <MultiDataTrigger.Conditions>
+                                                                            <Condition Binding="{Binding HasModule}" Value="True" />
+                                                                            <Condition Binding="{Binding CanRedeem}" Value="False" />
+                                                                        </MultiDataTrigger.Conditions>
+                                                                        <Setter Property="Background" Value="#B0553A10" />
+                                                                    </MultiDataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </Border.Style>
+                                                        <TextBlock Text="{Binding RedeemStatusLabel}"
+                                                                   FontSize="10"
+                                                                   FontWeight="SemiBold"
+                                                                   TextWrapping="Wrap"
+                                                                   MaxWidth="140">
+                                                            <TextBlock.Style>
+                                                                <Style TargetType="TextBlock">
+                                                                    <Setter Property="Foreground" Value="#FFB39A" />
+                                                                    <Style.Triggers>
+                                                                        <DataTrigger Binding="{Binding CanRedeem}" Value="True">
+                                                                            <Setter Property="Foreground" Value="{StaticResource AccentGreenBrush}" />
+                                                                        </DataTrigger>
+                                                                        <MultiDataTrigger>
+                                                                            <MultiDataTrigger.Conditions>
+                                                                                <Condition Binding="{Binding HasModule}" Value="True" />
+                                                                                <Condition Binding="{Binding CanRedeem}" Value="False" />
+                                                                            </MultiDataTrigger.Conditions>
+                                                                            <Setter Property="Foreground" Value="#FF9100" />
+                                                                        </MultiDataTrigger>
+                                                                    </Style.Triggers>
+                                                                </Style>
+                                                            </TextBlock.Style>
+                                                        </TextBlock>
+                                                    </Border>
+
+                                                    <Border VerticalAlignment="Bottom">
+                                                        <Border.Background>
+                                                            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                                                <GradientStop Color="#000D1117" Offset="0" />
+                                                                <GradientStop Color="#990D1117" Offset="0.35" />
+                                                                <GradientStop Color="#E60D1117" Offset="1" />
+                                                            </LinearGradientBrush>
+                                                        </Border.Background>
+                                                        <StackPanel Margin="10,28,10,10">
+                                                            <TextBlock Text="{Binding Name}"
+                                                                       FontWeight="SemiBold"
+                                                                       FontSize="13"
+                                                                       Foreground="#F5F8FC"
+                                                                       TextWrapping="Wrap"
+                                                                       MaxHeight="40"
+                                                                       ToolTip="{Binding Name}">
+                                                                <TextBlock.Effect>
+                                                                    <DropShadowEffect BlurRadius="4" ShadowDepth="1" Opacity="0.85" Color="#000000" />
+                                                                </TextBlock.Effect>
+                                                            </TextBlock>
+
+                                                            <StackPanel Margin="0,4,0,0">
+                                                                <StackPanel.Style>
+                                                                    <Style TargetType="StackPanel">
+                                                                        <Setter Property="Opacity" Value="0" />
+                                                                        <Setter Property="MaxHeight" Value="0" />
+                                                                        <Style.Triggers>
+                                                                            <DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=Button}}"
+                                                                                         Value="True">
+                                                                                <Setter Property="Opacity" Value="1" />
+                                                                                <Setter Property="MaxHeight" Value="72" />
+                                                                            </DataTrigger>
+                                                                        </Style.Triggers>
+                                                                    </Style>
+                                                                </StackPanel.Style>
+                                                                <TextBlock Text="{Binding CostLabel}"
+                                                                           Foreground="#D7DEEA"
+                                                                           FontSize="12"
+                                                                           TextWrapping="Wrap">
+                                                                    <TextBlock.Effect>
+                                                                        <DropShadowEffect BlurRadius="3" ShadowDepth="1" Opacity="0.7" Color="#000000" />
+                                                                    </TextBlock.Effect>
+                                                                </TextBlock>
+                                                                <TextBlock Text="{Binding RedeemStatusLabel}"
+                                                                           FontSize="11"
+                                                                           FontWeight="SemiBold"
+                                                                           Margin="0,4,0,0"
+                                                                           TextWrapping="Wrap">
+                                                                    <TextBlock.Style>
+                                                                        <Style TargetType="TextBlock">
+                                                                            <Setter Property="Foreground" Value="#FFB39A" />
                                                                             <Style.Triggers>
                                                                                 <DataTrigger Binding="{Binding CanRedeem}" Value="True">
-                                                                                    <Setter Property="Background" Value="#803A7A5A" />
+                                                                                    <Setter Property="Foreground" Value="{StaticResource AccentGreenBrush}" />
                                                                                 </DataTrigger>
                                                                                 <MultiDataTrigger>
                                                                                     <MultiDataTrigger.Conditions>
                                                                                         <Condition Binding="{Binding HasModule}" Value="True" />
                                                                                         <Condition Binding="{Binding CanRedeem}" Value="False" />
                                                                                     </MultiDataTrigger.Conditions>
-                                                                                    <Setter Property="Background" Value="#80553A10" />
+                                                                                    <Setter Property="Foreground" Value="#FF9100" />
                                                                                 </MultiDataTrigger>
                                                                             </Style.Triggers>
                                                                         </Style>
-                                                                    </Border.Style>
-                                                                    <TextBlock Text="{Binding RedeemStatusLabel}"
-                                                                               FontSize="10"
-                                                                               FontWeight="SemiBold"
-                                                                               TextWrapping="Wrap"
-                                                                               MaxWidth="140">
-                                                                        <TextBlock.Style>
-                                                                            <Style TargetType="TextBlock">
-                                                                                <Setter Property="Foreground" Value="#FFB39A" />
-                                                                                <Style.Triggers>
-                                                                                    <DataTrigger Binding="{Binding CanRedeem}" Value="True">
-                                                                                        <Setter Property="Foreground" Value="{StaticResource AccentGreenBrush}" />
-                                                                                    </DataTrigger>
-                                                                                    <MultiDataTrigger>
-                                                                                        <MultiDataTrigger.Conditions>
-                                                                                            <Condition Binding="{Binding HasModule}" Value="True" />
-                                                                                            <Condition Binding="{Binding CanRedeem}" Value="False" />
-                                                                                        </MultiDataTrigger.Conditions>
-                                                                                        <Setter Property="Foreground" Value="#FF9100" />
-                                                                                    </MultiDataTrigger>
-                                                                                </Style.Triggers>
-                                                                            </Style>
-                                                                        </TextBlock.Style>
-                                                                    </TextBlock>
-                                                                </Border>
-                                                            </Grid>
-                                                        </Border>
-
-                                                        <StackPanel Grid.Row="1" Margin="10,8,10,10">
-                                                            <TextBlock Text="{Binding Name}"
-                                                                       FontWeight="SemiBold"
-                                                                       TextWrapping="Wrap"
-                                                                       MaxHeight="40"
-                                                                       ToolTip="{Binding Name}" />
-                                                            <TextBlock Text="{Binding CostLabel}"
-                                                                       Style="{StaticResource MutedText}"
-                                                                       Margin="0,4,0,0"
-                                                                       TextWrapping="Wrap" />
-                                                            <TextBlock Text="{Binding RedeemStatusLabel}"
-                                                                       FontSize="11"
-                                                                       FontWeight="SemiBold"
-                                                                       Margin="0,4,0,0"
-                                                                       TextWrapping="Wrap">
-                                                                <TextBlock.Style>
-                                                                    <Style TargetType="TextBlock">
-                                                                        <Setter Property="Foreground" Value="#FFB39A" />
-                                                                        <Style.Triggers>
-                                                                            <DataTrigger Binding="{Binding CanRedeem}" Value="True">
-                                                                                <Setter Property="Foreground" Value="{StaticResource AccentGreenBrush}" />
-                                                                            </DataTrigger>
-                                                                            <MultiDataTrigger>
-                                                                                <MultiDataTrigger.Conditions>
-                                                                                    <Condition Binding="{Binding HasModule}" Value="True" />
-                                                                                    <Condition Binding="{Binding CanRedeem}" Value="False" />
-                                                                                </MultiDataTrigger.Conditions>
-                                                                                <Setter Property="Foreground" Value="#FF9100" />
-                                                                            </MultiDataTrigger>
-                                                                        </Style.Triggers>
-                                                                    </Style>
-                                                                </TextBlock.Style>
-                                                            </TextBlock>
-                                                            <DockPanel Margin="0,4,0,0">
-                                                                <TextBlock DockPanel.Dock="Right"
-                                                                           Text="{Binding PriceLabel}"
-                                                                           Style="{StaticResource MutedText}" />
-                                                                <TextBlock Text="{Binding ModuleLabel}"
-                                                                           Style="{StaticResource MutedText}" />
-                                                            </DockPanel>
+                                                                    </TextBlock.Style>
+                                                                    <TextBlock.Effect>
+                                                                        <DropShadowEffect BlurRadius="3" ShadowDepth="1" Opacity="0.7" Color="#000000" />
+                                                                    </TextBlock.Effect>
+                                                                </TextBlock>
+                                                                <DockPanel Margin="0,4,0,0">
+                                                                    <TextBlock DockPanel.Dock="Right"
+                                                                               Text="{Binding PriceLabel}"
+                                                                               Foreground="#D7DEEA"
+                                                                               FontSize="12" />
+                                                                    <TextBlock Text="{Binding ModuleLabel}"
+                                                                               Foreground="#D7DEEA"
+                                                                               FontSize="12"
+                                                                               TextTrimming="CharacterEllipsis" />
+                                                                </DockPanel>
+                                                            </StackPanel>
                                                         </StackPanel>
-                                                    </Grid>
-                                                </Button>
-                                            </Grid>
+                                                    </Border>
+                                                </Grid>
+                                            </Button>
                                         </Border>
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
@@ -446,11 +490,13 @@
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
                                         <Border Width="168"
+                                                Height="232"
                                                 Margin="0,0,12,12"
                                                 Background="#152033"
                                                 BorderBrush="{StaticResource BorderBrush}"
                                                 BorderThickness="1"
-                                                CornerRadius="10">
+                                                CornerRadius="10"
+                                                ClipToBounds="True">
                                             <Border.Style>
                                                 <Style TargetType="Border">
                                                     <Style.Triggers>
@@ -461,71 +507,110 @@
                                                     </Style.Triggers>
                                                 </Style>
                                             </Border.Style>
-                                            <Grid>
-                                                <Button Command="{Binding DataContext.OpenRewardDetailCommand, ElementName=RewardShopScroll}"
-                                                        CommandParameter="{Binding}"
-                                                        Cursor="Hand"
-                                                        Background="Transparent"
-                                                        BorderThickness="0"
-                                                        Padding="0"
-                                                        HorizontalContentAlignment="Stretch"
-                                                        VerticalContentAlignment="Stretch"
-                                                        ToolTip="Ver o equipar reliquia">
-                                                    <Grid>
-                                                        <Grid.RowDefinitions>
-                                                            <RowDefinition Height="110" />
-                                                            <RowDefinition Height="Auto" />
-                                                        </Grid.RowDefinitions>
-
-                                                        <Border Grid.Row="0"
-                                                                Background="#1A2233"
-                                                                CornerRadius="10,10,0,0"
-                                                                ClipToBounds="True">
-                                                            <Grid>
-                                                                <TextBlock Text="Sin imagen"
-                                                                           Style="{StaticResource MutedText}"
-                                                                           HorizontalAlignment="Center"
-                                                                           VerticalAlignment="Center"
-                                                                           Visibility="{Binding HasImage, Converter={StaticResource InverseBoolToVisibilityConverter}}" />
-                                                                <Image Source="{Binding ImageDisplayPath, Converter={StaticResource PathToImageSourceConverter}}"
-                                                                       Stretch="UniformToFill"
-                                                                       Visibility="{Binding HasImage, Converter={StaticResource BoolToVisibilityConverter}}" />
-                                                                <Border Background="#80000000"
-                                                                        CornerRadius="4"
-                                                                        Padding="6,2"
-                                                                        HorizontalAlignment="Left"
-                                                                        VerticalAlignment="Top"
-                                                                        Margin="6"
-                                                                        Visibility="{Binding IsEquipped, Converter={StaticResource BoolToVisibilityConverter}}">
-                                                                    <TextBlock Text="Equipado"
-                                                                               Foreground="{StaticResource AccentGreenBrush}"
-                                                                               FontSize="11"
-                                                                               FontWeight="SemiBold" />
-                                                                </Border>
-                                                            </Grid>
+                                            <Button Command="{Binding DataContext.OpenRewardDetailCommand, ElementName=RewardShopScroll}"
+                                                    CommandParameter="{Binding}"
+                                                    Cursor="Hand"
+                                                    Background="Transparent"
+                                                    BorderThickness="0"
+                                                    Padding="0"
+                                                    HorizontalContentAlignment="Stretch"
+                                                    VerticalContentAlignment="Stretch"
+                                                    ToolTip="Ver o equipar reliquia">
+                                                <Button.Template>
+                                                    <ControlTemplate TargetType="Button">
+                                                        <Border Background="Transparent" SnapsToDevicePixels="True">
+                                                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                                                              VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
                                                         </Border>
+                                                    </ControlTemplate>
+                                                </Button.Template>
+                                                <Grid>
+                                                    <Border Background="#1A2233">
+                                                        <Grid>
+                                                            <TextBlock Text="Sin imagen"
+                                                                       Foreground="#B0B8C8"
+                                                                       FontSize="13"
+                                                                       HorizontalAlignment="Center"
+                                                                       VerticalAlignment="Center"
+                                                                       Visibility="{Binding HasImage, Converter={StaticResource InverseBoolToVisibilityConverter}}" />
+                                                            <Image Source="{Binding ImageDisplayPath, Converter={StaticResource PathToImageSourceConverter}}"
+                                                                   Stretch="UniformToFill"
+                                                                   Visibility="{Binding HasImage, Converter={StaticResource BoolToVisibilityConverter}}" />
+                                                        </Grid>
+                                                    </Border>
 
-                                                        <StackPanel Grid.Row="1" Margin="10,8,10,10">
+                                                    <Border Background="#B0000000"
+                                                            CornerRadius="4"
+                                                            Padding="6,2"
+                                                            HorizontalAlignment="Left"
+                                                            VerticalAlignment="Top"
+                                                            Margin="6"
+                                                            Panel.ZIndex="1"
+                                                            Visibility="{Binding IsEquipped, Converter={StaticResource BoolToVisibilityConverter}}">
+                                                        <TextBlock Text="Equipado"
+                                                                   Foreground="{StaticResource AccentGreenBrush}"
+                                                                   FontSize="11"
+                                                                   FontWeight="SemiBold" />
+                                                    </Border>
+
+                                                    <Border VerticalAlignment="Bottom">
+                                                        <Border.Background>
+                                                            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                                                <GradientStop Color="#000D1117" Offset="0" />
+                                                                <GradientStop Color="#990D1117" Offset="0.35" />
+                                                                <GradientStop Color="#E60D1117" Offset="1" />
+                                                            </LinearGradientBrush>
+                                                        </Border.Background>
+                                                        <StackPanel Margin="10,28,10,10">
                                                             <TextBlock Text="{Binding Name}"
                                                                        FontWeight="SemiBold"
+                                                                       FontSize="13"
+                                                                       Foreground="#F5F8FC"
                                                                        TextWrapping="Wrap"
                                                                        MaxHeight="40"
-                                                                       ToolTip="{Binding Name}" />
-                                                            <TextBlock Text="{Binding CostLabel}"
-                                                                       Style="{StaticResource MutedText}"
-                                                                       Margin="0,4,0,0"
-                                                                       TextWrapping="Wrap" />
-                                                            <DockPanel Margin="0,4,0,0">
-                                                                <TextBlock DockPanel.Dock="Right"
-                                                                           Text="{Binding EquipButtonLabel}"
-                                                                           Style="{StaticResource MutedText}" />
-                                                                <TextBlock Text="{Binding ModuleLabel}"
-                                                                           Style="{StaticResource MutedText}" />
-                                                            </DockPanel>
+                                                                       ToolTip="{Binding Name}">
+                                                                <TextBlock.Effect>
+                                                                    <DropShadowEffect BlurRadius="4" ShadowDepth="1" Opacity="0.85" Color="#000000" />
+                                                                </TextBlock.Effect>
+                                                            </TextBlock>
+
+                                                            <StackPanel Margin="0,4,0,0">
+                                                                <StackPanel.Style>
+                                                                    <Style TargetType="StackPanel">
+                                                                        <Setter Property="Opacity" Value="0" />
+                                                                        <Setter Property="MaxHeight" Value="0" />
+                                                                        <Style.Triggers>
+                                                                            <DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=Button}}"
+                                                                                         Value="True">
+                                                                                <Setter Property="Opacity" Value="1" />
+                                                                                <Setter Property="MaxHeight" Value="56" />
+                                                                            </DataTrigger>
+                                                                        </Style.Triggers>
+                                                                    </Style>
+                                                                </StackPanel.Style>
+                                                                <TextBlock Text="{Binding CostLabel}"
+                                                                           Foreground="#D7DEEA"
+                                                                           FontSize="12"
+                                                                           TextWrapping="Wrap">
+                                                                    <TextBlock.Effect>
+                                                                        <DropShadowEffect BlurRadius="3" ShadowDepth="1" Opacity="0.7" Color="#000000" />
+                                                                    </TextBlock.Effect>
+                                                                </TextBlock>
+                                                                <DockPanel Margin="0,4,0,0">
+                                                                    <TextBlock DockPanel.Dock="Right"
+                                                                               Text="{Binding EquipButtonLabel}"
+                                                                               Foreground="#D7DEEA"
+                                                                               FontSize="12" />
+                                                                    <TextBlock Text="{Binding ModuleLabel}"
+                                                                               Foreground="#D7DEEA"
+                                                                               FontSize="12"
+                                                                               TextTrimming="CharacterEllipsis" />
+                                                                </DockPanel>
+                                                            </StackPanel>
                                                         </StackPanel>
-                                                    </Grid>
-                                                </Button>
-                                            </Grid>
+                                                    </Border>
+                                                </Grid>
+                                            </Button>
                                         </Border>
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>

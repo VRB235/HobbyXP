@@ -3,20 +3,15 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Name="Root">
     <Border Width="168"
+            Height="232"
             Margin="0,0,12,12"
             Background="#152033"
             BorderBrush="{StaticResource BorderBrush}"
             BorderThickness="1"
-            CornerRadius="10">
+            CornerRadius="10"
+            ClipToBounds="True">
         <Grid>
-            <Grid.RowDefinitions>
-                <RowDefinition Height="110" />
-                <RowDefinition Height="Auto" />
-            </Grid.RowDefinitions>
-
-            <Button Grid.Row="0"
-                    Grid.RowSpan="2"
-                    Command="{Binding OpenCommand, ElementName=Root}"
+            <Button Command="{Binding OpenCommand, ElementName=Root}"
                     CommandParameter="{Binding Item, ElementName=Root}"
                     Cursor="Hand"
                     Background="Transparent"
@@ -25,19 +20,22 @@
                     HorizontalContentAlignment="Stretch"
                     VerticalContentAlignment="Stretch"
                     ToolTip="Ver y editar">
+                <Button.Template>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="Transparent"
+                                SnapsToDevicePixels="True">
+                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                              VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
+                        </Border>
+                    </ControlTemplate>
+                </Button.Template>
                 <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="110" />
-                        <RowDefinition Height="Auto" />
-                    </Grid.RowDefinitions>
-
-                    <Border Grid.Row="0"
-                            Background="#1A2233"
-                            CornerRadius="10,10,0,0"
-                            ClipToBounds="True">
+                    <!-- Portada a pantalla completa -->
+                    <Border Background="#1A2233">
                         <Grid>
                             <TextBlock Text="Sin imagen"
-                                       Style="{StaticResource MutedText}"
+                                       Foreground="#B0B8C8"
+                                       FontSize="13"
                                        HorizontalAlignment="Center"
                                        VerticalAlignment="Center"
                                        Visibility="{Binding HasImage, ElementName=Root, Converter={StaticResource InverseBoolToVisibilityConverter}}" />
@@ -47,26 +45,67 @@
                         </Grid>
                     </Border>
 
-                    <StackPanel Grid.Row="1" Margin="10,8,10,10">
-                        <TextBlock Text="{Binding Title, ElementName=Root}"
-                                   FontWeight="SemiBold"
-                                   TextWrapping="Wrap"
-                                   MaxHeight="40"
-                                   ToolTip="{Binding Title, ElementName=Root}" />
-                        <TextBlock Text="{Binding Subtitle, ElementName=Root}"
-                                   Style="{StaticResource MutedText}"
-                                   Margin="0,2,0,0"
-                                   TextWrapping="NoWrap"
-                                   TextTrimming="CharacterEllipsis" />
-                        <TextBlock Text="{Binding DateText, ElementName=Root}"
-                                   Style="{StaticResource MutedText}"
-                                   Margin="0,4,0,0" />
-                    </StackPanel>
+                    <!-- Pie semitransparente sobre la imagen -->
+                    <Border VerticalAlignment="Bottom">
+                        <Border.Background>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                <GradientStop Color="#000D1117" Offset="0" />
+                                <GradientStop Color="#990D1117" Offset="0.35" />
+                                <GradientStop Color="#E60D1117" Offset="1" />
+                            </LinearGradientBrush>
+                        </Border.Background>
+                        <StackPanel Margin="10,28,10,10">
+                            <TextBlock Text="{Binding Title, ElementName=Root}"
+                                       FontWeight="SemiBold"
+                                       FontSize="13"
+                                       Foreground="#F5F8FC"
+                                       TextWrapping="Wrap"
+                                       MaxHeight="40"
+                                       ToolTip="{Binding Title, ElementName=Root}">
+                                <TextBlock.Effect>
+                                    <DropShadowEffect BlurRadius="4" ShadowDepth="1" Opacity="0.85" Color="#000000" />
+                                </TextBlock.Effect>
+                            </TextBlock>
+
+                            <!-- Meta: visible al hover para no tapar la portada en reposo -->
+                            <StackPanel Margin="0,4,0,0">
+                                <StackPanel.Style>
+                                    <Style TargetType="StackPanel">
+                                        <Setter Property="Opacity" Value="0" />
+                                        <Setter Property="MaxHeight" Value="0" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=Button}}"
+                                                         Value="True">
+                                                <Setter Property="Opacity" Value="1" />
+                                                <Setter Property="MaxHeight" Value="48" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </StackPanel.Style>
+                                <TextBlock Text="{Binding Subtitle, ElementName=Root}"
+                                           Foreground="#D7DEEA"
+                                           FontSize="12"
+                                           TextWrapping="NoWrap"
+                                           TextTrimming="CharacterEllipsis">
+                                    <TextBlock.Effect>
+                                        <DropShadowEffect BlurRadius="3" ShadowDepth="1" Opacity="0.7" Color="#000000" />
+                                    </TextBlock.Effect>
+                                </TextBlock>
+                                <TextBlock Text="{Binding DateText, ElementName=Root}"
+                                           Foreground="#D7DEEA"
+                                           FontSize="12"
+                                           Margin="0,2,0,0">
+                                    <TextBlock.Effect>
+                                        <DropShadowEffect BlurRadius="3" ShadowDepth="1" Opacity="0.7" Color="#000000" />
+                                    </TextBlock.Effect>
+                                </TextBlock>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
                 </Grid>
             </Button>
 
-            <Button Grid.Row="0"
-                    Content="✕"
+            <Button Content="✕"
                     Width="28" Height="28"
                     Padding="0"
                     HorizontalAlignment="Right"
