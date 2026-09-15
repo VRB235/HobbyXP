@@ -435,6 +435,32 @@ UNION ALL SELECT 'Courses', COUNT(*) FROM Courses;
 
 ---
 
+### CP-GYM-004 — Buscar y autocompletar ejercicio al armar la rutina
+
+| Campo | Detalle |
+|-------|---------|
+| **Prioridad** | Alta |
+| **Precondiciones** | Catálogo con varios ejercicios (p. ej. `Press banca` Pecho, `Curl` Bíceps, `Sentadilla` Cuádriceps). Pestaña Gym → Entrenamiento. |
+| **Datos** | Texto de búsqueda: `press` y `biceps` (sin acento). |
+| **Pasos** | 1. En **Buscar**, escribir `press`.<br>2. Abrir el ComboBox de la fila: debe listar coincidencias de nombre/músculo (p. ej. Press banca).<br>3. Borrar el buscador global y, en el ComboBox de la fila, escribir `curl` o `biceps`.<br>4. Confirmar que el desplegable se abre al escribir y que se puede elegir el ejercicio.<br>5. Cambiar filtro de músculo a Pecho y buscar `sentadilla`: no debe aparecer (salvo que esa fila ya la tuviera seleccionada). |
+| **UI** | El listado se acota en vivo. La fila que ya tenía un ejercicio seleccionado **conserva** esa selección aunque deje de coincidir con el texto. No se guarda nada hasta **Guardar entrenamiento**. |
+| **BD** | Sin INSERT en `GymWorkouts` / `GymWorkoutEntries`. Lectura de catálogo: `SELECT Id, Name, MuscleGroup FROM Exercises`. |
+
+---
+
+### CP-GYM-005 — Precargar última marca y editarla antes de guardar
+
+| Campo | Detalle |
+|-------|---------|
+| **Prioridad** | Alta |
+| **Precondiciones** | Historial con `Press banca` 4×8 a 60 kg (anotar `GymWorkoutEntries`). |
+| **Datos** | Edición: series `5`, reps `6`, peso `62.5`. |
+| **Pasos** | 1. Nueva fila → seleccionar `Press banca` (buscador o ComboBox).<br>2. Verificar que series/reps/peso coinciden con el último registro de ese ejercicio.<br>3. Cambiar peso a `62.5` (y series/reps si aplica) **sin** guardar.<br>4. Guardar entrenamiento. |
+| **UI** | Tras el paso 2 los NumericStepper siguen habilitados (no read-only). Tras el paso 3 los valores editados permanecen. Tras guardar, historial muestra 5×6 a 62.5 kg, no 4×8 a 60. |
+| **BD** | Un `GymWorkouts` nuevo. `GymWorkoutEntries`: `Sets=5`, `Repetitions=6`, `WeightKg=62.5`, `ExerciseId` de Press banca. El registro anterior (60 kg) no se modifica. |
+
+---
+
 ## 6.1 Dieta
 
 Contrato: 4 comidas (Desayuno, Almuerzo, Cena, Snack). Cada una: En plan / Fuera de plan / sin marcar. **Día bueno** = al menos 3 comidas en plan. **Día perfecto** = 4/4. Cuota semanal (lun–dom): **5 días buenos**. Las comidas sin marcar no suman. Un desliz (fuera de plan) no anula el día si quedan ≥3 en plan.

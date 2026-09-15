@@ -1,3 +1,5 @@
+using System.Collections.ObjectModel;
+using HobbyXP.Helpers;
 using HobbyXP.Models.Enums;
 using HobbyXP.Models.Physical;
 using HobbyXP.Services.Abstractions;
@@ -14,19 +16,45 @@ public sealed class GymEntryRowViewModel : ViewModelBase
     private decimal? _weightKg = 20m;
     private int _durationMinutes;
     private int _durationSeconds = 30;
+    private string _exerciseQuery = string.Empty;
+    private IReadOnlyList<Exercise> _pickerCatalog = [];
+    private bool _suppressPickerRebuild;
 
-    public GymEntryRowViewModel(int sortOrder) => SortOrder = sortOrder;
+    public GymEntryRowViewModel(int sortOrder)
+    {
+        SortOrder = sortOrder;
+        PickerExercises = new ObservableCollection<Exercise>();
+    }
 
     public int SortOrder { get; }
+
+    public ObservableCollection<Exercise> PickerExercises { get; }
+
+    public string ExerciseQuery
+    {
+        get => _exerciseQuery;
+        set
+        {
+            if (SetProperty(ref _exerciseQuery, value ?? string.Empty))
+                RebuildPickerExercises();
+        }
+    }
 
     public int? SelectedExerciseId
     {
         get => _selectedExerciseId;
         set
         {
+            // El ComboBox editable pone null al escribir un texto que no coincide;
+            // se conserva la selección previa (se cambia eligiendo otro ítem o borrando la fila).
+            if (value is null)
+                return;
+
             if (!SetProperty(ref _selectedExerciseId, value))
                 return;
 
+            SyncQueryFromSelection();
+            RebuildPickerExercises();
             OnPropertyChanged(nameof(CanEditWeight));
             OnPropertyChanged(nameof(CanEditRepetitions));
             OnPropertyChanged(nameof(CanEditDuration));
@@ -88,6 +116,7 @@ public sealed class GymEntryRowViewModel : ViewModelBase
     {
         SelectedExerciseId = exercise.Id;
         ExerciseType = exercise.ExerciseType;
+        SyncQueryFromSelection();
     }
 
     /// <summary>Rellena la fila desde un historial (referencia); no persiste.</summary>
@@ -95,6 +124,13 @@ public sealed class GymEntryRowViewModel : ViewModelBase
     {
         SelectedExerciseId = entry.ExerciseId;
         ExerciseType = entry.ExerciseType;
+        LoadPerformanceFromHistory(entry);
+        SyncQueryFromSelection();
+    }
+
+    /// <summary>Copia series/reps/peso/tiempo de un registro previo; el usuario puede editarlos.</summary>
+    public void LoadPerformanceFromHistory(GymWorkoutEntry entry)
+    {
         Sets = entry.Sets;
         Repetitions = entry.Repetitions;
         WeightKg = entry.WeightKg;
@@ -108,6 +144,55 @@ public sealed class GymEntryRowViewModel : ViewModelBase
         {
             DurationMinutes = 0;
             DurationSeconds = ExerciseType == ExerciseType.TimeBased ? 30 : 0;
+        }
+    }
+
+    public void UpdatePickerCatalog(IReadOnlyList<Exercise> catalog)
+    {
+        _pickerCatalog = catalog;
+        RebuildPickerExercises();
+        SyncQueryFromSelection();
+        if (SelectedExerciseId.HasValue)
+            OnPropertyChanged(nameof(SelectedExerciseId));
+    }
+
+    private void SyncQueryFromSelection()
+    {
+        var selected = _pickerCatalog.FirstOrDefault(e => e.Id == SelectedExerciseId)
+            ?? PickerExercises.FirstOrDefault(e => e.Id == SelectedExerciseId);
+        if (selected is null)
+            return;
+
+        if (!string.Equals(_exerciseQuery, selected.PickerDisplayName, StringComparison.Ordinal))
+        {
+            _exerciseQuery = selected.PickerDisplayName;
+            OnPropertyChanged(nameof(ExerciseQuery));
+        }
+    }
+
+    private void RebuildPickerExercises()
+    {
+        if (_suppressPickerRebuild)
+            return;
+
+        _suppressPickerRebuild = true;
+        try
+        {
+            var selectedId = SelectedExerciseId;
+            var matches = ExercisePickerFilter
+                .Filter(_pickerCatalog, _exerciseQuery, selectedId)
+                .ToList();
+
+            PickerExercises.Clear();
+            foreach (var exercise in matches)
+                PickerExercises.Add(exercise);
+
+            if (selectedId.HasValue && SelectedExerciseId != selectedId)
+                SelectedExerciseId = selectedId;
+        }
+        finally
+        {
+            _suppressPickerRebuild = false;
         }
     }
 

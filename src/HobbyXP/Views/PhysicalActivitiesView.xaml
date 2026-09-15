@@ -618,7 +618,15 @@
                                     <ComboBox Width="180"
                                               ItemsSource="{Binding MuscleGroupFilterOptions}"
                                               SelectedItem="{Binding ExerciseFilterOption}"
-                                              DisplayMemberPath="Label" />
+                                              DisplayMemberPath="Label"
+                                              Margin="0,0,16,0" />
+                                    <TextBlock Text="Buscar:"
+                                               VerticalAlignment="Center"
+                                               Style="{StaticResource MutedText}"
+                                               Margin="0,0,8,0" />
+                                    <TextBox Width="200"
+                                             Text="{Binding ExerciseSearchText, UpdateSourceTrigger=PropertyChanged}"
+                                             ToolTip="Filtra el listado por nombre o grupo muscular (sin acentos también)" />
                                 </StackPanel>
 
                                 <Border BorderBrush="{StaticResource BorderBrush}"
@@ -664,11 +672,17 @@
                                                     </Grid.ColumnDefinitions>
 
                                                     <ComboBox Grid.Column="0"
-                                                              ItemsSource="{Binding DataContext.FilteredExercises, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                              ItemsSource="{Binding PickerExercises}"
                                                               DisplayMemberPath="PickerDisplayName"
                                                               SelectedValuePath="Id"
-                                                              SelectedValue="{Binding SelectedExerciseId}"
-                                                              IsEditable="False"
+                                                              SelectedValue="{Binding SelectedExerciseId, UpdateSourceTrigger=PropertyChanged}"
+                                                              IsEditable="True"
+                                                              StaysOpenOnEdit="True"
+                                                              IsTextSearchEnabled="False"
+                                                              Text="{Binding ExerciseQuery, UpdateSourceTrigger=PropertyChanged}"
+                                                              helpers:ComboBoxAssist.OpenDropDownOnTextChange="True"
+                                                              MaxDropDownHeight="280"
+                                                              ToolTip="Escriba para buscar. Al elegir un ejercicio se precargan series, reps y peso del último registro; puede editarlos antes de guardar."
                                                               Margin="0,0,6,0" />
 
                                                     <ComboBox Grid.Column="1"

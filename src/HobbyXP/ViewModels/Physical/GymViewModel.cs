@@ -37,6 +37,8 @@ public sealed class GymViewModel : AchievementAwareViewModel
     private DateTime? _workoutDate = DateTime.Today;
     private List<GymWorkout> _allWorkouts = [];
     private string? _exerciseValidationMessage;
+    private string _exerciseSearchText = string.Empty;
+    private bool _suppressExercisePrefill;
 
     public GymViewModel(
         IGymService gymService,
@@ -219,6 +221,16 @@ public sealed class GymViewModel : AchievementAwareViewModel
         }
     }
 
+    public string ExerciseSearchText
+    {
+        get => _exerciseSearchText;
+        set
+        {
+            if (SetProperty(ref _exerciseSearchText, value))
+                RebuildFilteredExercises();
+        }
+    }
+
     public MuscleGroupOption HistoryMuscleGroupFilterOption
     {
         get => _historyMuscleGroupFilterOption;
@@ -301,6 +313,7 @@ public sealed class GymViewModel : AchievementAwareViewModel
         FilteredExercises.Clear();
         foreach (var exercise in Exercises
                      .Where(e => ExerciseFilterOption.Matches(e.MuscleGroup) || pinnedIds.Contains(e.Id))
+                     .Where(e => pinnedIds.Contains(e.Id) || ExercisePickerFilter.MatchesText(e, ExerciseSearchText))
                      .OrderBy(e => e.MuscleGroupSortOrder)
                      .ThenBy(e => e.Name))
         {
@@ -309,6 +322,7 @@ public sealed class GymViewModel : AchievementAwareViewModel
 
         for (var i = 0; i < Entries.Count; i++)
         {
+            Entries[i].UpdatePickerCatalog(FilteredExercises);
             if (preservedIds[i].HasValue && Entries[i].SelectedExerciseId != preservedIds[i])
                 Entries[i].SelectedExerciseId = preservedIds[i];
         }
@@ -343,16 +357,24 @@ public sealed class GymViewModel : AchievementAwareViewModel
             return;
         }
 
-        Entries.Clear();
-        foreach (var entry in workout.Entries.OrderBy(e => e.SortOrder))
+        _suppressExercisePrefill = true;
+        try
         {
-            var row = CreateEntryRow(Entries.Count);
-            row.LoadFromHistoryEntry(entry);
-            Entries.Add(row);
-        }
+            Entries.Clear();
+            foreach (var entry in workout.Entries.OrderBy(e => e.SortOrder))
+            {
+                var row = CreateEntryRow(Entries.Count);
+                row.LoadFromHistoryEntry(entry);
+                Entries.Add(row);
+            }
 
-        if (Entries.Count == 0)
-            AddRow();
+            if (Entries.Count == 0)
+                AddRow();
+        }
+        finally
+        {
+            _suppressExercisePrefill = false;
+        }
 
         RebuildFilteredExercises();
         RefreshWorkoutValidation();
@@ -374,6 +396,7 @@ public sealed class GymViewModel : AchievementAwareViewModel
             if (args.PropertyName == nameof(GymEntryRowViewModel.SelectedExerciseId))
                 SyncRowExercise(row);
         };
+        row.UpdatePickerCatalog(FilteredExercises);
         return row;
     }
 
@@ -526,6 +549,13 @@ public sealed class GymViewModel : AchievementAwareViewModel
         var exercise = Exercises.FirstOrDefault(e => e.Id == row.SelectedExerciseId);
         if (exercise is not null)
             row.ApplyExercise(exercise);
+
+        if (_suppressExercisePrefill || row.SelectedExerciseId is not int exerciseId)
+            return;
+
+        var last = GymLastPerformance.FindLatest(_allWorkouts, exerciseId);
+        if (last is not null)
+            row.LoadPerformanceFromHistory(last);
     }
 
     private async Task CreateExerciseAsync()
