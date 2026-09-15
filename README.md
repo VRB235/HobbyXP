@@ -2,7 +2,7 @@
 
 Aplicativo de escritorio **WPF (.NET 8)** para gamificar hobbies personales (running, gimnasio, **dieta**, entretenimiento, libros/cursos) con sistema de **XP, niveles, medallas, premios y disciplina semanal**.
 
-**Versión actual: 1.8.1** (producción: rama `main`, tag [`v1.8.1`](https://github.com/VRB235/HobbyXP/releases/tag/v1.8.1)).
+**Versión actual: 1.8.2** (producción: rama `main`, tag [`v1.8.2`](https://github.com/VRB235/HobbyXP/releases/tag/v1.8.2)).
 
 - **Plataforma**: Windows 10/11, `net8.0-windows10.0.19041`.
 - **Arquitectura**: MVVM con inyección de dependencias (`Microsoft.Extensions.Hosting`).
@@ -111,13 +111,14 @@ Copy-Item "$env:LOCALAPPDATA\HobbyXP\*" "$env:LOCALAPPDATA\HobbyXP-Dev\" -Recurs
 
 ---
 
-## Mejoras en develop respecto a main
+## Mejoras incluidas en 1.8.2
 
 | Área | Qué cambió |
 |------|------------|
 | **Running** | Al seleccionar el tipo de sesión se consulta el último registro de ese tipo y se precargan distancia, tiempo, ritmo estimado y series de umbral (editable; no se guarda hasta pulsar Guardar). |
 | **Gimnasio** | Buscador por texto y autocompletado en el ComboBox de ejercicios; al elegir uno se precargan series/reps/peso del último registro (editables antes de guardar). |
 | **Portadas (en progreso)** | Miniatura de libro/serie/curso/juego sin tapar: Cambiar/Quitar pasan debajo de la imagen. |
+| **Versión** | 1.8.1 → **1.8.2** (csproj, Inno Setup, manifiesto MSIX). |
 
 ## Mejoras incluidas en 1.8.1
 
@@ -173,7 +174,7 @@ Para generar un ZIP portable autocontenido:
 .\scripts\package-portable.ps1
 ```
 
-Salida: `artifacts\HobbyXP-win-x64-Release.zip`. Release GitHub: [`v1.8.1`](https://github.com/VRB235/HobbyXP/releases/tag/v1.8.1).
+Salida: `artifacts\HobbyXP-win-x64-Release.zip`. Release GitHub: [`v1.8.2`](https://github.com/VRB235/HobbyXP/releases/tag/v1.8.2).
 
 MSIX e instalador Inno Setup: ver [`docs/DISTRIBUCION.md`](docs/DISTRIBUCION.md).
 
