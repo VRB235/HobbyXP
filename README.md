@@ -46,7 +46,7 @@ El `README.md` se mantiene como **vista ejecutiva y técnica resumida** del esta
   - Running: al elegir el **tipo de sesión** (Regenerativa, Umbral, Tirada larga) se consultan y precargan distancia, tiempo, ritmo estimado y, en umbral, las **series** del último registro coincidente; resumen de series en historial; **carreras oficiales** en grilla con imagen persistente y ventana de detalle/edición.
   - Gimnasio: ejercicios con **grupo muscular** opcional (ComboBox: Sin grupo primero, resto A–Z); catálogo agrupado, filtro al armar el entrenamiento, **buscador/autocompletado por texto** (nombre o músculo) al agregar a la rutina, **preservar ejercicios al filtrar**, carga de referencia del último entreno (series/reps/peso editables antes de guardar) y asignación a ejercicios legacy.
   - **Dieta**: adherencia por 4 comidas (En plan / Fuera de plan); día bueno ≥ 3/4; cuota 5 días buenos/semana.
-  - Entretenimiento y crecimiento: **portadas** (libros, cursos, series, entradas de media, videojuegos) con miniatura en filas de progreso, almacén local y ventanas de detalle. Historial en cards con **imagen a pantalla completa**, pie semitransparente y meta (tipo/fecha) al **hover**.
+  - Entretenimiento y crecimiento: **portadas** (libros, cursos, series, entradas de media, videojuegos) con miniatura en filas de progreso (**imagen completa**; Cambiar/Quitar debajo, sin tapar), almacén local y ventanas de detalle. Historial en cards con **imagen a pantalla completa**, pie semitransparente y meta (tipo/fecha) al **hover**.
   - Otorgamiento y deducción de XP mediante `XpService` y registro de transacciones/hitos.
   - Motor de medallas `AchievementEngineService` basado en reglas (`AchievementActionType`).
   - Sistema de recompensas (`Reward`) canjeables por XP (inventario y reliquia equipable); **tienda en grid** con cards, modal de detalle/canje y marcas de XP faltante por módulo.
@@ -117,6 +117,7 @@ Copy-Item "$env:LOCALAPPDATA\HobbyXP\*" "$env:LOCALAPPDATA\HobbyXP-Dev\" -Recurs
 |------|------------|
 | **Running** | Al seleccionar el tipo de sesión se consulta el último registro de ese tipo y se precargan distancia, tiempo, ritmo estimado y series de umbral (editable; no se guarda hasta pulsar Guardar). |
 | **Gimnasio** | Buscador por texto y autocompletado en el ComboBox de ejercicios; al elegir uno se precargan series/reps/peso del último registro (editables antes de guardar). |
+| **Portadas (en progreso)** | Miniatura de libro/serie/curso/juego sin tapar: Cambiar/Quitar pasan debajo de la imagen. |
 
 ## Mejoras incluidas en 1.8.1
 
