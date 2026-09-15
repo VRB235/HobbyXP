@@ -149,7 +149,7 @@ src/HobbyXP/
 
 ### Físico
 
-- **Running:** `RunningSession` (fecha editable al registrar → `RecordedAt`), `OfficialRace` (carreras con bonus XP al completar).
+- **Running:** `RunningSession` (fecha editable al registrar → `RecordedAt`; `SessionType` Regenerativa / Umbral / Tirada larga). Al elegir el tipo, `GetLatestSessionByTypeAsync` precarga distancia, tiempo y series (`RunningSessionSeries`) del último registro coincidente. `OfficialRace` (carreras con bonus XP al completar).
 - **Gym:** `GymWorkout` (fecha editable → `WorkoutDate`), `GymWorkoutEntry`, `Exercise` (incluye detección de sobrecarga progresiva → medalla).
 
 ### Entretenimiento
@@ -182,7 +182,7 @@ src/HobbyXP/
 | `IPlayerProfileService` | Perfil, progreso, nombre, avatar, XP base por nivel |
 | `IDatabaseMaintenanceService` | Exportar BD; restablecer progreso (historial/XP/niveles) conservando catálogo `Exercises`, reglas, medallas y perfil |
 | `IDashboardService` | Resumen agregado para dashboard |
-| `IRunningService` | Sesiones y carreras oficiales |
+| `IRunningService` | Sesiones y carreras oficiales; `GetLatestSessionByTypeAsync` para precargar el alta |
 | `IGymService` | Workouts, ejercicios, PR |
 | `IPuzzleService` | Rompecabezas completados |
 | `IMediaService` | Series/películas |
@@ -337,11 +337,12 @@ dotnet build
 ### Registrar actividad y ganar XP
 
 1. Ir a una sección (p. ej. Físico → Running).
-2. Registrar sesión / workout / libro / etc.
-3. El servicio llama `XpService` → actualiza perfil → puede crear `Milestone`.
-4. `AchievementAwareViewModel` publica evento → barra superior muestra mensaje.
-5. Si hay medalla nueva, se indica en el mensaje.
-6. Sidebar y dashboard refrescan XP/nivel.
+2. En Running, al cambiar el **tipo de sesión** se consulta la última del mismo tipo y se rellenan km, tiempo, ritmo estimado y series de umbral (sin persistir).
+3. Registrar sesión / workout / libro / etc.
+4. El servicio llama `XpService` → actualiza perfil → puede crear `Milestone`.
+5. `AchievementAwareViewModel` publica evento → barra superior muestra mensaje.
+6. Si hay medalla nueva, se indica en el mensaje.
+7. Sidebar y dashboard refrescan XP/nivel.
 
 ### Subir de nivel
 
@@ -400,7 +401,7 @@ dotnet build
 ### Baja prioridad — ingeniería
 
 - [x] Evaluar estabilizar LiveCharts (salir de RC) o fijar versión estable → **2.0.4** GA + TFM `net8.0-windows10.0.19041` (SkiaSharp 3 nativo, sin NU1701).
-- [x] Tests unitarios: `XpLevelCalculator`, `XpService` (cálculo de puntos), servicios críticos (`AchievementEngineService`, `PlayerProfileService`, `RewardService`, cuotas, hub de logros) → `tests/HobbyXP.Tests` (124 pruebas, xUnit + SQLite in-memory).
+- [x] Tests unitarios: `XpLevelCalculator`, `XpService` (cálculo de puntos), servicios críticos (`AchievementEngineService`, `PlayerProfileService`, `RewardService`, `RunningService`, cuotas, hub de logros) → `tests/HobbyXP.Tests` (xUnit + SQLite in-memory).
 - [x] **GitLab CI:** `dotnet build` en pipeline (`.gitlab-ci.yml`: build + test en runner `windows`).
 - [x] Empaquetado (MSIX / instalador) si se desea distribución → ver [`docs/DISTRIBUCION.md`](DISTRIBUCION.md): MSIX (`HobbyXP.Package`), portable ZIP e Inno Setup.
 - [x] `global.json` para fijar SDK 8.0.x (evita compilar `net8.0` con SDK 10 por defecto); ver sección 17.
@@ -425,7 +426,7 @@ dotnet build
 - [x] Verificar barra XP sidebar y dashboard.
 
 ### Por módulo
-- [x] Running: sesión + carrera oficial completada.
+- [x] Running: sesión + precarga por tipo + carrera oficial completada.
 - [x] Gym: workout con PR (medalla sobrecarga progresiva).
 - [x] Puzzle, media, videojuego (% y platino).
 - [x] Libro: páginas y completado.

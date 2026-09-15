@@ -63,21 +63,12 @@ public class RunningSession : EntityBase
             var sameDuration = ordered.All(s => s.Duration == first.Duration);
 
             if (sameDistance && sameDuration)
-                return $"{ordered.Count}× {FormatSeriesDistance(first.DistanceKm)} · {first.Duration:mm\\:ss}";
+                return $"{ordered.Count}× {RunningSessionPrefill.FormatSeriesDistanceLabel(first.DistanceKm)} · {first.Duration:mm\\:ss}";
 
             if (sameDistance)
-                return $"{ordered.Count}× {FormatSeriesDistance(first.DistanceKm)}";
+                return $"{ordered.Count}× {RunningSessionPrefill.FormatSeriesDistanceLabel(first.DistanceKm)}";
 
             return $"{ordered.Count} series";
         }
-    }
-
-    private static string FormatSeriesDistance(decimal distanceKm)
-    {
-        var meters = distanceKm * 1000m;
-        if (meters == decimal.Truncate(meters) && meters is >= 1 and < 1000)
-            return $"{meters:0} m";
-
-        return $"{distanceKm:0.###} km";
     }
 }

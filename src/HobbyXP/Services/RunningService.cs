@@ -35,7 +35,25 @@ public sealed class RunningService : IRunningService
             .Include(s => s.Carrera)
             .Include(s => s.Series)
             .OrderByDescending(s => s.RecordedAt)
+            .ThenByDescending(s => s.Id)
             .ToListAsync(cancellationToken);
+    }
+
+    public async Task<RunningSession?> GetLatestSessionByTypeAsync(
+        RunningSessionType sessionType,
+        CancellationToken cancellationToken = default)
+    {
+        if (!Enum.IsDefined(sessionType))
+            throw new ArgumentOutOfRangeException(nameof(sessionType), "Tipo de sesión inválido.");
+
+        await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        return await db.RunningSessions
+            .AsNoTracking()
+            .Include(s => s.Series)
+            .Where(s => s.SessionType == sessionType)
+            .OrderByDescending(s => s.RecordedAt)
+            .ThenByDescending(s => s.Id)
+            .FirstOrDefaultAsync(cancellationToken);
     }
 
     public async Task<IReadOnlyList<OfficialRace>> GetOfficialRacesAsync(CancellationToken cancellationToken = default)

@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Globalization;
 using System.Windows;
 using System.Windows.Input;
 using HobbyXP.Helpers;
@@ -50,7 +51,11 @@ public sealed class RunningViewModel : AchievementAwareViewModel
     private bool _isOfficialRacesExpanded;
     private bool _isSessionsExpanded;
     private bool _suppressSectionAccordion;
+    private bool _suppressSessionPrefill;
+    private bool _suppressSessionValidation;
+    private int _prefillRequestId;
     private int _seriesCount;
+    private string? _sessionPrefillHint;
 
     public RunningViewModel(
         IRunningService runningService,
@@ -151,6 +156,27 @@ public sealed class RunningViewModel : AchievementAwareViewModel
 
     public bool ShowUmbralSeriesPanel => SelectedSessionTypeOption.Value == RunningSessionType.Umbral;
 
+    public string? SessionPrefillHint
+    {
+        get => _sessionPrefillHint;
+        private set => SetProperty(ref _sessionPrefillHint, value);
+    }
+
+    public string? PacePreview
+    {
+        get
+        {
+            if (!FormValidation.RequirePositiveDecimal(DistanceKm, "La distancia (km)", out var km).IsValid)
+                return null;
+            if (!FormValidation.RequireNonNegativeInt(DurationMinutes, "Los minutos", out var min).IsValid)
+                return null;
+            if (!FormValidation.RequireIntInRange(DurationSeconds, "Los segundos", 0, 59, out var sec).IsValid)
+                return null;
+
+            return RunningSessionPrefill.TryFormatPaceMinPerKm(km, new TimeSpan(0, min, sec));
+        }
+    }
+
     public int SeriesCount
     {
         get => _seriesCount;
@@ -175,6 +201,7 @@ public sealed class RunningViewModel : AchievementAwareViewModel
 
             OnPropertyChanged(nameof(ShowUmbralSeriesPanel));
             RefreshSessionValidation();
+            _ = PrefillFromLastMatchingSessionAsync();
         }
     }
 
@@ -402,6 +429,7 @@ public sealed class RunningViewModel : AchievementAwareViewModel
 
         _allSessions = (await _runningService.GetSessionsAsync()).ToList();
         ApplySessionsFilter();
+        await PrefillFromLastMatchingSessionAsync();
 
         var races = await _runningService.GetOfficialRacesAsync();
         SyncRaceCollections(races);
@@ -635,9 +663,82 @@ public sealed class RunningViewModel : AchievementAwareViewModel
 
     private void RefreshSessionValidation()
     {
+        if (_suppressSessionValidation)
+            return;
+
+        OnPropertyChanged(nameof(PacePreview));
         var result = ValidateSessionForm();
         SessionValidationMessage = result.IsValid ? null : result.Message;
         SaveSessionCommand.RaiseCanExecuteChanged();
+    }
+
+    private async Task PrefillFromLastMatchingSessionAsync()
+    {
+        if (_suppressSessionPrefill)
+            return;
+
+        if (SelectedSessionTypeOption.Value is not RunningSessionType type)
+        {
+            SessionPrefillHint = null;
+            return;
+        }
+
+        var requestId = ++_prefillRequestId;
+        try
+        {
+            var last = await _runningService.GetLatestSessionByTypeAsync(type);
+            if (requestId != _prefillRequestId || _suppressSessionPrefill)
+                return;
+
+            ApplySessionPrefill(last);
+        }
+        catch (Exception ex)
+        {
+            if (requestId != _prefillRequestId)
+                return;
+
+            ErrorMessage = ex.Message;
+        }
+    }
+
+    private void ApplySessionPrefill(RunningSession? session)
+    {
+        _suppressSessionValidation = true;
+        try
+        {
+            if (session is null)
+            {
+                SessionPrefillHint = null;
+                if (SelectedSessionTypeOption.Value != RunningSessionType.Umbral)
+                    ClearSeriesForm();
+                return;
+            }
+
+            DistanceKm = RunningSessionPrefill.FormatDistanceKm(session.DistanceKm);
+            var (minutes, seconds) = RunningSessionPrefill.SplitDuration(session.Duration);
+            DurationMinutes = minutes.ToString(CultureInfo.CurrentCulture);
+            DurationSeconds = seconds.ToString(CultureInfo.CurrentCulture);
+
+            if (session.SessionType == RunningSessionType.Umbral)
+                ApplySeriesPrefill(session);
+            else
+                ClearSeriesForm();
+
+            SessionPrefillHint = RunningSessionPrefill.BuildHint(session);
+        }
+        finally
+        {
+            _suppressSessionValidation = false;
+            RefreshSessionValidation();
+        }
+    }
+
+    private void ApplySeriesPrefill(RunningSession session)
+    {
+        var ordered = session.Series.OrderBy(s => s.SortOrder).ToList();
+        SeriesCount = ordered.Count;
+        for (var i = 0; i < ordered.Count; i++)
+            SeriesRows[i].LoadFromSeries(ordered[i]);
     }
 
     private void RefreshRaceValidation()
@@ -820,13 +921,23 @@ public sealed class RunningViewModel : AchievementAwareViewModel
             OnPropertyChanged(nameof(SessionsTypeFilterOption));
             ApplySessionsFilter();
 
-            DistanceKm = string.Empty;
-            DurationMinutes = string.Empty;
-            DurationSeconds = string.Empty;
-            SessionDate = DateTime.Today;
-            SelectedSessionTypeOption = SessionTypeOptions[0];
-            ClearSeriesForm();
-            SessionValidationMessage = null;
+            _suppressSessionPrefill = true;
+            _prefillRequestId++;
+            try
+            {
+                DistanceKm = string.Empty;
+                DurationMinutes = string.Empty;
+                DurationSeconds = string.Empty;
+                SessionDate = DateTime.Today;
+                SelectedSessionTypeOption = SessionTypeOptions[0];
+                ClearSeriesForm();
+                SessionPrefillHint = null;
+                SessionValidationMessage = null;
+            }
+            finally
+            {
+                _suppressSessionPrefill = false;
+            }
             // El acordeón deja "Nueva sesión" abierta por defecto; abrir el historial
             // para que el alta sea visible sin un clic extra.
             IsSessionsExpanded = true;

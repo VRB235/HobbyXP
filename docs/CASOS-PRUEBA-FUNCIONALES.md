@@ -350,7 +350,28 @@ UNION ALL SELECT 'Courses', COUNT(*) FROM Courses;
 
 ---
 
-### CP-RUN-003 — Eliminar sesión de running
+### CP-RUN-003 — Precargar última sesión al elegir el tipo
+
+| Campo | Detalle |
+|-------|---------|
+| **Prioridad** | Alta |
+| **Precondiciones** | Historial con al menos: 1 Regenerativa, 1 Tirada larga (fondo) y 1 Umbral con series (p. ej. 5×1 km). Anotar distancia, minutos/segundos y series de cada una. |
+| **Datos** | Regenerativa: `8` km / `45:00`. Tirada larga: `18` km / `1:40:00` (100 min). Umbral: distancia total `8` km / `40:00` y 5 series de `1000` m / `4:00`. |
+| **Pasos** | 1. Actividades Físicas → Running → Nueva sesión.<br>2. En **Tipo**, seleccionar **Umbral**.<br>3. Verificar distancia, min, seg, ritmo estimado y las 5 series (m y tiempos).<br>4. Cambiar a **Tirada larga**.<br>5. Verificar que desaparecen las series y aparecen los km/tiempo de la última tirada.<br>6. Cambiar a **Regenerativa** y comprobar el último registro de ese tipo.<br>7. Editar un valor (p. ej. km) **sin** pulsar Guardar.<br>8. (Opcional) Volver a Umbral: debe recargar la última Umbral persistida, no el borrador editado. |
+| **UI** | Texto de ayuda tipo «Última Umbral (dd/MM/yyyy): … km · mm:ss · x.xx min/km · Series: …». Ritmo estimado visible. Fecha de la nueva sesión sigue siendo hoy (no se copia la fecha histórica). Carrera asociada no se copia. Guardar sigue deshabilitado/habilitado según validación; **no** se crea fila nueva hasta Guardar. |
+| **BD** | Sin INSERT en `RunningSessions` ni `RunningSessionSeries` en los pasos 2–8. Las lecturas coinciden con `SELECT * FROM RunningSessions WHERE SessionType = 'Umbral' ORDER BY RecordedAt DESC, Id DESC LIMIT 1` (y el análogo para `TiradaLarga` / `Regenerativa`), con series en `RunningSessionSeries` por `RunningSessionId`. |
+
+### CP-RUN-004 — Precarga sin historial del tipo elegido
+
+| Campo | Detalle |
+|-------|---------|
+| **Prioridad** | Media |
+| **Precondiciones** | No hay sesiones `TiradaLarga` (o borrarlas en BD de Dev). Sí hay Regenerativa. |
+| **Pasos** | 1. Tipo = Regenerativa (se precarga).<br>2. Tipo = Tirada larga. |
+| **UI** | Distancia/tiempo de Regenerativa **permanecen** (no hay plantilla). El aviso de «Última …» desaparece. Panel de series oculto. |
+| **BD** | Sin cambios. |
+
+### CP-RUN-005 — Eliminar sesión de running
 
 | Campo | Detalle |
 |-------|---------|
@@ -362,7 +383,7 @@ UNION ALL SELECT 'Courses', COUNT(*) FROM Courses;
 
 ---
 
-### CP-RUN-004 — Eliminar carrera oficial
+### CP-RUN-006 — Eliminar carrera oficial
 
 | Campo | Detalle |
 |-------|---------|
@@ -965,7 +986,7 @@ XP de referencia: 15 XP por comida en plan; +40 XP si el día queda 4/4. Fuera d
 | Módulo UI | Tablas principales | Casos |
 |-----------|-------------------|-------|
 | Sidebar / Perfil | `PlayerProfiles` | CP-PER-*, CP-VAL (nombre) |
-| Running | `RunningSessions`, `OfficialRaces` | CP-RUN-* |
+| Running | `RunningSessions`, `RunningSessionSeries`, `OfficialRaces` | CP-RUN-* |
 | Gym | `GymWorkouts`, `GymWorkoutEntries`, `Exercises` | CP-GYM-* |
 | Dieta | `DietDayLogs` | CP-DIE-* |
 | Rompecabezas | `Puzzles` | CP-PUZ-* |

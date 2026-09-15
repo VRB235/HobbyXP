@@ -8,6 +8,13 @@ public interface IRunningService
 {
     Task<IReadOnlyList<RunningSession>> GetSessionsAsync(CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Última sesión del tipo indicado (fecha y luego Id). Incluye series de umbral.
+    /// </summary>
+    Task<RunningSession?> GetLatestSessionByTypeAsync(
+        RunningSessionType sessionType,
+        CancellationToken cancellationToken = default);
+
     Task<IReadOnlyList<OfficialRace>> GetOfficialRacesAsync(CancellationToken cancellationToken = default);
 
     Task<OfficialRace?> GetOfficialRaceByIdAsync(int raceId, CancellationToken cancellationToken = default);

@@ -1,3 +1,4 @@
+using System.Globalization;
 using HobbyXP.Helpers;
 using HobbyXP.Models.Physical;
 using HobbyXP.ViewModels.Common;
@@ -131,6 +132,19 @@ public sealed class RunningSeriesRowViewModel : ViewModelBase
 
         draft = new RunningSeriesDraft(SortOrder, distanceKm, duration);
         return true;
+    }
+
+    public void LoadFromSeries(RunningSessionSeries series)
+    {
+        var (text, isMeters) = RunningSessionPrefill.FormatSeriesDistanceInput(series.DistanceKm);
+        Distance = text;
+        DistanceUnit = isMeters
+            ? RunningSeriesDistanceUnitOption.All[0]
+            : RunningSeriesDistanceUnitOption.All[1];
+
+        var (minutes, seconds) = RunningSessionPrefill.SplitDuration(series.Duration);
+        DurationMinutes = minutes.ToString(CultureInfo.CurrentCulture);
+        DurationSeconds = seconds.ToString(CultureInfo.CurrentCulture);
     }
 
     public void Clear()
