@@ -320,11 +320,19 @@ public sealed class GymViewModel : AchievementAwareViewModel
             FilteredExercises.Add(exercise);
         }
 
-        for (var i = 0; i < Entries.Count; i++)
+        // WPF anula SelectedValue al vaciar ItemsSource; restaurar sin re-precargar marcas.
+        _suppressExercisePrefill = true;
+        try
         {
-            Entries[i].UpdatePickerCatalog(FilteredExercises);
-            if (preservedIds[i].HasValue && Entries[i].SelectedExerciseId != preservedIds[i])
-                Entries[i].SelectedExerciseId = preservedIds[i];
+            for (var i = 0; i < Entries.Count; i++)
+            {
+                if (preservedIds[i].HasValue && Entries[i].SelectedExerciseId != preservedIds[i])
+                    Entries[i].SelectedExerciseId = preservedIds[i];
+            }
+        }
+        finally
+        {
+            _suppressExercisePrefill = false;
         }
     }
 
@@ -396,7 +404,6 @@ public sealed class GymViewModel : AchievementAwareViewModel
             if (args.PropertyName == nameof(GymEntryRowViewModel.SelectedExerciseId))
                 SyncRowExercise(row);
         };
-        row.UpdatePickerCatalog(FilteredExercises);
         return row;
     }
 

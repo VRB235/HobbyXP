@@ -150,7 +150,7 @@ src/HobbyXP/
 ### Físico
 
 - **Running:** `RunningSession` (fecha editable al registrar → `RecordedAt`; `SessionType` Regenerativa / Umbral / Tirada larga). Al elegir el tipo, `GetLatestSessionByTypeAsync` precarga distancia, tiempo y series (`RunningSessionSeries`) del último registro coincidente. `OfficialRace` (carreras con bonus XP al completar).
-- **Gym:** `GymWorkout` (fecha editable → `WorkoutDate`), `GymWorkoutEntry`, `Exercise`. Entrenamiento: filtro por músculo + **búsqueda/autocompletado** (`ExercisePickerFilter`) y precarga editable de la última marca del ejercicio (`GymLastPerformance`). Sobrecarga progresiva → medalla.
+- **Gym:** `GymWorkout` (fecha editable → `WorkoutDate`), `GymWorkoutEntry`, `Exercise`. Entrenamiento: filtro por músculo + **buscador de texto** (`ExerciseSearchText` / `ExercisePickerFilter.MatchesText`) y ComboBox **no editable** (`FilteredExercises` + `SelectedValue`). Un ComboBox `IsEditable` + `Text` reconstruía `ItemsSource` al clic y abortaba la selección (regresión 1.8.2). Precarga editable de la última marca (`GymLastPerformance`). Sobrecarga progresiva → medalla.
 
 ### Entretenimiento
 

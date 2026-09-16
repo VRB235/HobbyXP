@@ -2,7 +2,7 @@
 
 Aplicativo de escritorio **WPF (.NET 8)** para gamificar hobbies personales (running, gimnasio, **dieta**, entretenimiento, libros/cursos) con sistema de **XP, niveles, medallas, premios y disciplina semanal**.
 
-**Versión actual: 1.8.2** (producción: rama `main`, tag [`v1.8.2`](https://github.com/VRB235/HobbyXP/releases/tag/v1.8.2)).
+**Versión actual: 1.8.3** (producción: rama `main`, tag [`v1.8.3`](https://github.com/VRB235/HobbyXP/releases/tag/v1.8.3)).
 
 - **Plataforma**: Windows 10/11, `net8.0-windows10.0.19041`.
 - **Arquitectura**: MVVM con inyección de dependencias (`Microsoft.Extensions.Hosting`).
@@ -44,7 +44,7 @@ El `README.md` se mantiene como **vista ejecutiva y técnica resumida** del esta
   - **Logros visibles**: siguiente medalla en cada hobby, widget en Dashboard, overlay al desbloquear, badge en sidebar. Cada medalla otorga saldo, título de honor e **inmunidad de disciplina 7 días**.
   - **Disciplina** (diaria + semanal lun–dom): incumplimiento baja un nivel del hobby; actividad atrasada puede restaurar. **Pausa por módulo** en Configuración (sin cuotas ni castigos; sigue registrando actividad y XP). **Diario** (Running/Gym/Libros/Cursos): 1 sesión; libros ≥20% páginas del libro actual (terminarlo también cumple el día; **semanal ya cumplida** o **exceso de páginas** también cubren la diaria). **Semanal**: Running 4, Gym 5, Curso 5 sesiones, Libro 1 terminado. Series: 1 serie terminada si hay serie en progreso, más 2 películas.
   - Running: al elegir el **tipo de sesión** (Regenerativa, Umbral, Tirada larga) se consultan y precargan distancia, tiempo, ritmo estimado y, en umbral, las **series** del último registro coincidente; resumen de series en historial; **carreras oficiales** en grilla con imagen persistente y ventana de detalle/edición.
-  - Gimnasio: ejercicios con **grupo muscular** opcional (ComboBox: Sin grupo primero, resto A–Z); catálogo agrupado, filtro al armar el entrenamiento, **buscador/autocompletado por texto** (nombre o músculo) al agregar a la rutina, **preservar ejercicios al filtrar**, carga de referencia del último entreno (series/reps/peso editables antes de guardar) y asignación a ejercicios legacy.
+  - Gimnasio: ejercicios con **grupo muscular** opcional (ComboBox: Sin grupo primero, resto A–Z); catálogo agrupado, filtro al armar el entrenamiento, **buscador por texto** (nombre o músculo) en la barra, ComboBox de ejercicio **no editable** (clic para elegir; con el listado abierto se puede saltar al nombre), **preservar ejercicios al filtrar**, carga de referencia del último entreno (series/reps/peso editables antes de guardar) y asignación a ejercicios legacy.
   - **Dieta**: adherencia por 4 comidas (En plan / Fuera de plan); día bueno ≥ 3/4; cuota 5 días buenos/semana.
   - Entretenimiento y crecimiento: **portadas** (libros, cursos, series, entradas de media, videojuegos) con miniatura en filas de progreso (**imagen completa**; Cambiar/Quitar debajo, sin tapar), almacén local y ventanas de detalle. Historial en cards con **imagen a pantalla completa**, pie semitransparente y meta (tipo/fecha) al **hover**.
   - Otorgamiento y deducción de XP mediante `XpService` y registro de transacciones/hitos.
@@ -111,6 +111,13 @@ Copy-Item "$env:LOCALAPPDATA\HobbyXP\*" "$env:LOCALAPPDATA\HobbyXP-Dev\" -Recurs
 
 ---
 
+## Mejoras incluidas en 1.8.3
+
+| Área | Qué cambió |
+|------|------------|
+| **Gimnasio** | Hotfix: el ComboBox de ejercicio al armar el entrenamiento vuelve a ser **no editable** (clic para elegir). El buscador de la barra sigue filtrando por nombre/músculo. Se mantiene la precarga editable de la última marca. |
+| **Versión** | 1.8.2 → **1.8.3** (csproj, Inno Setup, manifiesto MSIX). |
+
 ## Mejoras incluidas en 1.8.2
 
 | Área | Qué cambió |
@@ -174,7 +181,7 @@ Para generar un ZIP portable autocontenido:
 .\scripts\package-portable.ps1
 ```
 
-Salida: `artifacts\HobbyXP-win-x64-Release.zip`. Release GitHub: [`v1.8.2`](https://github.com/VRB235/HobbyXP/releases/tag/v1.8.2).
+Salida: `artifacts\HobbyXP-win-x64-Release.zip`. Release GitHub: [`v1.8.3`](https://github.com/VRB235/HobbyXP/releases/tag/v1.8.3).
 
 MSIX e instalador Inno Setup: ver [`docs/DISTRIBUCION.md`](docs/DISTRIBUCION.md).
 

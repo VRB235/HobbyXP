@@ -672,17 +672,13 @@
                                                     </Grid.ColumnDefinitions>
 
                                                     <ComboBox Grid.Column="0"
-                                                              ItemsSource="{Binding PickerExercises}"
+                                                              ItemsSource="{Binding DataContext.FilteredExercises, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
                                                               DisplayMemberPath="PickerDisplayName"
                                                               SelectedValuePath="Id"
-                                                              SelectedValue="{Binding SelectedExerciseId, UpdateSourceTrigger=PropertyChanged}"
-                                                              IsEditable="True"
-                                                              StaysOpenOnEdit="True"
-                                                              IsTextSearchEnabled="False"
-                                                              Text="{Binding ExerciseQuery, UpdateSourceTrigger=PropertyChanged}"
-                                                              helpers:ComboBoxAssist.OpenDropDownOnTextChange="True"
-                                                              MaxDropDownHeight="280"
-                                                              ToolTip="Escriba para buscar. Al elegir un ejercicio se precargan series, reps y peso del último registro; puede editarlos antes de guardar."
+                                                              SelectedValue="{Binding SelectedExerciseId}"
+                                                              IsEditable="False"
+                                                              IsTextSearchEnabled="True"
+                                                              ToolTip="Lista filtrada por músculo y por el cuadro Buscar. Escriba con el desplegable abierto para saltar al nombre."
                                                               Margin="0,0,6,0" />
 
                                                     <ComboBox Grid.Column="1"

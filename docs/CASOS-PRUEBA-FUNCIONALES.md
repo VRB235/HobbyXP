@@ -435,15 +435,15 @@ UNION ALL SELECT 'Courses', COUNT(*) FROM Courses;
 
 ---
 
-### CP-GYM-004 — Buscar y autocompletar ejercicio al armar la rutina
+### CP-GYM-004 — Buscar y seleccionar ejercicio al armar la rutina
 
 | Campo | Detalle |
 |-------|---------|
 | **Prioridad** | Alta |
 | **Precondiciones** | Catálogo con varios ejercicios (p. ej. `Press banca` Pecho, `Curl` Bíceps, `Sentadilla` Cuádriceps). Pestaña Gym → Entrenamiento. |
 | **Datos** | Texto de búsqueda: `press` y `biceps` (sin acento). |
-| **Pasos** | 1. En **Buscar**, escribir `press`.<br>2. Abrir el ComboBox de la fila: debe listar coincidencias de nombre/músculo (p. ej. Press banca).<br>3. Borrar el buscador global y, en el ComboBox de la fila, escribir `curl` o `biceps`.<br>4. Confirmar que el desplegable se abre al escribir y que se puede elegir el ejercicio.<br>5. Cambiar filtro de músculo a Pecho y buscar `sentadilla`: no debe aparecer (salvo que esa fila ya la tuviera seleccionada). |
-| **UI** | El listado se acota en vivo. La fila que ya tenía un ejercicio seleccionado **conserva** esa selección aunque deje de coincidir con el texto. No se guarda nada hasta **Guardar entrenamiento**. |
+| **Pasos** | 1. En **Buscar**, escribir `press`.<br>2. Abrir el ComboBox de la fila (clic): debe listar coincidencias de nombre/músculo (p. ej. Press banca).<br>3. **Hacer clic** en Press banca: el ComboBox debe quedar con ese ejercicio (no volver a vacío).<br>4. Borrar el buscador, escribir `biceps` y abrir de nuevo: debe aparecer Curl; seleccionarlo con clic.<br>5. Opcional: con el desplegable abierto, teclear `sen` para saltar a Sentadilla (búsqueda de texto nativa, ComboBox cerrado no es un campo de escritura).<br>6. Cambiar filtro de músculo a Pecho y buscar `sentadilla`: no debe aparecer (salvo que esa fila ya la tuviera seleccionada). |
+| **UI** | El listado se acota con **Buscar**. La fila que ya tenía un ejercicio seleccionado **conserva** esa selección aunque deje de coincidir con el texto. No se guarda nada hasta **Guardar entrenamiento**. |
 | **BD** | Sin INSERT en `GymWorkouts` / `GymWorkoutEntries`. Lectura de catálogo: `SELECT Id, Name, MuscleGroup FROM Exercises`. |
 
 ---
