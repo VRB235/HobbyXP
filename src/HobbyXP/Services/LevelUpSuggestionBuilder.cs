@@ -180,19 +180,25 @@ internal static class LevelUpSuggestionBuilder
 
     private static LevelUpSuggestion? BuildMediaSuggestion(int xpRemaining, IReadOnlyList<AchievementRule> rules)
     {
-        var chapterRule = rules.FirstOrDefault(r => r.ActionType == AchievementActionType.MediaChapterWatched);
-        if (chapterRule is { PointsPerUnit: > 0 })
+        var movieRule = rules.FirstOrDefault(r => r.ActionType == AchievementActionType.MediaCompleted);
+        if (movieRule is { PointsPerUnit: > 0 })
         {
-            return BuildFromRule(rules, AchievementActionType.MediaChapterWatched, "Series/Películas", xpRemaining,
-                "Registre capítulos vistos en una serie activa.");
+            return BuildFromRule(
+                rules,
+                AchievementActionType.MediaCompleted,
+                "Series/Películas",
+                xpRemaining,
+                "Finalice películas (20 XP) o avance capítulos de serie (100 XP repartidos).");
         }
 
-        return BuildFromRule(
-            rules,
-            AchievementActionType.MediaCompleted,
-            "Series/Películas",
-            xpRemaining,
-            "Finalice una serie o película por cada unidad.");
+        var chapterRule = rules.FirstOrDefault(r => r.ActionType == AchievementActionType.MediaChapterWatched);
+        return chapterRule is { PointsPerUnit: > 0 }
+            ? new LevelUpSuggestion(
+                "Series/Películas",
+                "1 serie completa",
+                (int)Math.Round(chapterRule.PointsPerUnit, MidpointRounding.AwayFromZero),
+                "El XP de serie se reparte entre sus capítulos.")
+            : null;
     }
 
     private static LevelUpSuggestion? BuildCourseSuggestion(int xpRemaining, IReadOnlyList<AchievementRule> rules)

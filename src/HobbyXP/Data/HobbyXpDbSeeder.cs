@@ -31,7 +31,7 @@ internal static class HobbyXpDbSeeder
                 ActionType = AchievementActionType.GymWorkoutSaved,
                 DisplayName = "Sesión de gimnasio",
                 UnitLabel = "sesión",
-                PointsPerUnit = 25m,
+                PointsPerUnit = 10m,
                 IsActive = true,
                 CreatedAt = SeedTimestamp
             },
@@ -39,10 +39,10 @@ internal static class HobbyXpDbSeeder
             {
                 Id = 3,
                 ActionType = AchievementActionType.ProgressiveOverload,
-                DisplayName = "Sobrecarga progresiva",
-                UnitLabel = "logro",
-                PointsPerUnit = 0m,
-                FlatBonusPoints = 150,
+                DisplayName = "Récord personal (ejercicio)",
+                UnitLabel = "ejercicio",
+                PointsPerUnit = 5m,
+                FlatBonusPoints = null,
                 IsActive = true,
                 CreatedAt = SeedTimestamp
             },
@@ -63,7 +63,7 @@ internal static class HobbyXpDbSeeder
                 ActionType = AchievementActionType.PuzzleCompleted,
                 DisplayName = "Rompecabezas completado",
                 UnitLabel = "rompecabezas",
-                PointsPerUnit = 50m,
+                PointsPerUnit = 100m,
                 IsActive = true,
                 CreatedAt = SeedTimestamp
             },
@@ -71,9 +71,9 @@ internal static class HobbyXpDbSeeder
             {
                 Id = 6,
                 ActionType = AchievementActionType.MediaCompleted,
-                DisplayName = "Serie o película terminada",
-                UnitLabel = "obra",
-                PointsPerUnit = 30m,
+                DisplayName = "Película terminada",
+                UnitLabel = "película",
+                PointsPerUnit = 20m,
                 IsActive = true,
                 CreatedAt = SeedTimestamp
             },
@@ -144,9 +144,9 @@ internal static class HobbyXpDbSeeder
             {
                 Id = 13,
                 ActionType = AchievementActionType.MediaChapterWatched,
-                DisplayName = "Capítulo de serie",
-                UnitLabel = "capítulo",
-                PointsPerUnit = 5m,
+                DisplayName = "Serie (XP total repartido en capítulos)",
+                UnitLabel = "serie",
+                PointsPerUnit = 100m,
                 IsActive = true,
                 CreatedAt = SeedTimestamp
             },
@@ -156,7 +156,7 @@ internal static class HobbyXpDbSeeder
                 ActionType = AchievementActionType.DietMealOnPlan,
                 DisplayName = "Comida en plan",
                 UnitLabel = "comida",
-                PointsPerUnit = 15m,
+                PointsPerUnit = 2m,
                 IsActive = true,
                 CreatedAt = SeedTimestamp
             },
@@ -167,7 +167,7 @@ internal static class HobbyXpDbSeeder
                 DisplayName = "Día perfecto de dieta",
                 UnitLabel = "día",
                 PointsPerUnit = 0m,
-                FlatBonusPoints = 40,
+                FlatBonusPoints = 2,
                 IsActive = true,
                 CreatedAt = SeedTimestamp
             });

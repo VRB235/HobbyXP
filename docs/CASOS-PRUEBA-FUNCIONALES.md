@@ -84,19 +84,20 @@ UNION ALL SELECT 'Courses', COUNT(*) FROM Courses;
 | Acción | Puntos |
 |--------|--------|
 | Running por km | 10 XP / km |
-| Sesión de gimnasio | 25 XP |
-| Sobrecarga progresiva (PR) | +150 XP (bono) |
+| Sesión de gimnasio | 10 XP |
+| Récord personal (por ejercicio) | 5 XP / ejercicio con PR |
 | Carrera oficial completada | +500 XP (bono) |
-| Rompecabezas completado | 50 XP |
-| Serie/película terminada | 30 XP |
+| Rompecabezas completado | 100 XP |
+| Película terminada | 20 XP |
+| Serie (pool) | 100 XP repartidos entre capítulos (p. ej. 20 caps → 5 XP/cap; 8 caps → ~12,5 XP/cap con redondeo acumulativo) |
 | Avance videojuego | 10 XP / % |
 | Videojuego platinado (100 %) | +1000 XP (bono) |
 | Página leída | 1 XP / página |
 | Libro terminado | +200 XP (bono) |
 | Sesión de curso | 10 XP / sesión |
 | Curso terminado | +100 XP (bono) |
-| Comida en plan | 15 XP / comida |
-| Día perfecto de dieta (4/4) | +40 XP (bono) |
+| Comida en plan | 2 XP / comida |
+| Día perfecto de dieta (4/4) | +2 XP (bono) |
 
 ### 1.6 Criterios de aceptación globales
 
@@ -405,7 +406,7 @@ UNION ALL SELECT 'Courses', COUNT(*) FROM Courses;
 | **Precondiciones** | Pestaña Gym en Actividades Físicas. |
 | **Datos** | Fecha: editable (default hoy; probar también una fecha pasada); Ejercicio: `Press banca`; Peso: `60` kg; Reps: `10` |
 | **Pasos** | 1. Elegir fecha del entrenamiento.<br>2. Agregar ejercicio a la sesión.<br>3. Guardar entrenamiento. |
-| **UI** | Entrenamiento en historial con la fecha elegida; +25 XP base por sesión. |
+| **UI** | Entrenamiento en historial con la fecha elegida; +10 XP base por sesión. |
 | **BD** | `GymWorkouts` con `WorkoutDate` = fecha elegida (UTC día local) + `GymWorkoutEntries` creados. |
 
 ---
@@ -418,7 +419,7 @@ UNION ALL SELECT 'Courses', COUNT(*) FROM Courses;
 | **Precondiciones** | Registro previo de `Press banca` con 50 kg. |
 | **Datos** | Mismo ejercicio con `60` kg (superior al máximo anterior) |
 | **Pasos** | 1. Registrar segundo entrenamiento con peso mayor.<br>2. Guardar.<br>3. Revisar logros. |
-| **UI** | Mensaje de sobrecarga progresiva; medalla «Sobrecarga Progresiva»; +150 XP bono. |
+| **UI** | Mensaje de sobrecarga progresiva; medalla «Sobrecarga Progresiva»; +5 XP por cada ejercicio con PR. |
 | **BD** | `EarnedMedals` con medalla de sobrecarga (`MedalDefinitions.Code = ProgressiveOverload`). |
 
 ---
@@ -465,7 +466,7 @@ UNION ALL SELECT 'Courses', COUNT(*) FROM Courses;
 
 Contrato: 4 comidas (Desayuno, Almuerzo, Cena, Snack). Cada una: En plan / Fuera de plan / sin marcar. **Día bueno** = al menos 3 comidas en plan. **Día perfecto** = 4/4. Cuota semanal (lun–dom): **5 días buenos**. Las comidas sin marcar no suman. Un desliz (fuera de plan) no anula el día si quedan ≥3 en plan.
 
-XP de referencia: 15 XP por comida en plan; +40 XP si el día queda 4/4. Fuera de plan = 0 XP, pero sí se persiste.
+XP de referencia: 2 XP por comida en plan; +2 XP si el día queda 4/4. Fuera de plan = 0 XP, pero sí se persiste.
 
 ### CP-DIE-001 — Día bueno con 3 comidas en plan
 
@@ -475,7 +476,7 @@ XP de referencia: 15 XP por comida en plan; +40 XP si el día queda 4/4. Fuera d
 | **Precondiciones** | Actividades Físicas → pestaña **Dieta**. |
 | **Datos** | Fecha: hoy. Desayuno, Almuerzo y Cena = **En plan**. Snack = sin marcar. |
 | **Pasos** | 1. Abrir Dieta.<br>2. Marcar las 3 comidas indicadas.<br>3. Verificar resumen `3/4 · Día bueno`.<br>4. Guardar día. |
-| **UI** | Historial con fecha de hoy, resultado `3/4`, tipo «Día bueno»; +45 XP; medalla «Primer Plato» la primera vez. Dashboard: cuota Dieta avanza 1/5 días buenos (si es la semana actual). |
+| **UI** | Historial con fecha de hoy, resultado `3/4`, tipo «Día bueno»; +6 XP; medalla «Primer Plato» la primera vez. Dashboard: cuota Dieta avanza 1/5 días buenos (si es la semana actual). |
 | **BD** | `SELECT DayDate, BreakfastStatus, LunchStatus, DinnerStatus, SnackStatus, OnPlanCount, XpEarned FROM DietDayLogs ORDER BY Id DESC LIMIT 1;` → `OnPlanCount=3`, `SnackStatus='Unlogged'`, `XpEarned=45`. `HobbyProgresses` de `SourceType='Diet'` incrementa 45. |
 
 ---
@@ -501,7 +502,7 @@ XP de referencia: 15 XP por comida en plan; +40 XP si el día queda 4/4. Fuera d
 | **Precondiciones** | Pestaña Dieta. Usar una **fecha distinta** a CP-DIE-001 (p. ej. ayer) para no pisar el upsert. |
 | **Datos** | Las 4 comidas = **En plan**. |
 | **Pasos** | 1. Cambiar el DatePicker a ayer.<br>2. Marcar las 4 comidas En plan.<br>3. Guardar. |
-| **UI** | `4/4 · Día perfecto`; +100 XP (60 de comidas + 40 bono); mensaje de día perfecto. |
+| **UI** | `4/4 · Día perfecto`; +10 XP (8 de comidas + 2 bono); mensaje de día perfecto. |
 | **BD** | `OnPlanCount=4`, `XpEarned=100`. Transacciones: una de `DietMealOnPlan` (60) y una de `DietPerfectDay` (40). |
 
 ---
@@ -552,7 +553,7 @@ XP de referencia: 15 XP por comida en plan; +40 XP si el día queda 4/4. Fuera d
 | **Prioridad** | Media |
 | **Datos** | Nombre: `Castillo`; Piezas: `1000`; marcar completado |
 | **Pasos** | 1. Entretenimiento → Rompecabezas.<br>2. Registrar y marcar completado.<br>3. Opcional: adjuntar foto. |
-| **UI** | +50 XP; fila en historial tabular (ordenable). |
+| **UI** | +100 XP; fila en historial tabular (ordenable). |
 | **BD** | `Puzzles`: 1 fila con `Name`, `PieceCount`, `XpEarned = 50`. |
 
 ---
@@ -589,7 +590,7 @@ XP de referencia: 15 XP por comida en plan; +40 XP si el día queda 4/4. Fuera d
 | **Prioridad** | Media |
 | **Datos** | Título: `Breaking Bad`; Tipo: Serie; marcar completada |
 | **Pasos** | 1. Entretenimiento → Media.<br>2. Registrar y completar. |
-| **UI** | +30 XP. |
+| **UI** | +20 XP. |
 | **BD** | `MediaEntries` con estado completado. |
 
 ---
@@ -617,16 +618,16 @@ XP de referencia: 15 XP por comida en plan; +40 XP si el día queda 4/4. Fuera d
 
 ---
 
-### CP-MED-004 — Cuota semanal: capítulos no bastan; hay que terminar la serie
+### CP-MED-004 — Sin disciplina ni castigo (series/películas)
 
 | Campo | Detalle |
 |-------|---------|
-| **Prioridad** | Alta |
-| **Precondiciones** | Semana lun–dom actual. Serie en progreso (p. ej. 10 capítulos). Dashboard abierto en Disciplina semanal. |
-| **Pasos** | 1. Registrar 2 capítulos de la serie (sin terminarla).<br>2. Completar 2 películas en la misma semana.<br>3. Abrir Dashboard → cuota de **Media**.<br>4. Terminar la serie (capítulos restantes o registrar serie completada).<br>5. Volver al Dashboard. |
-| **UI** | Tras pasos 1–3: progreso `0/1 series terminadas · 2/2 películas`; cuota **no** cumplida.<br>Tras paso 5: `1/1 series terminadas · 2/2 películas`; **Cumplida**. |
-| **BD** | `MediaSeriesChapterLogs` con capítulos; `MediaEntries` tipo Series con `CompletedAt` en la semana. Sin evaluación de castigo en semana abierta. |
-| **Notas** | Si **no** hay serie en progreso ni terminada esa semana, la cuota de series **no aplica**; siguen haciendo falta 2 películas. |
+| **Prioridad** | Media |
+| **Precondiciones** | Semana lun–dom actual. Puede haber serie en progreso y películas. |
+| **Pasos** | 1. Abrir Dashboard → Disciplina.<br>2. Completar actividad de media (capítulos/película) si se desea.<br>3. Revisar Configuración → pausa de disciplina por módulo. |
+| **UI** | En Disciplina **no** aparece fila de **Series y películas**. En Configuración ese módulo **no** figura para pausar. |
+| **BD** | No se crean filas nuevas en `WeeklyQuotaEvaluations` / `DailyQuotaEvaluations` con `SourceType` Media. |
+| **Notas** | Sigue registrando actividad y XP; solo se retiró la cuota/castigo. |
 
 ---
 
@@ -706,16 +707,16 @@ XP de referencia: 15 XP por comida en plan; +40 XP si el día queda 4/4. Fuera d
 
 ---
 
-### CP-LIB-003 — Cuota diaria 20% + semanal 1 libro terminado
+### CP-LIB-003 — Sin disciplina ni castigo (libros)
 
 | Campo | Detalle |
 |-------|---------|
-| **Prioridad** | Alta |
-| **Precondiciones** | Día actual. Libro en lectura `Dune`, `TotalPages = 500` (cuota diaria = 100 páginas, techo del 20%). Semana lun–dom actual. |
-| **Pasos** | 1. Registrar 50 páginas leídas **hoy**.<br>2. Dashboard → Disciplina → **Libros**.<br>3. Registrar 50 páginas más **hoy** (acumulado 100 del día).<br>4. Volver al Dashboard.<br>5. (Semanal) Terminar el libro en la semana y verificar cuota semanal. |
-| **UI** | Paso 2: `Hoy: 50/100 páginas · Semana: 0/1 libros terminados`; etiqueta **En curso** (día no cumplido).<br>Paso 4: `Hoy: 100/100…`; **Cumplida** (día).<br>Paso 5: Semana `1/1`; semanal cumplida. |
-| **BD** | `BookReadingLogs.PagesDone` del día (UTC de fecha local). Semana/día **abiertos**: sin castigo. El castigo diario se aplica **al día siguiente** si no hubo 20% (fila en `DailyQuotaEvaluations`). Semana sin libro terminado: castigo en `WeeklyQuotaEvaluations` al cerrar la semana. |
-| **Notas** | Badge del Dashboard = estado de **hoy** (En curso / Cumplida), no castigos históricos (esos van en el texto naranja). Terminar el libro **hoy** cumple el día aunque páginas &lt; 20%. Sin libro en lectura: **No aplica**. |
+| **Prioridad** | Media |
+| **Precondiciones** | Libro en lectura o recién completado. |
+| **Pasos** | 1. Registrar páginas o completar libro.<br>2. Abrir Dashboard → Disciplina.<br>3. Revisar Configuración → pausa por módulo. |
+| **UI** | Disciplina **no** muestra fila de **Libros**. Ese módulo no aparece en pausas de Configuración. |
+| **BD** | No se crean evaluaciones nuevas Book en `WeeklyQuotaEvaluations` / `DailyQuotaEvaluations`. |
+| **Notas** | XP y progreso del hobby de libros se mantienen; solo sin cuota/castigo. |
 
 ---
 
@@ -757,16 +758,16 @@ XP de referencia: 15 XP por comida en plan; +40 XP si el día queda 4/4. Fuera d
 
 ---
 
-### CP-CUR-004 — Cuota diaria 1 sesión + semanal 5
+### CP-CUR-004 — Sin disciplina ni castigo (cursos)
 
 | Campo | Detalle |
 |-------|---------|
-| **Prioridad** | Alta |
-| **Precondiciones** | Día actual + semana lun–dom. Curso en progreso con al menos 10 sesiones totales. |
-| **Pasos** | 1. Sin sesiones hoy: Dashboard → Disciplina → **Cursos** (debe verse día pendiente).<br>2. Registrar 1 sesión **hoy**.<br>3. Volver al Dashboard (día **Cumplida**).<br>4. Acumular hasta 5 sesiones en la semana y verificar semanal. |
-| **UI** | Tras paso 2–3: `Hoy: 1/1 sesiones · Semana: n/5 sesiones`; badge **Cumplida** por el día.<br>Con menos de 5 en la semana: semanal aún pendiente (el badge prioriza el día). |
-| **BD** | Día cerrado sin sesión: `DailyQuotaEvaluations` (castigo). Semana cerrada &lt; 5: `WeeklyQuotaEvaluations`. |
-| **Notas** | Sin curso en progreso y sin sesiones: **No aplica**. |
+| **Prioridad** | Media |
+| **Precondiciones** | Curso en progreso. |
+| **Pasos** | 1. Registrar sesión(es).<br>2. Abrir Dashboard → Disciplina.<br>3. Revisar Configuración → pausa por módulo. |
+| **UI** | Disciplina **no** muestra fila de **Cursos**. Ese módulo no aparece en pausas de Configuración. |
+| **BD** | No se crean evaluaciones nuevas Course en `WeeklyQuotaEvaluations` / `DailyQuotaEvaluations`. |
+| **Notas** | Disciplina activa solo en Running, Gimnasio y Dieta. |
 
 ---
 
@@ -1016,10 +1017,11 @@ XP de referencia: 15 XP por comida en plan; +40 XP si el día queda 4/4. Fuera d
 | Gym | `GymWorkouts`, `GymWorkoutEntries`, `Exercises` | CP-GYM-* |
 | Dieta | `DietDayLogs` | CP-DIE-* |
 | Rompecabezas | `Puzzles` | CP-PUZ-* |
-| Media | `MediaEntries`, `MediaSeries`, `WeeklyQuotaEvaluations` | CP-MED-* |
+| Media | `MediaEntries`, `MediaSeries` | CP-MED-* |
 | Videojuegos | `VideoGames` | CP-VG-* |
-| Libros | `Books`, `BookReadingLogs`, `WeeklyQuotaEvaluations` | CP-LIB-* |
-| Cursos | `Courses`, `CourseSessionLogs`, `WeeklyQuotaEvaluations` | CP-CUR-* |
+| Libros | `Books`, `BookReadingLogs` | CP-LIB-* |
+| Cursos | `Courses`, `CourseSessionLogs` | CP-CUR-* |
+| Disciplina | `WeeklyQuotaEvaluations`, `DailyQuotaEvaluations` (Running/Gym/Diet) | CP-DIE-*, CP-RUN-*, CP-GYM-* |
 | Logros | `MedalDefinitions`, `EarnedMedals`, `AchievementRules`, `Rewards` | CP-LOG-* |
 | Dashboard / XP | `PlayerProfiles`, `XpTransactions`, `Milestones` | CP-XP-* |
 | Configuración | `PlayerProfiles`, archivo `hobbyxp.db` | CP-SET-* |

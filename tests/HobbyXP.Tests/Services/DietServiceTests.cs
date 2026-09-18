@@ -36,14 +36,14 @@ public sealed class DietServiceTests : IDisposable
             Notes: null));
 
         Assert.Equal(3, result.Value.OnPlanCount);
-        Assert.Equal(45, result.Value.XpEarned);
+        Assert.Equal(6, result.Value.XpEarned);
         Assert.True(DietDayRules.IsGoodDay(result.Value));
         Assert.Contains(result.Events, e => e.MedalUnlocked == MedalCode.DietGoodDays1);
 
         await using var db = _factory.CreateDbContext();
         Assert.Equal(1, await db.DietDayLogs.CountAsync());
         var hobby = await db.HobbyProgresses.SingleAsync(h => h.SourceType == MilestoneSourceType.Diet);
-        Assert.Equal(45, hobby.TotalXp);
+        Assert.Equal(6, hobby.TotalXp);
     }
 
     [Fact]
@@ -67,14 +67,14 @@ public sealed class DietServiceTests : IDisposable
             Notes: null));
 
         Assert.Equal(3, updated.Value.OnPlanCount);
-        Assert.Equal(45, updated.Value.XpEarned);
+        Assert.Equal(6, updated.Value.XpEarned);
         Assert.True(DietDayRules.IsGoodDay(updated.Value));
         Assert.False(DietDayRules.IsPerfectDay(updated.Value));
 
         await using var db = _factory.CreateDbContext();
         Assert.Equal(1, await db.DietDayLogs.CountAsync());
         var hobby = await db.HobbyProgresses.SingleAsync(h => h.SourceType == MilestoneSourceType.Diet);
-        Assert.Equal(45, hobby.TotalXp);
+        Assert.Equal(6, hobby.TotalXp);
     }
 
     [Fact]
@@ -88,7 +88,7 @@ public sealed class DietServiceTests : IDisposable
             DietMealStatus.OnPlan,
             Notes: null));
 
-        Assert.Equal(100, result.Value.XpEarned);
+        Assert.Equal(10, result.Value.XpEarned);
         Assert.Contains(result.Events, e => e.Title == "¡Día perfecto!");
     }
 

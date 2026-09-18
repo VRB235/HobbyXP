@@ -95,27 +95,63 @@ public sealed class MediaService : IMediaService
             await db.SaveChangesAsync(cancellationToken);
         }
 
-        var xpOutcome = await _xpService.AwardXpAsync(
-            AchievementActionType.MediaCompleted,
-            units: 1,
-            $"Obra terminada: {entry.Title}",
-            MilestoneSourceType.Media,
-            nameof(MediaEntry),
-            entry.Id,
-            $"{GetMediaLabel(mediaType)}: {entry.Title}",
-            cancellationToken);
-
-        entry.XpEarned = xpOutcome.AmountAwarded;
-        await db.SaveChangesAsync(cancellationToken);
-
         var events = new List<AchievementEvent>();
-        if (xpOutcome.Milestone is not null)
+
+        if (mediaType == MediaType.Movie)
         {
-            events.Add(new AchievementEvent(
-                xpOutcome.Milestone.Title,
-                xpOutcome.Milestone.Description ?? entry.Title,
-                xpOutcome.AmountAwarded,
-                MilestoneSourceType.Media));
+            var xpOutcome = await _xpService.AwardXpAsync(
+                AchievementActionType.MediaCompleted,
+                units: 1,
+                $"Película terminada: {entry.Title}",
+                MilestoneSourceType.Media,
+                nameof(MediaEntry),
+                entry.Id,
+                $"Película: {entry.Title}",
+                cancellationToken);
+
+            entry.XpEarned = xpOutcome.AmountAwarded;
+            await db.SaveChangesAsync(cancellationToken);
+
+            if (xpOutcome.Milestone is not null)
+            {
+                events.Add(new AchievementEvent(
+                    xpOutcome.Milestone.Title,
+                    xpOutcome.Milestone.Description ?? entry.Title,
+                    xpOutcome.AmountAwarded,
+                    MilestoneSourceType.Media));
+            }
+        }
+        else
+        {
+            // Serie registrada como terminada de una vez: recibe el pool completo (100 XP por defecto).
+            var seriesPoolXp = await _xpService.CalculatePointsAsync(
+                AchievementActionType.MediaChapterWatched,
+                1m,
+                cancellationToken);
+            if (seriesPoolXp <= 0)
+                seriesPoolXp = MediaSeriesXpRules.DefaultSeriesPoolXp;
+
+            var xpOutcome = await _xpService.AwardFlatBonusAsync(
+                AchievementActionType.MediaChapterWatched,
+                seriesPoolXp,
+                $"Serie terminada: {entry.Title}",
+                MilestoneSourceType.Media,
+                nameof(MediaEntry),
+                entry.Id,
+                $"Serie: {entry.Title}",
+                cancellationToken);
+
+            entry.XpEarned = xpOutcome.AmountAwarded;
+            await db.SaveChangesAsync(cancellationToken);
+
+            if (xpOutcome.Milestone is not null)
+            {
+                events.Add(new AchievementEvent(
+                    xpOutcome.Milestone.Title,
+                    xpOutcome.Milestone.Description ?? entry.Title,
+                    xpOutcome.AmountAwarded,
+                    MilestoneSourceType.Media));
+            }
         }
 
         var medalEvents = await _achievementEngine.TryAwardMilestonesForTrackAsync(
@@ -191,6 +227,8 @@ public sealed class MediaService : IMediaService
         if (applied == 0)
             return OperationResult<MediaSeries>.Empty(series);
 
+        var chaptersBefore = series.ChaptersWatched;
+
         db.MediaSeriesChapterLogs.Add(new MediaSeriesChapterLog
         {
             MediaSeriesId = series.Id,
@@ -203,25 +241,41 @@ public sealed class MediaService : IMediaService
 
         var events = new List<AchievementEvent>();
 
-        var chapterXp = await _xpService.AwardXpAsync(
+        var seriesPoolXp = await _xpService.CalculatePointsAsync(
             AchievementActionType.MediaChapterWatched,
-            applied,
-            $"Serie: {series.Title} (+{applied} capítulos)",
-            MilestoneSourceType.Media,
-            nameof(MediaSeries),
-            series.Id,
-            $"Serie: {series.Title}",
+            1m,
             cancellationToken);
+        if (seriesPoolXp <= 0)
+            seriesPoolXp = MediaSeriesXpRules.DefaultSeriesPoolXp;
 
-        series.XpEarned += chapterXp.AmountAwarded;
+        var chapterXpAmount = MediaSeriesXpRules.GetAwardForProgress(
+            chaptersBefore,
+            series.ChaptersWatched,
+            series.TotalChapters,
+            seriesPoolXp);
 
-        if (chapterXp.Milestone is not null)
+        if (chapterXpAmount > 0)
         {
-            events.Add(new AchievementEvent(
-                chapterXp.Milestone.Title,
-                chapterXp.Milestone.Description ?? series.Title,
-                chapterXp.AmountAwarded,
-                MilestoneSourceType.Media));
+            var chapterXp = await _xpService.AwardFlatBonusAsync(
+                AchievementActionType.MediaChapterWatched,
+                chapterXpAmount,
+                $"Serie: {series.Title} (+{applied} capítulos)",
+                MilestoneSourceType.Media,
+                nameof(MediaSeries),
+                series.Id,
+                $"Serie: {series.Title}",
+                cancellationToken);
+
+            series.XpEarned += chapterXp.AmountAwarded;
+
+            if (chapterXp.Milestone is not null)
+            {
+                events.Add(new AchievementEvent(
+                    chapterXp.Milestone.Title,
+                    chapterXp.Milestone.Description ?? series.Title,
+                    chapterXp.AmountAwarded,
+                    MilestoneSourceType.Media));
+            }
         }
 
         if (series.ChaptersWatched >= series.TotalChapters)
@@ -233,7 +287,8 @@ public sealed class MediaService : IMediaService
             {
                 Title = series.Title,
                 MediaType = MediaType.Series,
-                CompletedAt = series.CompletedAt.Value
+                CompletedAt = series.CompletedAt.Value,
+                XpEarned = series.XpEarned
             };
 
             db.MediaEntries.Add(historyEntry);
@@ -253,28 +308,7 @@ public sealed class MediaService : IMediaService
 
             series.CompletedMediaEntryId = historyEntry.Id;
 
-            var completeXp = await _xpService.AwardXpAsync(
-                AchievementActionType.MediaCompleted,
-                1,
-                $"Serie terminada: {series.Title}",
-                MilestoneSourceType.Media,
-                nameof(MediaEntry),
-                historyEntry.Id,
-                $"Serie: {series.Title}",
-                cancellationToken);
-
-            series.XpEarned += completeXp.AmountAwarded;
-            historyEntry.XpEarned = completeXp.AmountAwarded;
-
-            if (completeXp.Milestone is not null)
-            {
-                events.Add(new AchievementEvent(
-                    completeXp.Milestone.Title,
-                    completeXp.Milestone.Description ?? series.Title,
-                    completeXp.AmountAwarded,
-                    MilestoneSourceType.Media));
-            }
-
+            // El pool de 100 XP ya se repartió en los capítulos; no hay bono extra al terminar.
             events.AddRange(await _achievementEngine.TryAwardMilestonesForTrackAsync(
                 MedalMilestoneTrack.MediaCompleted,
                 MilestoneSourceType.Media,

@@ -20,7 +20,7 @@ public sealed class ModuleDisciplineService : IModuleDisciplineService
         MilestoneSourceType sourceType,
         CancellationToken cancellationToken = default)
     {
-        if (!WeeklyQuotaRules.TrackedSources.Contains(sourceType))
+        if (!WeeklyQuotaRules.IsTracked(sourceType))
             return false;
 
         await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
@@ -51,7 +51,7 @@ public sealed class ModuleDisciplineService : IModuleDisciplineService
         bool isPaused,
         CancellationToken cancellationToken = default)
     {
-        if (!WeeklyQuotaRules.TrackedSources.Contains(sourceType))
+        if (!WeeklyQuotaRules.IsTracked(sourceType))
             throw new ArgumentOutOfRangeException(nameof(sourceType), "Ese módulo no tiene disciplina configurable.");
 
         await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);

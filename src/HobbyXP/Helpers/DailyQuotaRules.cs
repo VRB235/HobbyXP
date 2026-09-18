@@ -3,7 +3,7 @@ using HobbyXP.Models.Enums;
 namespace HobbyXP.Helpers;
 
 /// <summary>
-/// Cuotas diarias de disciplina (además de la semanal) para Running, Gym, Libro y Curso.
+/// Cuotas diarias de disciplina (además de la semanal) para Running y Gym.
 /// </summary>
 public static class DailyQuotaRules
 {
@@ -13,9 +13,7 @@ public static class DailyQuotaRules
     public static readonly MilestoneSourceType[] TrackedSources =
     [
         MilestoneSourceType.Running,
-        MilestoneSourceType.Gym,
-        MilestoneSourceType.Book,
-        MilestoneSourceType.Course
+        MilestoneSourceType.Gym
     ];
 
     public static bool IsTracked(MilestoneSourceType sourceType) =>

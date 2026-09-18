@@ -2,7 +2,7 @@
 
 Aplicativo de escritorio **WPF (.NET 8)** para gamificar hobbies personales (running, gimnasio, **dieta**, entretenimiento, libros/cursos) con sistema de **XP, niveles, medallas, premios y disciplina semanal**.
 
-**Versión actual: 1.8.3** (producción: rama `main`, tag [`v1.8.3`](https://github.com/VRB235/HobbyXP/releases/tag/v1.8.3)).
+**Versión actual: 1.8.4** (producción: rama `main`, tag [`v1.8.4`](https://github.com/VRB235/HobbyXP/releases/tag/v1.8.4)).
 
 - **Plataforma**: Windows 10/11, `net8.0-windows10.0.19041`.
 - **Arquitectura**: MVVM con inyección de dependencias (`Microsoft.Extensions.Hosting`).
@@ -42,7 +42,7 @@ El `README.md` se mantiene como **vista ejecutiva y técnica resumida** del esta
   - **Saldo canjeable** (`SpendableXp`) independiente del XP de progresión; tienda de premios **por módulo** (Running, Gimnasio, …), inventario, equipar reliquia y costo **base × nivel**.
   - Premios enriquecidos: imagen local, precio estimado, enlace y texto de motivación; banner de módulo muestra el **premio más cercano** por XP faltante.
   - **Logros visibles**: siguiente medalla en cada hobby, widget en Dashboard, overlay al desbloquear, badge en sidebar. Cada medalla otorga saldo, título de honor e **inmunidad de disciplina 7 días**.
-  - **Disciplina** (diaria + semanal lun–dom): incumplimiento baja un nivel del hobby; actividad atrasada puede restaurar. **Pausa por módulo** en Configuración (sin cuotas ni castigos; sigue registrando actividad y XP). **Diario** (Running/Gym/Libros/Cursos): 1 sesión; libros ≥20% páginas del libro actual (terminarlo también cumple el día; **semanal ya cumplida** o **exceso de páginas** también cubren la diaria). **Semanal**: Running 4, Gym 5, Curso 5 sesiones, Libro 1 terminado. Series: 1 serie terminada si hay serie en progreso, más 2 películas.
+  - **Disciplina** (diaria + semanal lun–dom), solo **Running, Gimnasio y Dieta**: incumplimiento baja un nivel del hobby; actividad atrasada puede restaurar. **Pausa por módulo** en Configuración (sin cuotas ni castigos; sigue registrando actividad y XP). **Diario** (Running/Gym): 1 sesión. **Semanal**: Running 4, Gym 5, Dieta 5 días buenos. Rompecabezas, series/películas, videojuegos, libros y cursos **sin castigo**.
   - Running: al elegir el **tipo de sesión** (Regenerativa, Umbral, Tirada larga) se consultan y precargan distancia, tiempo, ritmo estimado y, en umbral, las **series** del último registro coincidente; resumen de series en historial; **carreras oficiales** en grilla con imagen persistente y ventana de detalle/edición.
   - Gimnasio: ejercicios con **grupo muscular** opcional (ComboBox: Sin grupo primero, resto A–Z); catálogo agrupado, filtro al armar el entrenamiento, **buscador por texto** (nombre o músculo) en la barra, ComboBox de ejercicio **no editable** (clic para elegir; con el listado abierto se puede saltar al nombre), **preservar ejercicios al filtrar**, carga de referencia del último entreno (series/reps/peso editables antes de guardar) y asignación a ejercicios legacy.
   - **Dieta**: adherencia por 4 comidas (En plan / Fuera de plan); día bueno ≥ 3/4; cuota 5 días buenos/semana.
@@ -110,6 +110,14 @@ Copy-Item "$env:LOCALAPPDATA\HobbyXP\*" "$env:LOCALAPPDATA\HobbyXP-Dev\" -Recurs
 ```
 
 ---
+
+## Mejoras incluidas en 1.8.4
+
+| Área | Qué cambió |
+|------|------------|
+| **Disciplina** | Sin cuotas ni castigos en rompecabezas, series/películas, videojuegos, libros y cursos. Siguen activos Running, Gimnasio y Dieta. |
+| **XP** | Rebalance: Gym 10/sesión + 5/ejercicio con PR; Dieta 2/comida + 2 día perfecto; Puzzle 100; Serie 100 repartidos en capítulos; Película 20. Migración `RebalanceActivityXpRules`. |
+| **Versión** | 1.8.3 → **1.8.4** (csproj, Inno Setup, manifiesto MSIX). |
 
 ## Mejoras incluidas en 1.8.3
 
@@ -181,7 +189,7 @@ Para generar un ZIP portable autocontenido:
 .\scripts\package-portable.ps1
 ```
 
-Salida: `artifacts\HobbyXP-win-x64-Release.zip`. Release GitHub: [`v1.8.3`](https://github.com/VRB235/HobbyXP/releases/tag/v1.8.3).
+Salida: `artifacts\HobbyXP-win-x64-Release.zip`. Release GitHub: [`v1.8.4`](https://github.com/VRB235/HobbyXP/releases/tag/v1.8.4).
 
 MSIX e instalador Inno Setup: ver [`docs/DISTRIBUCION.md`](docs/DISTRIBUCION.md).
 
