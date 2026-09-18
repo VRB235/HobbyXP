@@ -4,7 +4,7 @@ namespace HobbyXP.Helpers;
 
 /// <summary>
 /// Cuotas semanales de disciplina por hobby.
-/// Gym: 5 entrenamientos. Running: 4. Libro: 1 terminado. Curso: 5 sesiones.
+/// Solo Running (4), Gym (5) y Dieta (5 días buenos). El resto de hobbies no tiene castigo.
 /// </summary>
 public static class WeeklyQuotaRules
 {
@@ -18,13 +18,11 @@ public static class WeeklyQuotaRules
     [
         MilestoneSourceType.Running,
         MilestoneSourceType.Gym,
-        MilestoneSourceType.Puzzle,
-        MilestoneSourceType.Media,
-        MilestoneSourceType.VideoGame,
-        MilestoneSourceType.Book,
-        MilestoneSourceType.Course,
         MilestoneSourceType.Diet
     ];
+
+    public static bool IsTracked(MilestoneSourceType sourceType) =>
+        TrackedSources.Contains(sourceType);
 
     public static (int Primary, int Secondary) GetRequired(MilestoneSourceType sourceType) =>
         sourceType switch

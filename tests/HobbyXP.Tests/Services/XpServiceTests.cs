@@ -24,9 +24,13 @@ public sealed class XpServiceTests : IDisposable
 
     [Theory]
     [InlineData(AchievementActionType.RunningKilometer, 5, 50)]
-    [InlineData(AchievementActionType.GymWorkoutSaved, 1, 25)]
+    [InlineData(AchievementActionType.GymWorkoutSaved, 1, 10)]
+    [InlineData(AchievementActionType.ProgressiveOverload, 3, 15)]
     [InlineData(AchievementActionType.BookPageRead, 120, 120)]
     [InlineData(AchievementActionType.VideoGamePercent, 37.5, 375)]
+    [InlineData(AchievementActionType.PuzzleCompleted, 1, 100)]
+    [InlineData(AchievementActionType.MediaCompleted, 1, 20)]
+    [InlineData(AchievementActionType.DietMealOnPlan, 1, 2)]
     public async Task CalculatePointsAsync_UsesActiveRule(
         AchievementActionType actionType,
         decimal units,
@@ -40,9 +44,9 @@ public sealed class XpServiceTests : IDisposable
     [Fact]
     public async Task CalculatePointsAsync_FlatBonusRule_ReturnsBonusOnly()
     {
-        var points = await _sut.CalculatePointsAsync(AchievementActionType.ProgressiveOverload, 0m);
+        var points = await _sut.CalculatePointsAsync(AchievementActionType.DietPerfectDay, 0m);
 
-        Assert.Equal(150, points);
+        Assert.Equal(2, points);
     }
 
     [Fact]
@@ -281,7 +285,7 @@ public sealed class XpServiceTests : IDisposable
         var progress = await _sut.GetHobbyProgressAsync(MilestoneSourceType.Puzzle);
 
         Assert.Equal(1, progress.CurrentLevel);
-        Assert.Equal(50, progress.TotalXp);
+        Assert.Equal(100, progress.TotalXp);
     }
 
     [Fact]

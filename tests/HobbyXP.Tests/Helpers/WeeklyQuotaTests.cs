@@ -34,14 +34,28 @@ public sealed class WeekDateHelperTests
 public sealed class WeeklyQuotaRulesTests
 {
     [Fact]
-    public void Media_RequiresCompletedSeriesAndMovies()
+    public void TrackedSources_OnlyRunningGymAndDiet()
     {
-        var (primary, secondary) = WeeklyQuotaRules.GetRequired(Models.Enums.MilestoneSourceType.Media);
-        Assert.Equal(1, primary);
-        Assert.Equal(2, secondary);
-        Assert.False(WeeklyQuotaRules.IsMet(1, 1, 2, 1));
-        Assert.True(WeeklyQuotaRules.IsMet(1, 1, 2, 2));
-        Assert.Contains("serie terminada", WeeklyQuotaRules.FormatRequirement(Models.Enums.MilestoneSourceType.Media), StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(
+            new[]
+            {
+                Models.Enums.MilestoneSourceType.Running,
+                Models.Enums.MilestoneSourceType.Gym,
+                Models.Enums.MilestoneSourceType.Diet
+            },
+            WeeklyQuotaRules.TrackedSources);
+        Assert.Equal(
+            new[]
+            {
+                Models.Enums.MilestoneSourceType.Running,
+                Models.Enums.MilestoneSourceType.Gym
+            },
+            DailyQuotaRules.TrackedSources);
+        Assert.False(WeeklyQuotaRules.IsTracked(Models.Enums.MilestoneSourceType.Book));
+        Assert.False(WeeklyQuotaRules.IsTracked(Models.Enums.MilestoneSourceType.Course));
+        Assert.False(WeeklyQuotaRules.IsTracked(Models.Enums.MilestoneSourceType.Media));
+        Assert.False(WeeklyQuotaRules.IsTracked(Models.Enums.MilestoneSourceType.Puzzle));
+        Assert.False(WeeklyQuotaRules.IsTracked(Models.Enums.MilestoneSourceType.VideoGame));
     }
 
     [Fact]
@@ -55,79 +69,12 @@ public sealed class WeeklyQuotaRulesTests
     }
 
     [Fact]
-    public void Course_RequiresFiveSessions()
-    {
-        var (primary, secondary) = WeeklyQuotaRules.GetRequired(Models.Enums.MilestoneSourceType.Course);
-        Assert.Equal(5, primary);
-        Assert.Equal(0, secondary);
-    }
-
-    [Fact]
-    public void Book_WeeklyRequiresOneCompletedBook()
-    {
-        var (primary, secondary) = WeeklyQuotaRules.GetRequired(Models.Enums.MilestoneSourceType.Book);
-        Assert.Equal(1, primary);
-        Assert.Equal(0, secondary);
-        Assert.Contains("libro terminado", WeeklyQuotaRules.FormatRequirement(Models.Enums.MilestoneSourceType.Book), StringComparison.OrdinalIgnoreCase);
-    }
-
-    [Theory]
-    [InlineData(0, 0)]
-    [InlineData(1, 1)]
-    [InlineData(100, 20)]
-    [InlineData(101, 21)]
-    [InlineData(4, 1)]
-    public void Book_RequiredPages_IsTwentyPercentCeiling(int totalPages, int expected)
-    {
-        Assert.Equal(expected, WeeklyQuotaRules.GetBookRequiredPages(totalPages));
-        Assert.Equal(expected, DailyQuotaRules.GetBookRequiredPages(totalPages));
-    }
-
-    [Fact]
-    public void Book_CompletingBook_MeetsDailyQuotaEvenIfPagesBelowTwentyPercent()
-    {
-        Assert.True(DailyQuotaRules.IsBookQuotaMet(100, 10, completedBookToday: true));
-        Assert.False(DailyQuotaRules.IsBookQuotaMet(100, 10, completedBookToday: false));
-        Assert.True(DailyQuotaRules.IsBookQuotaMet(100, 100, completedBookToday: false));
-    }
-
-    [Fact]
-    public void Book_PageBank_ExcessCoversFollowingDays()
-    {
-        // 164 con cuota 82 ⇒ lunes y martes cubiertos; miércoles no.
-        var pages = new[] { 164, 0, 0 };
-        Assert.True(DailyQuotaRules.IsBookDayMetByPageBank(82, pages, 0));
-        Assert.True(DailyQuotaRules.IsBookDayMetByPageBank(82, pages, 1));
-        Assert.False(DailyQuotaRules.IsBookDayMetByPageBank(82, pages, 2));
-    }
-
-    [Fact]
-    public void Book_PageBank_DoesNotBackfillMissedDay()
-    {
-        // Lunes/martes fallidos; el exceso del miércoles no los salva.
-        var pages = new[] { 40, 0, 164 };
-        Assert.False(DailyQuotaRules.IsBookDayMetByPageBank(82, pages, 0));
-        Assert.False(DailyQuotaRules.IsBookDayMetByPageBank(82, pages, 1));
-        Assert.True(DailyQuotaRules.IsBookDayMetByPageBank(82, pages, 2));
-        // Crédito restante (40+164-82=122) cubre el jueves.
-        Assert.True(DailyQuotaRules.IsBookDayMetByPageBank(82, [40, 0, 164, 0], 3));
-        Assert.False(DailyQuotaRules.IsBookDayMetByPageBank(82, [40, 0, 164, 0, 0], 4));
-    }
-
-    [Fact]
-    public void Book_PageBank_AccumulatesAcrossDaysTowardOneQuota()
-    {
-        var pages = new[] { 40, 42 };
-        Assert.False(DailyQuotaRules.IsBookDayMetByPageBank(82, pages, 0));
-        Assert.True(DailyQuotaRules.IsBookDayMetByPageBank(82, pages, 1));
-    }
-
-    [Fact]
-    public void Daily_RunningGymCourse_RequireOneSession()
+    public void Daily_RunningAndGym_RequireOneSession()
     {
         Assert.Equal(1, DailyQuotaRules.GetRequiredPrimary(Models.Enums.MilestoneSourceType.Running));
         Assert.Equal(1, DailyQuotaRules.GetRequiredPrimary(Models.Enums.MilestoneSourceType.Gym));
-        Assert.Equal(1, DailyQuotaRules.GetRequiredPrimary(Models.Enums.MilestoneSourceType.Course));
+        Assert.False(DailyQuotaRules.IsTracked(Models.Enums.MilestoneSourceType.Course));
+        Assert.False(DailyQuotaRules.IsTracked(Models.Enums.MilestoneSourceType.Book));
     }
 }
 

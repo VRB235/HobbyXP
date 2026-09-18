@@ -138,6 +138,7 @@ public sealed class GymService : IGymService
         };
 
         var progressiveOverloadDetected = false;
+        var personalRecordCount = 0;
 
         foreach (var draft in entries.OrderBy(e => e.SortOrder))
         {
@@ -148,7 +149,10 @@ public sealed class GymService : IGymService
 
             var isRecord = await IsPersonalRecordAsync(db, draft, cancellationToken);
             if (isRecord)
+            {
                 progressiveOverloadDetected = true;
+                personalRecordCount++;
+            }
 
             workout.Entries.Add(new GymWorkoutEntry
             {
@@ -190,12 +194,12 @@ public sealed class GymService : IGymService
                 MilestoneSourceType.Gym));
         }
 
-        if (progressiveOverloadDetected)
+        if (personalRecordCount > 0)
         {
-            var overloadXp = await _xpService.AwardFlatBonusAsync(
+            var overloadXp = await _xpService.AwardXpAsync(
                 AchievementActionType.ProgressiveOverload,
-                await _xpService.CalculatePointsAsync(AchievementActionType.ProgressiveOverload, 1, cancellationToken),
-                "Sobrecarga progresiva detectada",
+                personalRecordCount,
+                $"Récord personal en {personalRecordCount} ejercicio(s)",
                 MilestoneSourceType.Gym,
                 nameof(GymWorkout),
                 workout.Id,
@@ -207,7 +211,9 @@ public sealed class GymService : IGymService
 
             events.Add(new AchievementEvent(
                 "¡Sobrecarga progresiva!",
-                "Superaste tu récord histórico en al menos un ejercicio.",
+                personalRecordCount == 1
+                    ? "Superaste tu récord histórico en 1 ejercicio."
+                    : $"Superaste tu récord histórico en {personalRecordCount} ejercicios.",
                 overloadXp.AmountAwarded,
                 MilestoneSourceType.Gym,
                 RequiresCelebration: true));

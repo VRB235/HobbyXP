@@ -137,7 +137,7 @@
                       IsExpanded="{Binding IsDisciplineExpanded, Mode=TwoWay}"
                       Margin="0,0,0,12">
                 <StackPanel>
-                    <TextBlock Text="Running/Gym/Libros/Cursos: cuota diaria (Cumplida si hoy está al día) y cuota semanal. El castigo diario se aplica al día siguiente si no registró; el semanal al cerrar la semana. Diario: 1 sesión (libros: 20% de páginas). Semanal: Running 4, Gym 5, Curso 5 sesiones, Libro 1 terminado. Otros hobbies solo semanal. Actividad atrasada puede restaurar XP."
+                    <TextBlock Text="Solo Running, Gimnasio y Dieta tienen disciplina. Running/Gym: cuota diaria (1 sesión; Cumplida si hoy está al día) y semanal (Running 4, Gym 5). Dieta: 5 días buenos/semana. El castigo diario se aplica al día siguiente si no registró; el semanal al cerrar la semana. Actividad atrasada puede restaurar XP. Rompecabezas, series/películas, videojuegos, libros y cursos no tienen castigo."
                                Style="{StaticResource MutedText}" Margin="0,0,0,12" TextWrapping="Wrap" />
                     <ItemsControl ItemsSource="{Binding WeeklyQuotaItems}">
                         <ItemsControl.ItemTemplate>

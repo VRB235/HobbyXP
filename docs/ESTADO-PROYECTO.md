@@ -193,7 +193,7 @@ src/HobbyXP/
 | `IAchievementProgressService` | Siguiente medalla por hobby y snapshot del hub |
 | `IMedalService` | Vitrina seccionada por hobby (desbloqueadas primero) |
 | `IRewardService` | Premios por hobby, inventario, equipar, costo base × nivel |
-| `IWeeklyQuotaService` | Cuotas lun–dom, castigo, restauración, inmunidad |
+| `IWeeklyQuotaService` | Cuotas lun–dom (Running/Gym/Dieta), castigo, restauración, inmunidad; sin disciplina en entretenimiento ni crecimiento |
 | `IFileDialogService` | Selector de imagen para avatar |
 
 ### Fórmula de nivel (actual)

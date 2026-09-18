@@ -194,7 +194,7 @@ public sealed class WeeklyQuotaService : IWeeklyQuotaService
         DateTime activityLocalDate,
         CancellationToken cancellationToken = default)
     {
-        if (!WeeklyQuotaRules.TrackedSources.Contains(sourceType))
+        if (!WeeklyQuotaRules.IsTracked(sourceType))
             return;
 
         var activityDay = activityLocalDate.Date;
@@ -326,7 +326,7 @@ public sealed class WeeklyQuotaService : IWeeklyQuotaService
         MilestoneSourceType sourceType,
         CancellationToken cancellationToken = default)
     {
-        if (!WeeklyQuotaRules.TrackedSources.Contains(sourceType))
+        if (!WeeklyQuotaRules.IsTracked(sourceType))
             return Array.Empty<string>();
 
         await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
