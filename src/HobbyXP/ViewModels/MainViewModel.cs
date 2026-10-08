@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Windows;
 using System.Windows.Media;
 using HobbyXP.Helpers;
 using HobbyXP.Services.Abstractions;
@@ -13,6 +14,9 @@ namespace HobbyXP.ViewModels;
 
 public sealed class MainViewModel : ViewModelBase
 {
+    private const double SidebarExpandedWidth = 280;
+    private const double SidebarCollapsedWidth = 80;
+
     private readonly INavigationService _navigationService;
     private readonly IAchievementMessenger _achievementMessenger;
     private readonly ILevelUpMessenger _levelUpMessenger;
@@ -45,6 +49,7 @@ public sealed class MainViewModel : ViewModelBase
     private string? _equippedRewardName;
     private bool _hasEquippedReward;
     private string? _immunityText;
+    private bool _isSidebarCollapsed;
 
     public MainViewModel(
         INavigationService navigationService,
@@ -82,6 +87,7 @@ public sealed class MainViewModel : ViewModelBase
         DismissLevelUpCommand = new RelayCommand(DismissLevelUp);
         DismissMedalUnlockCommand = new RelayCommand(DismissMedalUnlock);
         OpenAchievementsFromMedalCommand = new AsyncRelayCommand(OpenAchievementsFromMedalAsync);
+        ToggleSidebarCommand = new RelayCommand(ToggleSidebar);
 
         RefreshDisplayNameValidation();
 
@@ -117,7 +123,14 @@ public sealed class MainViewModel : ViewModelBase
     public int PlayerLevel
     {
         get => _playerLevel;
-        private set => SetProperty(ref _playerLevel, value);
+        private set
+        {
+            if (!SetProperty(ref _playerLevel, value))
+                return;
+
+            OnPropertyChanged(nameof(SidebarLevelText));
+            OnPropertyChanged(nameof(SidebarLevelCompact));
+        }
     }
 
     public int PlayerTotalXp
@@ -197,9 +210,30 @@ public sealed class MainViewModel : ViewModelBase
 
     public string SidebarLevelText => GlobalLevelTitles.FormatLevelLabel(PlayerLevel);
 
+    public string SidebarLevelCompact => $"Nv. {Math.Max(1, PlayerLevel)}";
+
     public string SidebarXpSummary => $"{PlayerTotalXp:N0} XP de progresión";
 
     public string SidebarSpendableSummary => $"Saldo: {PlayerSpendableXp:N0}";
+
+    public bool IsSidebarCollapsed
+    {
+        get => _isSidebarCollapsed;
+        private set
+        {
+            if (!SetProperty(ref _isSidebarCollapsed, value))
+                return;
+
+            OnPropertyChanged(nameof(SidebarColumnWidth));
+            OnPropertyChanged(nameof(SidebarToggleTooltip));
+        }
+    }
+
+    public GridLength SidebarColumnWidth =>
+        new(IsSidebarCollapsed ? SidebarCollapsedWidth : SidebarExpandedWidth);
+
+    public string SidebarToggleTooltip =>
+        IsSidebarCollapsed ? "Expandir barra lateral" : "Colapsar barra lateral";
 
     public AsyncRelayCommand NavigateCommand { get; }
 
@@ -212,6 +246,8 @@ public sealed class MainViewModel : ViewModelBase
     public RelayCommand DismissMedalUnlockCommand { get; }
 
     public AsyncRelayCommand OpenAchievementsFromMedalCommand { get; }
+
+    public RelayCommand ToggleSidebarCommand { get; }
 
     public bool IsMedalUnlockVisible
     {
@@ -433,6 +469,8 @@ public sealed class MainViewModel : ViewModelBase
         if (_navigationService.CurrentViewModel is DashboardViewModel dashboard)
             await dashboard.LoadAsync();
     }
+
+    private void ToggleSidebar() => IsSidebarCollapsed = !IsSidebarCollapsed;
 
     private void DismissLevelUp()
     {

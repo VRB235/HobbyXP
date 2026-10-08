@@ -52,7 +52,7 @@ El `README.md` se mantiene como **vista ejecutiva y técnica resumida** del esta
   - Sistema de recompensas (`Reward`) canjeables por XP (inventario y reliquia equipable); **tienda en grid** con cards, modal de detalle/canje y marcas de XP faltante por módulo.
   - **Sugerencias**: registro local de mejoras y errores (con imágenes, fecha y estado resuelta/pendiente); **badge visual** verde/naranja en la tabla; filtros por texto, tipo, estado y rango de fechas. Detalle modal con texto completo y copia al portapapeles. Clic en miniatura para ampliar. Sin XP.
 - **Interfaz**:
-  - Sidebar con perfil, navegación lateral y estado de XP/nivel.
+  - Sidebar con perfil, navegación lateral y estado de XP/nivel; **colapsable** a un rail (~80 px) con marca vertical, avatar, nivel y navegación por iconos (tooltips).
   - Dashboard con gráficos de XP, **hub de logros/premios** y cuotas semanales (sin bloque de “últimos hitos”).
   - Overlay de celebración al subir de nivel (`LevelUpOverlay`) y al desbloquear medalla (`MedalUnlockOverlay`).
   - Vitrina de medallas por hobby, con secciones colapsables.
@@ -110,6 +110,12 @@ Copy-Item "$env:LOCALAPPDATA\HobbyXP\*" "$env:LOCALAPPDATA\HobbyXP-Dev\" -Recurs
 ```
 
 ---
+
+## Mejoras recientes
+
+| Área | Qué cambió |
+|------|------------|
+| **Interfaz** | Sidebar colapsable (chevron circular): expandido 280 px o rail 80 px con marca vertical «HOBBY XP», avatar, nivel compacto y navegación por iconos (tooltips). |
 
 ## Mejoras incluidas en 1.8.4
 
