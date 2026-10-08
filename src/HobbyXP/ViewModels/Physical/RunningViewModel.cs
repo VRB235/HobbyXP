@@ -40,6 +40,7 @@ public sealed class RunningViewModel : AchievementAwareViewModel
     private RunningSessionTypeOption _editSessionTypeOption;
     private RunningSession? _selectedSession;
     private List<RunningSession> _allSessions = [];
+    private IReadOnlySet<DateTime> _sessionTrainingLocalDates = new HashSet<DateTime>();
     private List<OfficialRace> _allOfficialRaces = [];
     private string _raceSearchText = string.Empty;
     private DateTime? _racesFromDate;
@@ -274,6 +275,11 @@ public sealed class RunningViewModel : AchievementAwareViewModel
         }
     }
 
+    /// <summary>
+    /// Fechas locales (solo día) con al menos una sesión de running; usado por el resaltado del calendario.
+    /// </summary>
+    public IReadOnlySet<DateTime> SessionTrainingLocalDates => _sessionTrainingLocalDates;
+
     public RaceOption? SelectedRaceOption
     {
         get => _selectedRaceOption;
@@ -341,12 +347,15 @@ public sealed class RunningViewModel : AchievementAwareViewModel
             if (SetProperty(ref _newRacePreviewImagePath, value))
             {
                 OnPropertyChanged(nameof(HasNewRacePreviewImage));
+                OnPropertyChanged(nameof(NewRaceImageActionLabel));
                 CommandManager.InvalidateRequerySuggested();
             }
         }
     }
 
     public bool HasNewRacePreviewImage => !string.IsNullOrWhiteSpace(NewRacePreviewImagePath);
+
+    public string NewRaceImageActionLabel => HasNewRacePreviewImage ? "Cambiar" : "Imagen";
 
     public DateTime? SessionsFromDate
     {
@@ -428,6 +437,7 @@ public sealed class RunningViewModel : AchievementAwareViewModel
         await OfficialRaceXp.RefreshAsync();
 
         _allSessions = (await _runningService.GetSessionsAsync()).ToList();
+        RefreshSessionTrainingDates();
         ApplySessionsFilter();
         await PrefillFromLastMatchingSessionAsync();
 
@@ -524,10 +534,17 @@ public sealed class RunningViewModel : AchievementAwareViewModel
 
     private void SyncRaceOptions()
     {
+        var previousId = SelectedRaceOption?.Id;
+
         RaceOptions.Clear();
         RaceOptions.Add(RaceOption.None);
-        foreach (var race in _allOfficialRaces)
+        foreach (var race in _allOfficialRaces.Where(r => !r.IsCompleted))
             RaceOptions.Add(new RaceOption { Id = race.Id, Name = race.Name });
+
+        // Mantener la selección solo si la carrera sigue pendiente; si se completó, volver a «Sin carrera».
+        SelectedRaceOption = previousId is int id
+            ? RaceOptions.FirstOrDefault(o => o.Id == id) ?? RaceOption.None
+            : RaceOption.None;
     }
 
     private void ApplyOfficialRacesFilter()
@@ -575,6 +592,7 @@ public sealed class RunningViewModel : AchievementAwareViewModel
             _allOfficialRaces[index] = race;
 
         ApplyOfficialRacesFilter();
+        SyncRaceOptions();
     }
 
     private ValidationResult ValidateSessionForm()
@@ -847,7 +865,6 @@ public sealed class RunningViewModel : AchievementAwareViewModel
             return;
 
         UpdateOfficialRace(detailVm.SavedRace);
-        SyncRaceOptions();
         SelectedRace = OfficialRaces.FirstOrDefault(r => r.Id == detailVm.SavedRace.Id)
             ?? detailVm.SavedRace;
 
@@ -911,6 +928,7 @@ public sealed class RunningViewModel : AchievementAwareViewModel
             PublishAchievements(result.Events);
             await HobbyXp.RefreshAsync();
             _allSessions.Insert(0, result.Value);
+            RefreshSessionTrainingDates();
 
             // Evitar que un filtro previo oculte la fila recién guardada.
             _sessionsFromDate = null;
@@ -992,11 +1010,19 @@ public sealed class RunningViewModel : AchievementAwareViewModel
                 return;
 
             _allSessions.RemoveAll(s => s.Id == session.Id);
+            RefreshSessionTrainingDates();
             ApplySessionsFilter();
             await HobbyXp.RefreshAsync();
             _profileRefreshMessenger.RequestRefresh();
             StatusMessage = "Sesión eliminada del historial.";
         }, "Eliminando sesión...");
+    }
+
+    private void RefreshSessionTrainingDates()
+    {
+        _sessionTrainingLocalDates = DateTimeHelper.ToLocalCalendarDateSet(
+            _allSessions.Select(s => s.RecordedAt));
+        OnPropertyChanged(nameof(SessionTrainingLocalDates));
     }
 
     private async Task DeleteOfficialRaceAsync(object? parameter)

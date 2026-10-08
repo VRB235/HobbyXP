@@ -27,6 +27,7 @@ public sealed class PuzzlesViewModel : AchievementAwareViewModel
     private DateTime? _filterFromDate;
     private DateTime? _filterToDate;
     private List<Puzzle> _allPuzzles = [];
+    private IReadOnlySet<DateTime> _activityCalendarLocalDates = new HashSet<DateTime>();
 
     public PuzzlesViewModel(
         IPuzzleService puzzleService,
@@ -164,11 +165,24 @@ public sealed class PuzzlesViewModel : AchievementAwareViewModel
 
     public bool HasSelectedPhotos => SelectedPhotos.Count > 0;
 
+    /// <summary>
+    /// Fechas locales con rompecabezas registrado (resaltado del DatePicker).
+    /// </summary>
+    public IReadOnlySet<DateTime> ActivityCalendarLocalDates => _activityCalendarLocalDates;
+
     protected override async Task LoadCoreAsync()
     {
         await HobbyXp.RefreshAsync();
         _allPuzzles = (await _puzzleService.GetAllAsync()).ToList();
+        RefreshActivityCalendarDates();
         ApplyFilter();
+    }
+
+    private void RefreshActivityCalendarDates()
+    {
+        _activityCalendarLocalDates = DateTimeHelper.ToLocalCalendarDateSet(
+            _allPuzzles.Select(p => p.CompletedAt));
+        OnPropertyChanged(nameof(ActivityCalendarLocalDates));
     }
 
     private void ApplyFilter()
@@ -280,6 +294,7 @@ public sealed class PuzzlesViewModel : AchievementAwareViewModel
             await HobbyXp.RefreshAsync();
 
             _allPuzzles.Insert(0, result.Value);
+            RefreshActivityCalendarDates();
             ApplyFilter();
 
             Name = string.Empty;
@@ -313,6 +328,7 @@ public sealed class PuzzlesViewModel : AchievementAwareViewModel
         else
             _allPuzzles.Insert(0, detailVm.SavedPuzzle);
 
+        RefreshActivityCalendarDates();
         ApplyFilter();
         StatusMessage = $"Rompecabezas actualizado: {detailVm.SavedPuzzle.Name}";
     }
@@ -333,6 +349,7 @@ public sealed class PuzzlesViewModel : AchievementAwareViewModel
                 return;
 
             _allPuzzles.RemoveAll(p => p.Id == puzzle.Id);
+            RefreshActivityCalendarDates();
             ApplyFilter();
             await HobbyXp.RefreshAsync();
             _profileRefreshMessenger.RequestRefresh();

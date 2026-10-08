@@ -2,7 +2,7 @@
 
 Aplicativo de escritorio **WPF (.NET 8)** para gamificar hobbies personales (running, gimnasio, **dieta**, entretenimiento, libros/cursos) con sistema de **XP, niveles, medallas, premios y disciplina semanal**.
 
-**Versión actual: 1.8.4** (producción: rama `main`, tag [`v1.8.4`](https://github.com/VRB235/HobbyXP/releases/tag/v1.8.4)).
+**Versión actual: 1.8.5** (producción: rama `main`, tag [`v1.8.5`](https://github.com/VRB235/HobbyXP/releases/tag/v1.8.5)).
 
 - **Plataforma**: Windows 10/11, `net8.0-windows10.0.19041`.
 - **Arquitectura**: MVVM con inyección de dependencias (`Microsoft.Extensions.Hosting`).
@@ -46,19 +46,21 @@ El `README.md` se mantiene como **vista ejecutiva y técnica resumida** del esta
   - Running: al elegir el **tipo de sesión** (Regenerativa, Umbral, Tirada larga) se consultan y precargan distancia, tiempo, ritmo estimado y, en umbral, las **series** del último registro coincidente; resumen de series en historial; **carreras oficiales** en grilla con imagen persistente y ventana de detalle/edición.
   - Gimnasio: ejercicios con **grupo muscular** opcional (ComboBox: Sin grupo primero, resto A–Z); catálogo agrupado, filtro al armar el entrenamiento, **buscador por texto** (nombre o músculo) en la barra, ComboBox de ejercicio **no editable** (clic para elegir; con el listado abierto se puede saltar al nombre), **preservar ejercicios al filtrar**, carga de referencia del último entreno (series/reps/peso editables antes de guardar) y asignación a ejercicios legacy.
   - **Dieta**: adherencia por 4 comidas (En plan / Fuera de plan); día bueno ≥ 3/4; cuota 5 días buenos/semana.
-  - Entretenimiento y crecimiento: **portadas** (libros, cursos, series, entradas de media, videojuegos) con miniatura en filas de progreso (**imagen completa**; Cambiar/Quitar debajo, sin tapar), almacén local y ventanas de detalle. Historial en cards con **imagen a pantalla completa**, pie semitransparente y meta (tipo/fecha) al **hover**.
+  - Entretenimiento, crecimiento y **carreras oficiales**: **portadas** (libros, cursos, series, media, videojuegos, carreras) con miniatura en altas/detalle (**imagen completa**; Cambiar/Quitar debajo, sin tapar), almacén local y ventanas de detalle. Historial en cards con **imagen a pantalla completa**, pie semitransparente y meta al **hover**.
   - Otorgamiento y deducción de XP mediante `XpService` y registro de transacciones/hitos.
   - Motor de medallas `AchievementEngineService` basado en reglas (`AchievementActionType`).
   - Sistema de recompensas (`Reward`) canjeables por XP (inventario y reliquia equipable); **tienda en grid** con cards, modal de detalle/canje y marcas de XP faltante por módulo.
   - **Sugerencias**: registro local de mejoras y errores (con imágenes, fecha y estado resuelta/pendiente); **badge visual** verde/naranja en la tabla; filtros por texto, tipo, estado y rango de fechas. Detalle modal con texto completo y copia al portapapeles. Clic en miniatura para ampliar. Sin XP.
 - **Interfaz**:
-  - Sidebar con perfil, navegación lateral y estado de XP/nivel.
+  - Sidebar con perfil, navegación lateral y estado de XP/nivel; **colapsable** a un rail (~80 px) con marca vertical, avatar, nivel y navegación por iconos (tooltips).
+  - Barra superior: último mensaje de logro + botón **Historial XP** (ventana con cantidad, motivo, tipo, módulo y fecha; filtros por módulo, solo ganancias y búsqueda).
   - Dashboard con gráficos de XP, **hub de logros/premios** y cuotas semanales (sin bloque de “últimos hitos”).
   - Overlay de celebración al subir de nivel (`LevelUpOverlay`) y al desbloquear medalla (`MedalUnlockOverlay`).
   - Vitrina de medallas por hobby, con secciones colapsables.
   - Tablas de historial (running, gimnasio, **dieta**, media, libros, cursos, logros, **sugerencias**) con **ordenación por columna** (clic en cabecera Asc/Desc; helper `GridViewSortHelper`).
   - Historiales de actividad física con **altura mínima** para ~10 filas visibles y scroll de página si no caben formularios + tablas.
   - Fechas atrasables al registrar (running, gym, dieta, lecturas, etc.) para disciplina semanal.
+  - **Calendarios de actividad**: en DatePickers de alta/progreso, días con actividad en **verde** y sin actividad en **gris** (running/gym = entrenamiento; dieta = registro; puzzles/media = obra; series = visionado; videojuegos = avance; libros = lectura; cursos = sesión).
   - En Debug, título de ventana `HobbyXP [DEV]` para distinguir el entorno de desarrollo.
   - Configuración: **Restablecer progreso** (borra historial/XP/niveles; conserva catálogo de ejercicios y personalización del perfil).
 
@@ -110,6 +112,25 @@ Copy-Item "$env:LOCALAPPDATA\HobbyXP\*" "$env:LOCALAPPDATA\HobbyXP-Dev\" -Recurs
 ```
 
 ---
+
+## Mejoras recientes
+
+| Área | Qué cambió |
+|------|------------|
+| *(vacío tras release 1.8.5 — nuevas mejoras de develop irán aquí)* | |
+
+## Mejoras incluidas en 1.8.5
+
+| Área | Qué cambió |
+|------|------------|
+| **Interfaz** | Sidebar colapsable (chevron circular): expandido 280 px o rail 80 px con marca vertical «HOBBY XP», avatar, nivel compacto y navegación por iconos (tooltips). |
+| **XP** | Botón **Historial XP** en la barra superior: modal con libro mayor (`XpTransactions`) — cantidad, motivo, tipo de acción, módulo y fecha/hora; filtros por módulo, «Solo ganancias» y búsqueda. |
+| **Running** | En nueva sesión, el ComboBox de carrera oficial solo lista carreras **pendientes** (excluye completadas). |
+| **Running (portadas)** | Historial de carreras con `HistoryCoverCard` (full-bleed + meta al hover); alta y detalle con portada alta y Cambiar/Quitar debajo. |
+| **Calendarios** | DatePickers de alta/progreso con resaltado verde/gris por módulo: Running/Gym (entrenamiento), Dieta (registro), Rompecabezas/Media (obra), Series (visionado), Videojuegos (avance), Libros (lectura), Cursos (sesión). |
+| **Entretenimiento** | Formularios de alta con columnas flexibles más anchas; XP del ítem en el hover de las cards de historial. |
+| **Barras / sliders** | `ItemProgressBar` y `XpProgressBar` con track, sheen y glow; Slider global con track degradado y thumb con brillo. |
+| **Versión** | 1.8.4 → **1.8.5** (csproj, Inno Setup, manifiesto MSIX). |
 
 ## Mejoras incluidas en 1.8.4
 
@@ -189,7 +210,7 @@ Para generar un ZIP portable autocontenido:
 .\scripts\package-portable.ps1
 ```
 
-Salida: `artifacts\HobbyXP-win-x64-Release.zip`. Release GitHub: [`v1.8.4`](https://github.com/VRB235/HobbyXP/releases/tag/v1.8.4).
+Salida: `artifacts\HobbyXP-win-x64-Release.zip`. Release GitHub: [`v1.8.5`](https://github.com/VRB235/HobbyXP/releases/tag/v1.8.5).
 
 MSIX e instalador Inno Setup: ver [`docs/DISTRIBUCION.md`](docs/DISTRIBUCION.md).
 

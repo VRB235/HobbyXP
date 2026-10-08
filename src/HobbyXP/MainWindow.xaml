@@ -9,21 +9,87 @@
         Foreground="{StaticResource TextPrimaryBrush}">
     <Grid>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="280" />
+            <ColumnDefinition Width="{Binding SidebarColumnWidth}" />
             <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
 
         <!-- Sidebar -->
         <Border Grid.Column="0" Background="{StaticResource BgSidebarBrush}"
-                BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,1,0">
-            <DockPanel Margin="16,20">
-                <StackPanel DockPanel.Dock="Top" Margin="0,0,0,20">
-                    <TextBlock Text="HOBBY XP" FontFamily="{StaticResource Font.Display}" FontSize="22" FontWeight="Bold"
-                               Foreground="{StaticResource AccentGreenBrush}" />
-                    <TextBlock Text="Habit Tracking RPG" Style="{StaticResource MutedText}" Margin="0,2,0,0" />
+                BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,1,0"
+                ClipToBounds="True">
+            <DockPanel Margin="8,16">
+                <!-- Cabecera expandida -->
+                <Grid DockPanel.Dock="Top" Margin="0,0,0,16"
+                      Visibility="{Binding IsSidebarCollapsed, Converter={StaticResource InverseBoolToVisibilityConverter}}">
+                    <StackPanel VerticalAlignment="Center" Margin="0,0,44,0">
+                        <TextBlock Text="HOBBY XP" FontFamily="{StaticResource Font.Display}" FontSize="22" FontWeight="Bold"
+                                   Foreground="{StaticResource AccentGreenBrush}" />
+                        <TextBlock Text="Habit Tracking RPG" Style="{StaticResource MutedText}" Margin="0,2,0,0" />
+                    </StackPanel>
+                    <Button Style="{StaticResource SidebarToggleButton}"
+                            ToolTip="{Binding SidebarToggleTooltip}"
+                            Command="{Binding ToggleSidebarCommand}"
+                            HorizontalAlignment="Right"
+                            VerticalAlignment="Center" />
+                </Grid>
+
+                <!-- Cabecera colapsada: marca vertical + avatar + nivel + toggle -->
+                <StackPanel DockPanel.Dock="Top" Margin="0,0,0,12"
+                            Visibility="{Binding IsSidebarCollapsed, Converter={StaticResource BoolToVisibilityConverter}}">
+                    <Button Style="{StaticResource SidebarToggleButton}"
+                            ToolTip="{Binding SidebarToggleTooltip}"
+                            Command="{Binding ToggleSidebarCommand}"
+                            HorizontalAlignment="Center"
+                            Margin="0,0,0,14" />
+
+                    <Border Height="108" Margin="0,0,0,14" HorizontalAlignment="Center">
+                        <TextBlock Text="HOBBY XP"
+                                   FontFamily="{StaticResource Font.Display}"
+                                   FontSize="13"
+                                   FontWeight="Bold"
+                                   Foreground="{StaticResource AccentGreenBrush}"
+                                   VerticalAlignment="Center"
+                                   HorizontalAlignment="Center"
+                                   Opacity="0.95">
+                            <TextBlock.LayoutTransform>
+                                <RotateTransform Angle="-90" />
+                            </TextBlock.LayoutTransform>
+                        </TextBlock>
+                    </Border>
+
+                    <Grid Width="44" Height="44" HorizontalAlignment="Center" Margin="0,0,0,6"
+                          ToolTip="{Binding DisplayName}">
+                        <Ellipse Fill="#2A3347"
+                                 Stroke="{StaticResource AccentPurpleBrush}"
+                                 StrokeThickness="2"
+                                 Visibility="{Binding HasEquippedReward, Converter={StaticResource InverseBoolToVisibilityConverter}}" />
+                        <Ellipse Fill="#2A3347"
+                                 Stroke="{StaticResource AccentGoldBrush}"
+                                 StrokeThickness="2.5"
+                                 Visibility="{Binding HasEquippedReward, Converter={StaticResource BoolToVisibilityConverter}}" />
+                        <Ellipse Margin="3"
+                                 Visibility="{Binding HasCustomAvatar, Converter={StaticResource BoolToVisibilityConverter}}">
+                            <Ellipse.Fill>
+                                <ImageBrush ImageSource="{Binding AvatarImage}" Stretch="UniformToFill" />
+                            </Ellipse.Fill>
+                        </Ellipse>
+                        <TextBlock Text="⚔" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                   Visibility="{Binding HasCustomAvatar, Converter={StaticResource InverseBoolToVisibilityConverter}}" />
+                    </Grid>
+
+                    <TextBlock Text="{Binding SidebarLevelCompact}"
+                               ToolTip="{Binding SidebarLevelText}"
+                               FontFamily="{StaticResource Font.Display}"
+                               FontSize="11"
+                               FontWeight="SemiBold"
+                               Foreground="{StaticResource AccentGoldBrush}"
+                               HorizontalAlignment="Center"
+                               TextAlignment="Center"
+                               Margin="0,0,0,4" />
                 </StackPanel>
 
-                <Border DockPanel.Dock="Top" Style="{StaticResource DarkCard}" Margin="0,0,0,20" Padding="14">
+                <Border DockPanel.Dock="Top" Style="{StaticResource DarkCard}" Margin="0,0,0,20" Padding="14"
+                        Visibility="{Binding IsSidebarCollapsed, Converter={StaticResource InverseBoolToVisibilityConverter}}">
                     <StackPanel>
                         <Grid>
                             <Grid.ColumnDefinitions>
@@ -96,12 +162,15 @@
                     <ItemsControl.ItemTemplate>
                         <DataTemplate DataType="{x:Type nav:NavigationItem}">
                             <Button Style="{StaticResource NavButton}"
+                                    ToolTip="{Binding Title}"
                                     Command="{Binding DataContext.NavigateCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                     CommandParameter="{Binding Section}"
                                     DataContext="{Binding}">
-                                <StackPanel Orientation="Horizontal">
+                                <StackPanel Orientation="Horizontal"
+                                            HorizontalAlignment="Left">
                                     <Grid Width="28">
-                                        <TextBlock Text="{Binding IconGlyph}" FontSize="16" />
+                                        <TextBlock Text="{Binding IconGlyph}" FontSize="16"
+                                                   HorizontalAlignment="Center" />
                                         <Border HorizontalAlignment="Right" VerticalAlignment="Top"
                                                 Background="{StaticResource AccentGoldBrush}"
                                                 CornerRadius="8" Padding="4,0" MinWidth="16"
@@ -110,7 +179,10 @@
                                                        Foreground="#1A1208" HorizontalAlignment="Center" />
                                         </Border>
                                     </Grid>
-                                    <TextBlock Text="{Binding Title}" VerticalAlignment="Center" FontSize="14" />
+                                    <TextBlock Text="{Binding Title}" VerticalAlignment="Center" FontSize="14"
+                                               Visibility="{Binding DataContext.IsSidebarCollapsed,
+                                                                    RelativeSource={RelativeSource AncestorType=Window},
+                                                                    Converter={StaticResource InverseBoolToVisibilityConverter}}" />
                                 </StackPanel>
                             </Button>
                         </DataTemplate>
@@ -125,8 +197,24 @@
             <DockPanel>
                 <Border DockPanel.Dock="Top" Background="#CC151B26" Padding="16,10"
                         BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1">
-                    <TextBlock Text="{Binding LatestAchievementMessage, FallbackValue='Bienvenido a tu aventura de hobbies.'}"
-                               Foreground="{StaticResource AccentCyanBrush}" FontWeight="SemiBold" FontSize="13" />
+                    <DockPanel LastChildFill="True">
+                        <Button DockPanel.Dock="Right"
+                                Content="Historial XP"
+                                Style="{StaticResource PrimaryButton}"
+                                Padding="12,0"
+                                MinHeight="30"
+                                FontSize="12"
+                                Margin="12,0,0,0"
+                                ToolTip="Ver cantidad, motivo y fecha de cada XP ganado o gastado"
+                                Command="{Binding OpenXpHistoryCommand}" />
+                        <TextBlock Text="{Binding LatestAchievementMessage, FallbackValue='Bienvenido a tu aventura de hobbies.'}"
+                                   Foreground="{StaticResource AccentCyanBrush}"
+                                   FontWeight="SemiBold"
+                                   FontSize="13"
+                                   VerticalAlignment="Center"
+                                   TextTrimming="CharacterEllipsis"
+                                   ToolTip="{Binding LatestAchievementMessage}" />
+                    </DockPanel>
                 </Border>
 
                 <ContentControl Content="{Binding CurrentViewModel}" Margin="0"

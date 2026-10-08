@@ -34,6 +34,8 @@ public sealed class MediaViewModel : AchievementAwareViewModel
     private int _yearlyTotal;
     private List<MediaEntry> _allHistory = [];
     private List<MediaSeries> _allInProgressSeries = [];
+    private IReadOnlySet<DateTime> _activityCalendarLocalDates = new HashSet<DateTime>();
+    private IReadOnlySet<DateTime> _seriesWatchLocalDates = new HashSet<DateTime>();
 
     public MediaViewModel(
         IMediaService mediaService,
@@ -215,14 +217,34 @@ public sealed class MediaViewModel : AchievementAwareViewModel
 
     public RelayCommand OpenDetailCommand { get; }
 
+    /// <summary>
+    /// Fechas locales con obra terminada registrada (DatePicker de alta).
+    /// </summary>
+    public IReadOnlySet<DateTime> ActivityCalendarLocalDates => _activityCalendarLocalDates;
+
+    /// <summary>
+    /// Fechas locales con capítulos de serie visionados (DatePicker de progreso).
+    /// </summary>
+    public IReadOnlySet<DateTime> SeriesWatchLocalDates => _seriesWatchLocalDates;
+
     protected override async Task LoadCoreAsync()
     {
         await HobbyXp.RefreshAsync();
         _allHistory = (await _mediaService.GetHistoryAsync()).ToList();
         _allInProgressSeries = (await _mediaService.GetInProgressSeriesAsync()).ToList();
+        await RefreshActivityCalendarDatesAsync();
         ApplyFilter();
         ApplySeriesRows();
         await RefreshCountersAsync();
+    }
+
+    private async Task RefreshActivityCalendarDatesAsync()
+    {
+        RefreshCompletedCalendarDates();
+
+        var watchUtc = await _mediaService.GetDistinctSeriesWatchDatesUtcAsync();
+        _seriesWatchLocalDates = DateTimeHelper.ToLocalCalendarDateSet(watchUtc);
+        OnPropertyChanged(nameof(SeriesWatchLocalDates));
     }
 
     private void OnEntryCoverChanged()
@@ -340,6 +362,7 @@ public sealed class MediaViewModel : AchievementAwareViewModel
             await HobbyXp.RefreshAsync();
 
             _allHistory.Insert(0, result.Value);
+            await RefreshActivityCalendarDatesAsync();
             ApplyFilter();
             await RefreshCountersAsync();
 
@@ -388,6 +411,7 @@ public sealed class MediaViewModel : AchievementAwareViewModel
                 await RefreshCountersAsync();
             }
 
+            await RefreshActivityCalendarDatesAsync();
             _profileRefreshMessenger.RequestRefresh();
 
             var xpGained = result.Events.Sum(e => e.PointsEarned);
@@ -438,8 +462,16 @@ public sealed class MediaViewModel : AchievementAwareViewModel
         else
             _allHistory.Insert(0, detailVm.SavedEntry);
 
+        RefreshCompletedCalendarDates();
         ApplyFilter();
         StatusMessage = $"Obra actualizada: {detailVm.SavedEntry.Title}";
+    }
+
+    private void RefreshCompletedCalendarDates()
+    {
+        _activityCalendarLocalDates = DateTimeHelper.ToLocalCalendarDateSet(
+            _allHistory.Select(e => e.CompletedAt));
+        OnPropertyChanged(nameof(ActivityCalendarLocalDates));
     }
 
     private async Task DeleteEntryAsync(object? parameter)
@@ -458,6 +490,7 @@ public sealed class MediaViewModel : AchievementAwareViewModel
                 return;
 
             _allHistory.RemoveAll(e => e.Id == entry.Id);
+            RefreshCompletedCalendarDates();
             ApplyFilter();
             await RefreshCountersAsync();
             await HobbyXp.RefreshAsync();

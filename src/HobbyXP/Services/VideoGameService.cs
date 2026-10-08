@@ -47,6 +47,16 @@ public sealed class VideoGameService : IVideoGameService
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<IReadOnlyList<DateTime>> GetDistinctProgressDatesUtcAsync(CancellationToken cancellationToken = default)
+    {
+        await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        return await db.VideoGameProgressLogs
+            .AsNoTracking()
+            .Select(l => l.ProgressDate)
+            .Distinct()
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<OperationResult<VideoGame>> RegisterAsync(
         string title,
         VideoGamePlatform platform,

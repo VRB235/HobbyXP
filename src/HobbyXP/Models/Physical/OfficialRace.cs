@@ -42,6 +42,10 @@ public class OfficialRace : EntityBase
     [NotMapped]
     public string DistanceLabel => $"{DistanceKm:0.##} km";
 
+    /// <summary>Subtítulo para <c>HistoryCoverCard</c> (distancia · estado).</summary>
+    [NotMapped]
+    public string CoverSubtitleLabel => $"{DistanceLabel} · {StatusLabel}";
+
     [NotMapped]
     public string? ImageDisplayPath => RacePhotoStorage.ResolveAbsolutePath(ImagePath);
 

@@ -297,4 +297,24 @@ public sealed class XpServiceTests : IDisposable
         Assert.Contains(all, h => h.SourceType == MilestoneSourceType.Gym);
         Assert.Contains(all, h => h.SourceType == MilestoneSourceType.Diet);
     }
+
+    [Fact]
+    public async Task GetLedgerEntriesAsync_ReturnsAwardedXpWithDescriptionAndTimestamp()
+    {
+        await _sut.AwardXpAsync(
+            AchievementActionType.MediaCompleted,
+            1m,
+            "Película: Inception",
+            MilestoneSourceType.Media);
+
+        var entries = await _sut.GetLedgerEntriesAsync(creditsOnly: true);
+
+        var entry = Assert.Single(entries);
+        Assert.Equal(20, entry.Amount);
+        Assert.Equal("Película: Inception", entry.Description);
+        Assert.Equal(AchievementActionType.MediaCompleted, entry.ActionType);
+        Assert.Equal(MilestoneSourceType.Media, entry.SourceType);
+        Assert.False(entry.IsGlobal);
+        Assert.True(entry.EarnedAtUtc <= DateTime.UtcNow.AddMinutes(1));
+    }
 }

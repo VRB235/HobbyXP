@@ -10,6 +10,8 @@ public interface IVideoGameService
 
     Task<IReadOnlyList<VideoGame>> GetPlatinumAsync(CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyList<DateTime>> GetDistinctProgressDatesUtcAsync(CancellationToken cancellationToken = default);
+
     Task<OperationResult<VideoGame>> RegisterAsync(
         string title,
         VideoGamePlatform platform,

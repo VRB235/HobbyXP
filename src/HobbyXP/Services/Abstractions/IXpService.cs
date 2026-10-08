@@ -82,6 +82,14 @@ public interface IXpService
     Task<IReadOnlyList<DailyXpPoint>> GetDailyXpForLastDaysAsync(
         int days,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Historial reciente del libro mayor (más reciente primero).
+    /// </summary>
+    Task<IReadOnlyList<XpLedgerEntry>> GetLedgerEntriesAsync(
+        int take = 300,
+        bool creditsOnly = false,
+        CancellationToken cancellationToken = default);
 }
 
 /// <summary>

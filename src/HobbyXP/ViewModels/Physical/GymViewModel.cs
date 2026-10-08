@@ -36,6 +36,7 @@ public sealed class GymViewModel : AchievementAwareViewModel
     private DateTime? _historyToDate;
     private DateTime? _workoutDate = DateTime.Today;
     private List<GymWorkout> _allWorkouts = [];
+    private IReadOnlySet<DateTime> _activityCalendarLocalDates = new HashSet<DateTime>();
     private string? _exerciseValidationMessage;
     private string _exerciseSearchText = string.Empty;
     private bool _suppressExercisePrefill;
@@ -287,6 +288,11 @@ public sealed class GymViewModel : AchievementAwareViewModel
 
     public AsyncRelayCommand DeleteWorkoutCommand { get; }
 
+    /// <summary>
+    /// Fechas locales con al menos un entrenamiento de gimnasio (resaltado del DatePicker).
+    /// </summary>
+    public IReadOnlySet<DateTime> ActivityCalendarLocalDates => _activityCalendarLocalDates;
+
     public async Task LoadDataAsync()
     {
         await HobbyXp.RefreshAsync();
@@ -339,8 +345,16 @@ public sealed class GymViewModel : AchievementAwareViewModel
     private async Task LoadHistoryAsync()
     {
         _allWorkouts = (await _gymService.GetWorkoutHistoryAsync()).ToList();
+        RefreshActivityCalendarDates();
         ApplyHistoryFilter();
         CommandManager.InvalidateRequerySuggested();
+    }
+
+    private void RefreshActivityCalendarDates()
+    {
+        _activityCalendarLocalDates = DateTimeHelper.ToLocalCalendarDateSet(
+            _allWorkouts.Select(w => w.WorkoutDate));
+        OnPropertyChanged(nameof(ActivityCalendarLocalDates));
     }
 
     private bool CanLoadLastAsReference() =>
@@ -711,6 +725,7 @@ public sealed class GymViewModel : AchievementAwareViewModel
                 return;
 
             _allWorkouts.RemoveAll(w => w.Id == workout.Id);
+            RefreshActivityCalendarDates();
             ApplyHistoryFilter();
             await HobbyXp.RefreshAsync();
             _profileRefreshMessenger.RequestRefresh();

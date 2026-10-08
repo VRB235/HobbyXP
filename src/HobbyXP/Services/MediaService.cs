@@ -46,6 +46,16 @@ public sealed class MediaService : IMediaService
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<IReadOnlyList<DateTime>> GetDistinctSeriesWatchDatesUtcAsync(CancellationToken cancellationToken = default)
+    {
+        await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        return await db.MediaSeriesChapterLogs
+            .AsNoTracking()
+            .Select(l => l.WatchDate)
+            .Distinct()
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<MediaYearlyCounters> GetYearlyCountersAsync(
         int? year = null,
         CancellationToken cancellationToken = default)

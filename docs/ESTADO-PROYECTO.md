@@ -149,7 +149,8 @@ src/HobbyXP/
 
 ### Físico
 
-- **Running:** `RunningSession` (fecha editable al registrar → `RecordedAt`; `SessionType` Regenerativa / Umbral / Tirada larga). Al elegir el tipo, `GetLatestSessionByTypeAsync` precarga distancia, tiempo y series (`RunningSessionSeries`) del último registro coincidente. `OfficialRace` (carreras con bonus XP al completar).
+- **Running:** `RunningSession` (fecha editable al registrar → `RecordedAt`; `SessionType` Regenerativa / Umbral / Tirada larga). Al elegir el tipo, `GetLatestSessionByTypeAsync` precarga distancia, tiempo y series (`RunningSessionSeries`) del último registro coincidente. `OfficialRace` (carreras con bonus XP al completar; historial con `HistoryCoverCard` full-bleed; selector de carrera en nueva sesión solo pendientes).
+- **Calendarios de actividad:** `DatePickerTrainingHighlightHelper` + `ActivityCalendarLocalDates` (o fechas de módulo) en DatePickers de alta/progreso: Running/Gym (`WorkoutDate`/`RecordedAt`), Dieta (`DayDate`), Puzzles/Media (`CompletedAt`), Series (`MediaSeriesChapterLogs`), Videojuegos (`VideoGameProgressLogs`), Libros (`BookReadingLogs`), Cursos (`CourseSessionLogs`). Verde = día con actividad del módulo; gris = sin actividad.
 - **Gym:** `GymWorkout` (fecha editable → `WorkoutDate`), `GymWorkoutEntry`, `Exercise`. Entrenamiento: filtro por músculo + **buscador de texto** (`ExerciseSearchText` / `ExercisePickerFilter.MatchesText`) y ComboBox **no editable** (`FilteredExercises` + `SelectedValue`). Un ComboBox `IsEditable` + `Text` reconstruía `ItemsSource` al clic y abortaba la selección (regresión 1.8.2). Precarga editable de la última marca (`GymLastPerformance`). Sobrecarga progresiva → medalla.
 
 ### Entretenimiento
@@ -218,8 +219,8 @@ Al arrancar: `EnsureHobbyProgressRowsAsync` + `EnsureHobbyXpBackfillAsync` (migr
 
 ### MainWindow (shell)
 
-- Sidebar: branding, tarjeta de perfil (avatar, nombre editable, nivel, XP de progresión, saldo canjeable, barra `XpProgressBar`), botones avatar/nombre, navegación con indicador verde activo.
-- Área principal: `GeometricBackground`, barra de último logro, `ContentControl` con ViewModel actual.
+- Sidebar: branding, tarjeta de perfil (avatar, nombre editable, nivel, XP de progresión, saldo canjeable, barra `XpProgressBar`), botones avatar/nombre, navegación con indicador verde activo; **colapsable** a rail (~80 px) con marca vertical, avatar, nivel compacto y chevron (`MainViewModel.IsSidebarCollapsed` / `ToggleSidebarCommand`).
+- Área principal: `GeometricBackground`, barra de último logro + botón **Historial XP** (`XpHistoryWindow` / `IXpService.GetLedgerEntriesAsync`, filtro por módulo/hobby), `ContentControl` con ViewModel actual.
 - Overlay global: `LevelUpOverlay` y `MedalUnlockOverlay` (`Panel.ZIndex=1000`).
 - Sidebar: badge de medalla nueva en Logros.
 

@@ -19,6 +19,7 @@ public sealed class DietViewModel : AchievementAwareViewModel
     private DateTime? _historyToDate;
     private DietDayLog? _selectedLog;
     private List<DietDayLog> _allLogs = [];
+    private IReadOnlySet<DateTime> _activityCalendarLocalDates = new HashSet<DateTime>();
     private bool _isTodayExpanded = true;
     private bool _isHistoryExpanded;
     private bool _suppressSectionAccordion;
@@ -131,6 +132,11 @@ public sealed class DietViewModel : AchievementAwareViewModel
 
     public AsyncRelayCommand DeleteDayCommand { get; }
 
+    /// <summary>
+    /// Fechas locales con registro de dieta (resaltado del DatePicker).
+    /// </summary>
+    public IReadOnlySet<DateTime> ActivityCalendarLocalDates => _activityCalendarLocalDates;
+
     protected override async Task LoadCoreAsync()
     {
         await HobbyXp.RefreshAsync();
@@ -141,7 +147,15 @@ public sealed class DietViewModel : AchievementAwareViewModel
     private async Task LoadHistoryAsync()
     {
         _allLogs = (await _dietService.GetHistoryAsync()).ToList();
+        RefreshActivityCalendarDates();
         ApplyHistoryFilter();
+    }
+
+    private void RefreshActivityCalendarDates()
+    {
+        _activityCalendarLocalDates = DateTimeHelper.ToLocalCalendarDateSet(
+            _allLogs.Select(l => l.DayDate));
+        OnPropertyChanged(nameof(ActivityCalendarLocalDates));
     }
 
     private async Task LoadSelectedDayAsync()
@@ -272,6 +286,7 @@ public sealed class DietViewModel : AchievementAwareViewModel
                 return;
 
             _allLogs.RemoveAll(d => d.Id == log.Id);
+            RefreshActivityCalendarDates();
             ApplyHistoryFilter();
             await HobbyXp.RefreshAsync();
             _profileRefreshMessenger.RequestRefresh();

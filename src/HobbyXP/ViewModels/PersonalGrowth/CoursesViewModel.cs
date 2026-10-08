@@ -25,6 +25,7 @@ public sealed class CoursesViewModel : AchievementAwareViewModel
     private DateTime? _completedToDate;
     private List<Course> _allInProgress = [];
     private List<Course> _allCompleted = [];
+    private IReadOnlySet<DateTime> _activityCalendarLocalDates = new HashSet<DateTime>();
 
     public CoursesViewModel(
         ICourseService courseService,
@@ -119,6 +120,11 @@ public sealed class CoursesViewModel : AchievementAwareViewModel
 
     public RelayCommand OpenDetailCommand { get; }
 
+    /// <summary>
+    /// Fechas locales con sesión de curso registrada (resaltado del DatePicker de progreso).
+    /// </summary>
+    public IReadOnlySet<DateTime> ActivityCalendarLocalDates => _activityCalendarLocalDates;
+
     protected override Task LoadCoreAsync() => ReloadAsync();
 
     private void OnCoverChanged()
@@ -140,7 +146,15 @@ public sealed class CoursesViewModel : AchievementAwareViewModel
         await HobbyXp.RefreshAsync();
         _allInProgress = (await _courseService.GetInProgressAsync()).ToList();
         _allCompleted = (await _courseService.GetCompletedAsync()).ToList();
+        await RefreshActivityCalendarDatesAsync();
         ApplyFilter();
+    }
+
+    private async Task RefreshActivityCalendarDatesAsync()
+    {
+        var sessionUtc = await _courseService.GetDistinctSessionDatesUtcAsync();
+        _activityCalendarLocalDates = DateTimeHelper.ToLocalCalendarDateSet(sessionUtc);
+        OnPropertyChanged(nameof(ActivityCalendarLocalDates));
     }
 
     private void ApplyFilter()

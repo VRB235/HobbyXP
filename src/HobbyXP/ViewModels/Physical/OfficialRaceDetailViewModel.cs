@@ -112,12 +112,15 @@ public sealed class OfficialRaceDetailViewModel : ViewModelBase
             if (SetProperty(ref _previewImagePath, value))
             {
                 OnPropertyChanged(nameof(HasPreviewImage));
+                OnPropertyChanged(nameof(ImageActionLabel));
                 CommandManager.InvalidateRequerySuggested();
             }
         }
     }
 
     public bool HasPreviewImage => !string.IsNullOrWhiteSpace(PreviewImagePath);
+
+    public string ImageActionLabel => HasPreviewImage ? "Cambiar" : "Imagen";
 
     public string? ValidationMessage
     {

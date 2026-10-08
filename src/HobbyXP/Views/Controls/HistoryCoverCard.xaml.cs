@@ -15,6 +15,9 @@ public partial class HistoryCoverCard : UserControl
     public static readonly DependencyProperty DateTextProperty =
         DependencyProperty.Register(nameof(DateText), typeof(string), typeof(HistoryCoverCard));
 
+    public static readonly DependencyProperty XpTextProperty =
+        DependencyProperty.Register(nameof(XpText), typeof(string), typeof(HistoryCoverCard));
+
     public static readonly DependencyProperty ImagePathProperty =
         DependencyProperty.Register(nameof(ImagePath), typeof(string), typeof(HistoryCoverCard));
 
@@ -51,6 +54,12 @@ public partial class HistoryCoverCard : UserControl
     {
         get => (string?)GetValue(DateTextProperty);
         set => SetValue(DateTextProperty, value);
+    }
+
+    public string? XpText
+    {
+        get => (string?)GetValue(XpTextProperty);
+        set => SetValue(XpTextProperty, value);
     }
 
     public string? ImagePath

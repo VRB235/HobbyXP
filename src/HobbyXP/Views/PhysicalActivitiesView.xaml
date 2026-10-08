@@ -34,7 +34,20 @@
                             <StackPanel>
                                 <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                                     <TextBlock Text="Fecha:" VerticalAlignment="Center" Margin="0,0,8,0" />
-                                    <DatePicker SelectedDate="{Binding SessionDate}" Width="140" />
+                                    <DatePicker SelectedDate="{Binding SessionDate}"
+                                                Width="140"
+                                                helpers:DatePickerTrainingHighlightHelper.ActiveLocalDates="{Binding SessionTrainingLocalDates}"
+                                                ToolTip="Verde: día con entrenamiento · Gris: sin entrenamiento" />
+                                    <TextBlock Text="● Con entrenamiento"
+                                               Foreground="{StaticResource AccentGreenBrush}"
+                                               FontSize="11"
+                                               VerticalAlignment="Center"
+                                               Margin="12,0,0,0" />
+                                    <TextBlock Text="● Sin entrenamiento"
+                                               Foreground="{StaticResource TextMutedBrush}"
+                                               FontSize="11"
+                                               VerticalAlignment="Center"
+                                               Margin="10,0,0,0" />
                                 </StackPanel>
                                 <Grid Margin="0,0,0,4">
                                     <Grid.ColumnDefinitions>
@@ -212,23 +225,48 @@
                                 </Grid>
 
                                 <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                                    <Border Width="72" Height="48" CornerRadius="6" ClipToBounds="True"
-                                            Background="#1A2233" BorderBrush="{StaticResource BorderBrush}"
-                                            BorderThickness="1" Margin="0,0,8,0"
-                                            Visibility="{Binding HasNewRacePreviewImage, Converter={StaticResource BoolToVisibilityConverter}}">
-                                        <Image Source="{Binding NewRacePreviewImagePath, Converter={StaticResource PathToImageSourceConverter}}"
-                                               Stretch="UniformToFill" />
-                                    </Border>
-                                    <Button Content="Imagen"
-                                            Command="{Binding PickNewRaceImageCommand}"
-                                            Style="{StaticResource PrimaryButton}"
-                                            Margin="0,0,8,0"
-                                            VerticalAlignment="Center" />
-                                    <Button Content="Quitar"
-                                            Command="{Binding ClearNewRaceImageCommand}"
-                                            Style="{StaticResource AccentButton}"
-                                            VerticalAlignment="Center"
-                                            Visibility="{Binding HasNewRacePreviewImage, Converter={StaticResource BoolToVisibilityConverter}}" />
+                                    <StackPanel Margin="0,0,12,0" Width="104">
+                                        <Border Width="104" Height="148" CornerRadius="8" ClipToBounds="True"
+                                                Background="#1A2233" BorderBrush="{StaticResource BorderBrush}"
+                                                BorderThickness="1" HorizontalAlignment="Left">
+                                            <Grid>
+                                                <TextBlock Text="Sin imagen"
+                                                           Style="{StaticResource MutedText}"
+                                                           FontSize="11"
+                                                           HorizontalAlignment="Center"
+                                                           VerticalAlignment="Center"
+                                                           TextWrapping="Wrap"
+                                                           TextAlignment="Center"
+                                                           Margin="6"
+                                                           Visibility="{Binding HasNewRacePreviewImage, Converter={StaticResource InverseBoolToVisibilityConverter}}" />
+                                                <Image Source="{Binding NewRacePreviewImagePath, Converter={StaticResource PathToImageSourceConverter}}"
+                                                       Stretch="UniformToFill"
+                                                       Visibility="{Binding HasNewRacePreviewImage, Converter={StaticResource BoolToVisibilityConverter}}" />
+                                            </Grid>
+                                        </Border>
+                                        <Grid Margin="0,6,0,0" Width="104">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <Button Grid.Column="0"
+                                                    Content="{Binding NewRaceImageActionLabel}"
+                                                    Command="{Binding PickNewRaceImageCommand}"
+                                                    Style="{StaticResource PrimaryButton}"
+                                                    MinHeight="26" Height="26"
+                                                    Padding="4,0" FontSize="11"
+                                                    ToolTip="Seleccionar o cambiar imagen de la carrera" />
+                                            <Button Grid.Column="1"
+                                                    Content="Quitar"
+                                                    Command="{Binding ClearNewRaceImageCommand}"
+                                                    Style="{StaticResource AccentButton}"
+                                                    MinHeight="26" Height="26"
+                                                    Padding="6,0" FontSize="11"
+                                                    Margin="4,0,0,0"
+                                                    Visibility="{Binding HasNewRacePreviewImage, Converter={StaticResource BoolToVisibilityConverter}}"
+                                                    ToolTip="Quitar imagen" />
+                                        </Grid>
+                                    </StackPanel>
                                 </StackPanel>
 
                                 <controls:FormValidationBanner Message="{Binding RaceValidationMessage}" />
@@ -300,7 +338,8 @@
                                                 ToolTip="Eliminar carrera del historial" />
                                     </StackPanel>
 
-                                    <ScrollViewer Grid.Row="2"
+                                    <ScrollViewer x:Name="OfficialRacesScroll"
+                                                  Grid.Row="2"
                                                   VerticalScrollBarVisibility="Auto"
                                                   HorizontalScrollBarVisibility="Disabled"
                                                   MinHeight="480">
@@ -312,84 +351,14 @@
                                             </ItemsControl.ItemsPanel>
                                             <ItemsControl.ItemTemplate>
                                                 <DataTemplate>
-                                                    <Border Width="168"
-                                                            Margin="0,0,12,12"
-                                                            Background="#152033"
-                                                            BorderBrush="{StaticResource BorderBrush}"
-                                                            BorderThickness="1"
-                                                            CornerRadius="10">
-                                                        <Grid>
-                                                            <Grid.RowDefinitions>
-                                                                <RowDefinition Height="110" />
-                                                                <RowDefinition Height="Auto" />
-                                                            </Grid.RowDefinitions>
-
-                                                            <Button Grid.Row="0"
-                                                                    Grid.RowSpan="2"
-                                                                    Command="{Binding DataContext.OpenRaceDetailCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
-                                                                    CommandParameter="{Binding}"
-                                                                    Cursor="Hand"
-                                                                    Background="Transparent"
-                                                                    BorderThickness="0"
-                                                                    Padding="0"
-                                                                    HorizontalContentAlignment="Stretch"
-                                                                    VerticalContentAlignment="Stretch"
-                                                                    ToolTip="Ver y editar carrera">
-                                                                <Grid>
-                                                                    <Grid.RowDefinitions>
-                                                                        <RowDefinition Height="110" />
-                                                                        <RowDefinition Height="Auto" />
-                                                                    </Grid.RowDefinitions>
-
-                                                                    <Border Grid.Row="0"
-                                                                            Background="#1A2233"
-                                                                            CornerRadius="10,10,0,0"
-                                                                            ClipToBounds="True">
-                                                                        <Grid>
-                                                                            <TextBlock Text="Sin imagen"
-                                                                                       Style="{StaticResource MutedText}"
-                                                                                       HorizontalAlignment="Center"
-                                                                                       VerticalAlignment="Center"
-                                                                                       Visibility="{Binding HasImage, Converter={StaticResource InverseBoolToVisibilityConverter}}" />
-                                                                            <Image Source="{Binding ImageDisplayPath, Converter={StaticResource PathToImageSourceConverter}}"
-                                                                                   Stretch="UniformToFill"
-                                                                                   Visibility="{Binding HasImage, Converter={StaticResource BoolToVisibilityConverter}}" />
-                                                                        </Grid>
-                                                                    </Border>
-
-                                                                    <StackPanel Grid.Row="1" Margin="10,8,10,10">
-                                                                        <TextBlock Text="{Binding Name}"
-                                                                                   FontWeight="SemiBold"
-                                                                                   TextWrapping="Wrap"
-                                                                                   MaxHeight="40"
-                                                                                   ToolTip="{Binding Name}" />
-                                                                        <TextBlock Text="{Binding EventDateLabel}"
-                                                                                   Style="{StaticResource MutedText}"
-                                                                                   Margin="0,4,0,0" />
-                                                                        <DockPanel Margin="0,2,0,0">
-                                                                            <TextBlock DockPanel.Dock="Right"
-                                                                                       Text="{Binding StatusLabel}"
-                                                                                       Style="{StaticResource MutedText}" />
-                                                                            <TextBlock Text="{Binding DistanceLabel}" />
-                                                                        </DockPanel>
-                                                                    </StackPanel>
-                                                                </Grid>
-                                                            </Button>
-
-                                                            <Button Grid.Row="0"
-                                                                    Content="✕"
-                                                                    Width="28" Height="28"
-                                                                    Padding="0"
-                                                                    HorizontalAlignment="Right"
-                                                                    VerticalAlignment="Top"
-                                                                    Margin="0,6,6,0"
-                                                                    Panel.ZIndex="1"
-                                                                    Style="{StaticResource DangerIconButton}"
-                                                                    ToolTip="Eliminar del historial"
-                                                                    Command="{Binding DataContext.DeleteOfficialRaceCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
-                                                                    CommandParameter="{Binding}" />
-                                                        </Grid>
-                                                    </Border>
+                                                    <controls:HistoryCoverCard Title="{Binding Name}"
+                                                                               Subtitle="{Binding CoverSubtitleLabel}"
+                                                                               DateText="{Binding EventDateLabel}"
+                                                                               ImagePath="{Binding ImageDisplayPath}"
+                                                                               HasImage="{Binding HasImage}"
+                                                                               Item="{Binding}"
+                                                                               OpenCommand="{Binding DataContext.OpenRaceDetailCommand, ElementName=OfficialRacesScroll}"
+                                                                               DeleteCommand="{Binding DataContext.DeleteOfficialRaceCommand, ElementName=OfficialRacesScroll}" />
                                                 </DataTemplate>
                                             </ItemsControl.ItemTemplate>
                                         </ItemsControl>
@@ -610,7 +579,21 @@
                                     <TextBlock Text="Fecha:"
                                                VerticalAlignment="Center"
                                                Margin="0,0,8,0" />
-                                    <DatePicker SelectedDate="{Binding WorkoutDate}" Width="140" Margin="0,0,16,0" />
+                                    <DatePicker SelectedDate="{Binding WorkoutDate}"
+                                                Width="140"
+                                                Margin="0,0,8,0"
+                                                helpers:DatePickerTrainingHighlightHelper.ActiveLocalDates="{Binding ActivityCalendarLocalDates}"
+                                                ToolTip="Verde: día con entrenamiento · Gris: sin entrenamiento" />
+                                    <TextBlock Text="● Con entreno"
+                                               Foreground="{StaticResource AccentGreenBrush}"
+                                               FontSize="11"
+                                               VerticalAlignment="Center"
+                                               Margin="0,0,8,0" />
+                                    <TextBlock Text="● Sin entreno"
+                                               Foreground="{StaticResource TextMutedBrush}"
+                                               FontSize="11"
+                                               VerticalAlignment="Center"
+                                               Margin="0,0,16,0" />
                                     <TextBlock Text="Filtrar ejercicios por músculo:"
                                                VerticalAlignment="Center"
                                                Style="{StaticResource MutedText}"
@@ -894,7 +877,18 @@
                                     <TextBlock Text="Fecha:" VerticalAlignment="Center" Margin="0,0,8,0" />
                                     <DatePicker SelectedDate="{Binding SelectedDate}"
                                                 Width="140"
-                                                ToolTip="Fecha del día (permite atrasar para disciplina semanal)" />
+                                                helpers:DatePickerTrainingHighlightHelper.ActiveLocalDates="{Binding ActivityCalendarLocalDates}"
+                                                ToolTip="Verde: día con registro · Gris: sin registro (permite atrasar para disciplina semanal)" />
+                                    <TextBlock Text="● Con registro"
+                                               Foreground="{StaticResource AccentGreenBrush}"
+                                               FontSize="11"
+                                               VerticalAlignment="Center"
+                                               Margin="12,0,0,0" />
+                                    <TextBlock Text="● Sin registro"
+                                               Foreground="{StaticResource TextMutedBrush}"
+                                               FontSize="11"
+                                               VerticalAlignment="Center"
+                                               Margin="10,0,0,0" />
                                     <TextBlock Text="{Binding ScoreSummary}"
                                                VerticalAlignment="Center"
                                                Margin="16,0,8,0"

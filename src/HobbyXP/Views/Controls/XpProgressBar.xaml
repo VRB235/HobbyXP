@@ -8,21 +8,51 @@
         <conv:ProgressValueClampConverter x:Key="ProgressValueClampConverter" />
     </UserControl.Resources>
 
-    <Border Background="#2A3347" CornerRadius="8" ClipToBounds="True">
+    <Border Background="#141A26"
+            BorderBrush="#2F3A50"
+            BorderThickness="1"
+            CornerRadius="8"
+            ClipToBounds="True"
+            Height="{Binding Height, RelativeSource={RelativeSource AncestorType=UserControl}}">
         <Grid x:Name="Track">
-            <Border HorizontalAlignment="Left" Background="{StaticResource XpProgressFillBrush}" CornerRadius="8">
+            <Border HorizontalAlignment="Left"
+                    CornerRadius="7"
+                    Margin="1">
                 <Border.Width>
                     <MultiBinding Converter="{StaticResource ProgressBarWidthConverter}">
-                        <Binding Path="Value" RelativeSource="{RelativeSource AncestorType=UserControl}"
+                        <Binding Path="Value"
+                                 RelativeSource="{RelativeSource AncestorType=UserControl}"
                                  Converter="{StaticResource ProgressValueClampConverter}" />
                         <Binding Source="0" />
                         <Binding Source="100" />
                         <Binding ElementName="Track" Path="ActualWidth" />
                     </MultiBinding>
                 </Border.Width>
+                <Border.Background>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                        <GradientStop Color="#6C3CE0" Offset="0" />
+                        <GradientStop Color="#00A8E8" Offset="0.45" />
+                        <GradientStop Color="#00E676" Offset="1" />
+                    </LinearGradientBrush>
+                </Border.Background>
                 <Border.Effect>
-                    <DropShadowEffect BlurRadius="12" ShadowDepth="0" Opacity="0.7" Color="#00E676" />
+                    <DropShadowEffect BlurRadius="12"
+                                      ShadowDepth="0"
+                                      Opacity="0.55"
+                                      Color="#00B0FF" />
                 </Border.Effect>
+                <Border CornerRadius="7"
+                        Height="5"
+                        VerticalAlignment="Top"
+                        Margin="0,1,0,0"
+                        IsHitTestVisible="False">
+                    <Border.Background>
+                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                            <GradientStop Color="#55FFFFFF" Offset="0" />
+                            <GradientStop Color="#00FFFFFF" Offset="1" />
+                        </LinearGradientBrush>
+                    </Border.Background>
+                </Border>
             </Border>
         </Grid>
     </Border>
