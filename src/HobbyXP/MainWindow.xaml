@@ -197,8 +197,24 @@
             <DockPanel>
                 <Border DockPanel.Dock="Top" Background="#CC151B26" Padding="16,10"
                         BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1">
-                    <TextBlock Text="{Binding LatestAchievementMessage, FallbackValue='Bienvenido a tu aventura de hobbies.'}"
-                               Foreground="{StaticResource AccentCyanBrush}" FontWeight="SemiBold" FontSize="13" />
+                    <DockPanel LastChildFill="True">
+                        <Button DockPanel.Dock="Right"
+                                Content="Historial XP"
+                                Style="{StaticResource PrimaryButton}"
+                                Padding="12,0"
+                                MinHeight="30"
+                                FontSize="12"
+                                Margin="12,0,0,0"
+                                ToolTip="Ver cantidad, motivo y fecha de cada XP ganado o gastado"
+                                Command="{Binding OpenXpHistoryCommand}" />
+                        <TextBlock Text="{Binding LatestAchievementMessage, FallbackValue='Bienvenido a tu aventura de hobbies.'}"
+                                   Foreground="{StaticResource AccentCyanBrush}"
+                                   FontWeight="SemiBold"
+                                   FontSize="13"
+                                   VerticalAlignment="Center"
+                                   TextTrimming="CharacterEllipsis"
+                                   ToolTip="{Binding LatestAchievementMessage}" />
+                    </DockPanel>
                 </Border>
 
                 <ContentControl Content="{Binding CurrentViewModel}" Margin="0"

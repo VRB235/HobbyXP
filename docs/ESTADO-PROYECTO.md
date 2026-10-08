@@ -219,7 +219,7 @@ Al arrancar: `EnsureHobbyProgressRowsAsync` + `EnsureHobbyXpBackfillAsync` (migr
 ### MainWindow (shell)
 
 - Sidebar: branding, tarjeta de perfil (avatar, nombre editable, nivel, XP de progresión, saldo canjeable, barra `XpProgressBar`), botones avatar/nombre, navegación con indicador verde activo; **colapsable** a rail (~80 px) con marca vertical, avatar, nivel compacto y chevron (`MainViewModel.IsSidebarCollapsed` / `ToggleSidebarCommand`).
-- Área principal: `GeometricBackground`, barra de último logro, `ContentControl` con ViewModel actual.
+- Área principal: `GeometricBackground`, barra de último logro + botón **Historial XP** (`XpHistoryWindow` / `IXpService.GetLedgerEntriesAsync`, filtro por módulo/hobby), `ContentControl` con ViewModel actual.
 - Overlay global: `LevelUpOverlay` y `MedalUnlockOverlay` (`Panel.ZIndex=1000`).
 - Sidebar: badge de medalla nueva en Logros.
 

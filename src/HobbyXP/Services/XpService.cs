@@ -469,6 +469,58 @@ public sealed class XpService : IXpService
         return result;
     }
 
+    public async Task<IReadOnlyList<XpLedgerEntry>> GetLedgerEntriesAsync(
+        int take = 300,
+        bool creditsOnly = false,
+        CancellationToken cancellationToken = default)
+    {
+        var limit = Math.Clamp(take, 1, 1000);
+
+        await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var query = db.XpTransactions.AsNoTracking().AsQueryable();
+        if (creditsOnly)
+            query = query.Where(t => t.Amount > 0);
+
+        var rows = await query
+            .OrderByDescending(t => t.EarnedAt)
+            .ThenByDescending(t => t.Id)
+            .Take(limit)
+            .Select(t => new
+            {
+                t.Id,
+                t.Amount,
+                t.Description,
+                t.ActionType,
+                t.SourceType,
+                t.IsGlobal,
+                t.EarnedAt
+            })
+            .ToListAsync(cancellationToken);
+
+        return rows
+            .Select(t => new XpLedgerEntry(
+                t.Id,
+                t.Amount,
+                string.IsNullOrWhiteSpace(t.Description) ? "Sin descripción" : t.Description,
+                t.ActionType,
+                AchievementDisplayNames.ForActionType(t.ActionType),
+                t.SourceType,
+                ResolveHobbyLabel(t.SourceType, t.IsGlobal),
+                t.IsGlobal,
+                t.EarnedAt))
+            .ToList();
+    }
+
+    private static string ResolveHobbyLabel(MilestoneSourceType? sourceType, bool isGlobal)
+    {
+        if (isGlobal)
+            return "Global";
+
+        return sourceType is { } hobby && HobbyProgressCatalog.IsTrackedHobby(hobby)
+            ? HobbyProgressCatalog.GetDisplayName(hobby)
+            : "—";
+    }
+
     private async Task<XpAwardOutcome> AwardInternalAsync(
         AchievementActionType actionType,
         decimal units,
