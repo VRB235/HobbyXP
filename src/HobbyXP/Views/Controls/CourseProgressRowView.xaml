@@ -44,7 +44,8 @@
                            Margin="0,0,0,6" />
 
                 <controls:ItemProgressBar Value="{Binding ProgressPercent, Mode=OneWay}"
-                                          Margin="0,0,0,10" />
+                                          Height="24"
+                                          Margin="0,0,0,12" />
 
                 <Grid>
                     <Grid.ColumnDefinitions>

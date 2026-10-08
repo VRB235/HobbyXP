@@ -68,11 +68,12 @@
                            Margin="0,0,0,6" />
 
                 <controls:ItemProgressBar Value="{Binding ProgressPercent, Mode=OneWay}"
-                                          Margin="0,0,0,10" />
+                                          Height="24"
+                                          Margin="0,0,0,12" />
 
                 <Grid>
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="130" />
+                        <ColumnDefinition Width="180" />
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="104" />
                         <ColumnDefinition Width="Auto" />
@@ -82,7 +83,7 @@
 
                     <DatePicker Grid.Column="0"
                                 SelectedDate="{Binding ReadingDate}"
-                                Margin="0,0,8,0"
+                                Margin="0,0,12,0"
                                 helpers:DatePickerTrainingHighlightHelper.ActiveLocalDates="{Binding DataContext.ActivityCalendarLocalDates, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
                                 ToolTip="Verde: día con lectura · Gris: sin lectura" />
 

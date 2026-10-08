@@ -2,7 +2,7 @@
 
 Aplicativo de escritorio **WPF (.NET 8)** para gamificar hobbies personales (running, gimnasio, **dieta**, entretenimiento, libros/cursos) con sistema de **XP, niveles, medallas, premios y disciplina semanal**.
 
-**Versión actual: 1.8.4** (producción: rama `main`, tag [`v1.8.4`](https://github.com/VRB235/HobbyXP/releases/tag/v1.8.4)).
+**Versión actual: 1.8.5** (producción: rama `main`, tag [`v1.8.5`](https://github.com/VRB235/HobbyXP/releases/tag/v1.8.5)).
 
 - **Plataforma**: Windows 10/11, `net8.0-windows10.0.19041`.
 - **Arquitectura**: MVVM con inyección de dependencias (`Microsoft.Extensions.Hosting`).
@@ -117,11 +117,20 @@ Copy-Item "$env:LOCALAPPDATA\HobbyXP\*" "$env:LOCALAPPDATA\HobbyXP-Dev\" -Recurs
 
 | Área | Qué cambió |
 |------|------------|
+| *(vacío tras release 1.8.5 — nuevas mejoras de develop irán aquí)* | |
+
+## Mejoras incluidas en 1.8.5
+
+| Área | Qué cambió |
+|------|------------|
 | **Interfaz** | Sidebar colapsable (chevron circular): expandido 280 px o rail 80 px con marca vertical «HOBBY XP», avatar, nivel compacto y navegación por iconos (tooltips). |
 | **XP** | Botón **Historial XP** en la barra superior: modal con libro mayor (`XpTransactions`) — cantidad, motivo, tipo de acción, módulo y fecha/hora; filtros por módulo, «Solo ganancias» y búsqueda. |
 | **Running** | En nueva sesión, el ComboBox de carrera oficial solo lista carreras **pendientes** (excluye completadas). |
 | **Running (portadas)** | Historial de carreras con `HistoryCoverCard` (full-bleed + meta al hover); alta y detalle con portada alta y Cambiar/Quitar debajo. |
 | **Calendarios** | DatePickers de alta/progreso con resaltado verde/gris por módulo: Running/Gym (entrenamiento), Dieta (registro), Rompecabezas/Media (obra), Series (visionado), Videojuegos (avance), Libros (lectura), Cursos (sesión). |
+| **Entretenimiento** | Formularios de alta con columnas flexibles más anchas; XP del ítem en el hover de las cards de historial. |
+| **Barras / sliders** | `ItemProgressBar` y `XpProgressBar` con track, sheen y glow; Slider global con track degradado y thumb con brillo. |
+| **Versión** | 1.8.4 → **1.8.5** (csproj, Inno Setup, manifiesto MSIX). |
 
 ## Mejoras incluidas en 1.8.4
 
@@ -201,7 +210,7 @@ Para generar un ZIP portable autocontenido:
 .\scripts\package-portable.ps1
 ```
 
-Salida: `artifacts\HobbyXP-win-x64-Release.zip`. Release GitHub: [`v1.8.4`](https://github.com/VRB235/HobbyXP/releases/tag/v1.8.4).
+Salida: `artifacts\HobbyXP-win-x64-Release.zip`. Release GitHub: [`v1.8.5`](https://github.com/VRB235/HobbyXP/releases/tag/v1.8.5).
 
 MSIX e instalador Inno Setup: ver [`docs/DISTRIBUCION.md`](docs/DISTRIBUCION.md).
 
