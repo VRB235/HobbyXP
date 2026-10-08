@@ -149,7 +149,8 @@ src/HobbyXP/
 
 ### Físico
 
-- **Running:** `RunningSession` (fecha editable al registrar → `RecordedAt`; `SessionType` Regenerativa / Umbral / Tirada larga). Al elegir el tipo, `GetLatestSessionByTypeAsync` precarga distancia, tiempo y series (`RunningSessionSeries`) del último registro coincidente. `OfficialRace` (carreras con bonus XP al completar).
+- **Running:** `RunningSession` (fecha editable al registrar → `RecordedAt`; `SessionType` Regenerativa / Umbral / Tirada larga). Al elegir el tipo, `GetLatestSessionByTypeAsync` precarga distancia, tiempo y series (`RunningSessionSeries`) del último registro coincidente. `OfficialRace` (carreras con bonus XP al completar; historial con `HistoryCoverCard` full-bleed; selector de carrera en nueva sesión solo pendientes).
+- **Calendarios de actividad:** `DatePickerTrainingHighlightHelper` + `ActivityCalendarLocalDates` (o fechas de módulo) en DatePickers de alta/progreso: Running/Gym (`WorkoutDate`/`RecordedAt`), Dieta (`DayDate`), Puzzles/Media (`CompletedAt`), Series (`MediaSeriesChapterLogs`), Videojuegos (`VideoGameProgressLogs`), Libros (`BookReadingLogs`), Cursos (`CourseSessionLogs`). Verde = día con actividad del módulo; gris = sin actividad.
 - **Gym:** `GymWorkout` (fecha editable → `WorkoutDate`), `GymWorkoutEntry`, `Exercise`. Entrenamiento: filtro por músculo + **buscador de texto** (`ExerciseSearchText` / `ExercisePickerFilter.MatchesText`) y ComboBox **no editable** (`FilteredExercises` + `SelectedValue`). Un ComboBox `IsEditable` + `Text` reconstruía `ItemsSource` al clic y abortaba la selección (regresión 1.8.2). Precarga editable de la última marca (`GymLastPerformance`). Sobrecarga progresiva → medalla.
 
 ### Entretenimiento

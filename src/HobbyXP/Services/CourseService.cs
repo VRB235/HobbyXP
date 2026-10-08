@@ -27,6 +27,16 @@ public sealed class CourseService : ICourseService
         _weeklyQuotaService = weeklyQuotaService;
     }
 
+    public async Task<IReadOnlyList<DateTime>> GetDistinctSessionDatesUtcAsync(CancellationToken cancellationToken = default)
+    {
+        await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        return await db.CourseSessionLogs
+            .AsNoTracking()
+            .Select(l => l.SessionDate)
+            .Distinct()
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<IReadOnlyList<Course>> GetInProgressAsync(CancellationToken cancellationToken = default)
     {
         await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);

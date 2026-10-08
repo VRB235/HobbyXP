@@ -29,6 +29,7 @@ public sealed class VideoGamesViewModel : AchievementAwareViewModel
     private DateTime? _filterToDate;
     private List<VideoGame> _allInProgress = [];
     private List<VideoGame> _allPlatinum = [];
+    private IReadOnlySet<DateTime> _activityCalendarLocalDates = new HashSet<DateTime>();
 
     public VideoGamesViewModel(
         IVideoGameService videoGameService,
@@ -163,6 +164,11 @@ public sealed class VideoGamesViewModel : AchievementAwareViewModel
 
     public RelayCommand OpenDetailCommand { get; }
 
+    /// <summary>
+    /// Fechas locales con avance de videojuego registrado (resaltado del DatePicker de progreso).
+    /// </summary>
+    public IReadOnlySet<DateTime> ActivityCalendarLocalDates => _activityCalendarLocalDates;
+
     protected override Task LoadCoreAsync() => ReloadGamesAsync();
 
     private void OnCoverChanged()
@@ -184,7 +190,15 @@ public sealed class VideoGamesViewModel : AchievementAwareViewModel
         await HobbyXp.RefreshAsync();
         _allInProgress = (await _videoGameService.GetInProgressAsync()).ToList();
         _allPlatinum = (await _videoGameService.GetPlatinumAsync()).ToList();
+        await RefreshActivityCalendarDatesAsync();
         ApplyFilter();
+    }
+
+    private async Task RefreshActivityCalendarDatesAsync()
+    {
+        var progressUtc = await _videoGameService.GetDistinctProgressDatesUtcAsync();
+        _activityCalendarLocalDates = DateTimeHelper.ToLocalCalendarDateSet(progressUtc);
+        OnPropertyChanged(nameof(ActivityCalendarLocalDates));
     }
 
     private void ApplyFilter()

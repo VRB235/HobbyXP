@@ -25,6 +25,7 @@ public sealed class BooksViewModel : AchievementAwareViewModel
     private DateTime? _completedToDate;
     private List<Book> _allReading = [];
     private List<Book> _allCompleted = [];
+    private IReadOnlySet<DateTime> _activityCalendarLocalDates = new HashSet<DateTime>();
 
     public BooksViewModel(
         IBookService bookService,
@@ -123,6 +124,11 @@ public sealed class BooksViewModel : AchievementAwareViewModel
 
     public RelayCommand OpenDetailCommand { get; }
 
+    /// <summary>
+    /// Fechas locales con lectura registrada (resaltado del DatePicker de progreso).
+    /// </summary>
+    public IReadOnlySet<DateTime> ActivityCalendarLocalDates => _activityCalendarLocalDates;
+
     protected override Task LoadCoreAsync() => ReloadAsync();
 
     private void OnCoverChanged()
@@ -144,7 +150,15 @@ public sealed class BooksViewModel : AchievementAwareViewModel
         await HobbyXp.RefreshAsync();
         _allReading = (await _bookService.GetReadingAsync()).ToList();
         _allCompleted = (await _bookService.GetCompletedAsync()).ToList();
+        await RefreshActivityCalendarDatesAsync();
         ApplyFilter();
+    }
+
+    private async Task RefreshActivityCalendarDatesAsync()
+    {
+        var readUtc = await _bookService.GetDistinctReadDatesUtcAsync();
+        _activityCalendarLocalDates = DateTimeHelper.ToLocalCalendarDateSet(readUtc);
+        OnPropertyChanged(nameof(ActivityCalendarLocalDates));
     }
 
     private void ApplyFilter()

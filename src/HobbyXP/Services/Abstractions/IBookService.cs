@@ -9,6 +9,9 @@ public interface IBookService
 
     Task<IReadOnlyList<Book>> GetCompletedAsync(CancellationToken cancellationToken = default);
 
+    /// <summary>Fechas UTC de lecturas registradas (para resaltado de calendario).</summary>
+    Task<IReadOnlyList<DateTime>> GetDistinctReadDatesUtcAsync(CancellationToken cancellationToken = default);
+
     Task<Book> RegisterAsync(
         string title,
         string author,

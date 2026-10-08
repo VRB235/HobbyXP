@@ -9,6 +9,9 @@ public interface ICourseService
 
     Task<IReadOnlyList<Course>> GetCompletedAsync(CancellationToken cancellationToken = default);
 
+    /// <summary>Fechas UTC de sesiones de curso registradas (para resaltado de calendario).</summary>
+    Task<IReadOnlyList<DateTime>> GetDistinctSessionDatesUtcAsync(CancellationToken cancellationToken = default);
+
     Task<Course> RegisterAsync(
         string name,
         string platform,

@@ -52,35 +52,48 @@
                           VerticalScrollBarVisibility="Auto"
                           HorizontalScrollBarVisibility="Disabled">
                 <StackPanel>
-                    <Border Width="220"
-                            Height="140"
-                            CornerRadius="8"
-                            ClipToBounds="True"
-                            Background="#1A2233"
-                            BorderBrush="{StaticResource BorderBrush}"
-                            BorderThickness="1"
-                            HorizontalAlignment="Left"
-                            Margin="0,0,0,12">
-                        <Grid>
-                            <TextBlock Text="Sin imagen"
-                                       Style="{StaticResource MutedText}"
-                                       HorizontalAlignment="Center"
-                                       VerticalAlignment="Center"
-                                       Visibility="{Binding HasPreviewImage, Converter={StaticResource InverseBoolToVisibilityConverter}}" />
-                            <Image Source="{Binding PreviewImagePath, Converter={StaticResource PathToImageSourceConverter}}"
-                                   Stretch="UniformToFill"
-                                   Visibility="{Binding HasPreviewImage, Converter={StaticResource BoolToVisibilityConverter}}" />
+                    <!-- Portada completa: Cambiar/Quitar debajo, sin tapar la imagen -->
+                    <StackPanel Margin="0,0,0,14" HorizontalAlignment="Left" Width="220">
+                        <Border Width="220"
+                                Height="280"
+                                CornerRadius="8"
+                                ClipToBounds="True"
+                                Background="#1A2233"
+                                BorderBrush="{StaticResource BorderBrush}"
+                                BorderThickness="1">
+                            <Grid>
+                                <TextBlock Text="Sin imagen"
+                                           Style="{StaticResource MutedText}"
+                                           HorizontalAlignment="Center"
+                                           VerticalAlignment="Center"
+                                           Visibility="{Binding HasPreviewImage, Converter={StaticResource InverseBoolToVisibilityConverter}}" />
+                                <Image Source="{Binding PreviewImagePath, Converter={StaticResource PathToImageSourceConverter}}"
+                                       Stretch="UniformToFill"
+                                       Visibility="{Binding HasPreviewImage, Converter={StaticResource BoolToVisibilityConverter}}" />
+                            </Grid>
+                        </Border>
+                        <Grid Margin="0,8,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Button Grid.Column="0"
+                                    Content="{Binding ImageActionLabel}"
+                                    Command="{Binding PickImageCommand}"
+                                    Style="{StaticResource PrimaryButton}"
+                                    MinHeight="30"
+                                    Padding="10,0"
+                                    ToolTip="Seleccionar o cambiar imagen" />
+                            <Button Grid.Column="1"
+                                    Content="Quitar"
+                                    Command="{Binding ClearImageCommand}"
+                                    Style="{StaticResource AccentButton}"
+                                    MinHeight="30"
+                                    Padding="12,0"
+                                    Margin="8,0,0,0"
+                                    Visibility="{Binding HasPreviewImage, Converter={StaticResource BoolToVisibilityConverter}}"
+                                    ToolTip="Quitar imagen" />
                         </Grid>
-                    </Border>
-
-                    <StackPanel Orientation="Horizontal" Margin="0,0,0,14">
-                        <Button Content="Seleccionar imagen"
-                                Command="{Binding PickImageCommand}"
-                                Style="{StaticResource PrimaryButton}"
-                                Margin="0,0,8,0" />
-                        <Button Content="Quitar imagen"
-                                Command="{Binding ClearImageCommand}"
-                                Style="{StaticResource AccentButton}" />
                     </StackPanel>
 
                     <TextBlock Text="Nombre" Style="{StaticResource MutedText}" />

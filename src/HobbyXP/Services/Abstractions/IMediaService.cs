@@ -10,6 +10,9 @@ public interface IMediaService
 
     Task<IReadOnlyList<MediaSeries>> GetInProgressSeriesAsync(CancellationToken cancellationToken = default);
 
+    /// <summary>Fechas UTC de capítulos de serie registrados (para resaltado de calendario).</summary>
+    Task<IReadOnlyList<DateTime>> GetDistinctSeriesWatchDatesUtcAsync(CancellationToken cancellationToken = default);
+
     Task<MediaYearlyCounters> GetYearlyCountersAsync(
         int? year = null,
         CancellationToken cancellationToken = default);

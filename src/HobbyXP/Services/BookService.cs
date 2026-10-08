@@ -47,6 +47,16 @@ public sealed class BookService : IBookService
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<IReadOnlyList<DateTime>> GetDistinctReadDatesUtcAsync(CancellationToken cancellationToken = default)
+    {
+        await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        return await db.BookReadingLogs
+            .AsNoTracking()
+            .Select(l => l.ReadDate)
+            .Distinct()
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<Book> RegisterAsync(
         string title,
         string author,
