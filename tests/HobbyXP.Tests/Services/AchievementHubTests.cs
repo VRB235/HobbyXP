@@ -1,6 +1,5 @@
 using HobbyXP.Helpers;
 using HobbyXP.Models.Enums;
-using HobbyXP.Models.PersonalGrowth;
 using HobbyXP.Services;
 using HobbyXP.Tests.Helpers;
 using Microsoft.EntityFrameworkCore;
@@ -11,13 +10,15 @@ public sealed class AchievementHubTests : IDisposable
 {
     private readonly TestDbContextFactory _factory;
     private readonly AchievementProgressService _progress;
+    private readonly MedalService _medals;
     private readonly WeeklyQuotaService _quota;
 
     public AchievementHubTests()
     {
         _factory = new TestDbContextFactory();
-        var medals = new MedalService(_factory);
-        _progress = new AchievementProgressService(_factory, medals);
+        var engine = new AchievementEngineService(_factory);
+        _medals = new MedalService(_factory, engine);
+        _progress = new AchievementProgressService(_factory, _medals);
         var xp = new XpService(_factory, new FakeLevelUpMessenger());
         _quota = new WeeklyQuotaService(_factory, xp);
     }
@@ -25,11 +26,12 @@ public sealed class AchievementHubTests : IDisposable
     public void Dispose() => _factory.Dispose();
 
     [Theory]
-    [InlineData(1, 50)]
-    [InlineData(5, 50)]
-    [InlineData(10, 100)]
-    public void SpendableBonus_MatchesThresholdFloor(int threshold, int expected) =>
-        Assert.Equal(expected, MedalPrivilegeRules.GetSpendableBonus(threshold));
+    [InlineData(50, 50)]
+    [InlineData(1000, 50)]
+    [InlineData(2000, 100)]
+    [InlineData(20000, 500)]
+    public void SpendableBonus_ScalesWithXpThreshold(int xpThreshold, int expected) =>
+        Assert.Equal(expected, MedalPrivilegeRules.GetSpendableBonus(xpThreshold));
 
     [Theory]
     [InlineData(300, 1, 300)]
@@ -39,34 +41,44 @@ public sealed class AchievementHubTests : IDisposable
         Assert.Equal(expected, RewardCostCalculator.GetEffectiveCost(baseCost, level));
 
     [Fact]
-    public async Task GetNextMedal_ForNewBook_PointsToFirstBookMedal()
+    public async Task GetNextMedal_ForNewBook_PointsToLowestXpThreshold()
     {
+        await _medals.CreateAsync(
+            MilestoneSourceType.Book,
+            100,
+            "Lector Voraz",
+            "100 XP en libros.",
+            "Lee hasta 100 XP.");
+        await _medals.CreateAsync(
+            MilestoneSourceType.Book,
+            500,
+            "Biblioteca Viva",
+            "500 XP en libros.",
+            "Sigue leyendo.");
+
         var next = await _progress.GetNextMedalAsync(MilestoneSourceType.Book);
         Assert.NotNull(next);
-        Assert.Equal(MedalCode.BookCompleted, next!.Code);
-        Assert.Equal(1, next.Threshold);
-        Assert.Equal(0, next.CurrentCount);
+        Assert.Equal("Lector Voraz", next!.Name);
+        Assert.Equal(100, next.XpThreshold);
+        Assert.Equal(0, next.CurrentXp);
     }
 
     [Fact]
     public async Task GetUnseenMedalCount_IncreasesUntilMarkedSeen()
     {
+        var medal = await _medals.CreateAsync(
+            MilestoneSourceType.Book,
+            50,
+            "Primer Capítulo",
+            "50 XP en libros.",
+            "Lee un poco.");
+
         await using (var db = _factory.CreateDbContext())
-        {
-            db.Books.Add(new Book
-            {
-                Title = "Dune",
-                Author = "Herbert",
-                TotalPages = 100,
-                PagesRead = 100,
-                Status = BookStatus.Completed,
-                CompletedAt = DateTime.UtcNow
-            });
-            await db.SaveChangesAsync();
-        }
+            await TestHobbyProgress.SetTotalXpAsync(db, MilestoneSourceType.Book, 50);
 
         var engine = new AchievementEngineService(_factory);
-        await engine.TryAwardMedalAsync(MedalCode.BookCompleted, MilestoneSourceType.Book);
+        await engine.TryAwardHobbyXpMedalsAsync(MilestoneSourceType.Book);
+        Assert.True(await engine.IsMedalEarnedAsync(medal.Id));
 
         Assert.Equal(1, await _progress.GetUnseenMedalCountAsync());
         await _progress.MarkMedalsSeenAsync();

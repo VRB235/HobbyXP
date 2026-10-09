@@ -19,8 +19,9 @@ public partial class App : Application
         _host = Host.CreateDefaultBuilder()
             .ConfigureServices(static services =>
             {
-                services.AddHobbyXpData();
+                services.AddHobbyXpSqlite();
                 services.AddHobbyXpServices();
+                services.AddHobbyXpPresentationServices();
                 services.AddHobbyXpViewModels();
             })
             .Build();

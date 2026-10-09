@@ -1,13 +1,17 @@
 ## HobbyXP
 
-Aplicativo de escritorio **WPF (.NET 8)** para gamificar hobbies personales (running, gimnasio, **dieta**, entretenimiento, libros/cursos) con sistema de **XP, niveles, medallas, premios y disciplina semanal**.
+Gamificación de hobbies personales (running, gimnasio, **dieta**, entretenimiento, libros/cursos) con **XP, niveles, medallas, premios y disciplina semanal**.
 
-**Versión actual: 1.8.5** (producción: rama `main`, tag [`v1.8.5`](https://github.com/VRB235/HobbyXP/releases/tag/v1.8.5)).
+**Versión en develop: 1.9.0** (producción aún en `main` / tag [`v1.8.5`](https://github.com/VRB235/HobbyXP/releases/tag/v1.8.5) hasta el próximo release).
 
-- **Plataforma**: Windows 10/11, `net8.0-windows10.0.19041`.
-- **Arquitectura**: MVVM con inyección de dependencias (`Microsoft.Extensions.Hosting`).
-- **Persistencia**: SQLite local vía **EF Core 8**.
-- **UI**: tema oscuro estilo RPG, gráficos con **LiveCharts2 (SkiaSharp)**.
+| Cliente | Estado | Notas |
+|---------|--------|--------|
+| **Web (Blazor)** | Cliente portable objetivo (PC + Android) | `src/HobbyXP.Web` + VPS Docker/Postgres — ver [`docs/DEPLOY-VPS.md`](docs/DEPLOY-VPS.md) |
+| **Escritorio WPF** | Legacy / paridad completa | Sigue funcional; se depreca tras paridad web |
+
+- **Núcleo compartido**: `HobbyXP.Core` (Models, Data, Services, Helpers sin UI).
+- **Web**: Blazor Server (.NET 8), auth cookie (1 usuario), Postgres en VPS (SQLite en dev local).
+- **WPF**: Windows 10/11, MVVM + Hosting, SQLite local, tema RPG + LiveCharts2.
 
 Para detalle profundo (entidades, servicios, migraciones, decisiones de diseño) consulte `docs/ESTADO-PROYECTO.md`.  
 El `README.md` se mantiene como **vista ejecutiva y técnica resumida** del estado actual.
@@ -16,17 +20,18 @@ El `README.md` se mantiene como **vista ejecutiva y técnica resumida** del esta
 
 ## Arquitectura técnica (resumen)
 
-- **Capas**:
-  - Views (XAML) + controles (`MainWindow`, `DashboardView`, `PhysicalActivitiesView`, etc.).
-  - ViewModels por sección (`MainViewModel` + hijos con `LoadAsync()`).
-  - Servicios de dominio (XP, running, gym, **dieta**, entretenimiento, libros/cursos, logros, premios, dashboard, **cuota semanal**).
-  - Capa de datos (`HobbyXpDbContext`, configuraciones EF, migraciones, seeder, inicializador).
-  - Modelos de dominio (perfil, actividades, logros, recompensas, enums).
-- **Patrones clave**:
-  - Host genérico en `App.xaml.cs` con registros `AddHobbyXpData()`, `AddHobbyXpServices()`, `AddHobbyXpViewModels()`.
-  - Scope por ventana: `MainWindow` crea `IServiceScope` y resuelve `MainViewModel`.
-  - Navegación lazy por secciones a través de un `NavigationService`.
-  - Mensajería para logros y subida de nivel (`IAchievementMessenger`, `ILevelUpMessenger`).
+- **Proyectos**:
+  - `HobbyXP.Core` — dominio, EF Core, servicios (SQLite o Postgres según host).
+  - `HobbyXP.Web` — UI Blazor responsive (MVP: dashboard, running, gym, dieta, perfil/XP).
+  - `HobbyXP` — UI WPF (paridad completa; presentación: diálogos/archivos).
+  - `HobbyXP.Tools.SqliteToPostgres` — import one-shot de datos locales al VPS.
+- **Capas WPF** (mientras exista):
+  - Views/ViewModels + `AddHobbyXpSqlite()` + `AddHobbyXpServices()` + `AddHobbyXpPresentationServices()`.
+  - Navegación lazy (`NavigationService`), mensajería de level-up/perfil.
+- **Web**:
+  - Layout responsive (sidebar → menú hamburguesa).
+  - Cookie auth (`HobbyXp:Auth` / env en Docker).
+  - Postgres vía `AddHobbyXpPostgres` + `EnsureCreated` (migraciones SQLite siguen para WPF).
 
 ---
 
@@ -41,7 +46,7 @@ El `README.md` se mantiene como **vista ejecutiva y técnica resumida** del esta
   - **Pools de XP por hobby** + nivel global meta (`HobbyLevelUp`); títulos alegóricos por nivel (`HobbyLevelTitles`).
   - **Saldo canjeable** (`SpendableXp`) independiente del XP de progresión; tienda de premios **por módulo** (Running, Gimnasio, …), inventario, equipar reliquia y costo **base × nivel**.
   - Premios enriquecidos: imagen local, precio estimado, enlace y texto de motivación; banner de módulo muestra el **premio más cercano** por XP faltante.
-  - **Logros visibles**: siguiente medalla en cada hobby, widget en Dashboard, overlay al desbloquear, badge en sidebar. Cada medalla otorga saldo, título de honor e **inmunidad de disciplina 7 días**.
+  - **Medallas por hobby (XP)**: usted las crea en Logros → Editor (hobby + umbral de XP de progresión); la app sugiere nombres (lista + texto editable). Cada medalla es única por hobby/umbral. Se otorgan al alcanzar el XP del módulo; dan saldo, título de honor e **inmunidad de disciplina 7 días**. Vitrina, hub, overlay y badge se mantienen.
   - **Disciplina** (diaria + semanal lun–dom), solo **Running, Gimnasio y Dieta**: incumplimiento baja un nivel del hobby; actividad atrasada puede restaurar. **Pausa por módulo** en Configuración (sin cuotas ni castigos; sigue registrando actividad y XP). **Diario** (Running/Gym): 1 sesión. **Semanal**: Running 4, Gym 5, Dieta 5 días buenos. Rompecabezas, series/películas, videojuegos, libros y cursos **sin castigo**.
   - Running: al elegir el **tipo de sesión** (Regenerativa, Umbral, Tirada larga) se consultan y precargan distancia, tiempo, ritmo estimado y, en umbral, las **series** del último registro coincidente; resumen de series en historial; **carreras oficiales** en grilla con imagen persistente y ventana de detalle/edición.
   - Gimnasio: ejercicios con **grupo muscular** opcional (ComboBox: Sin grupo primero, resto A–Z); catálogo agrupado, filtro al armar el entrenamiento, **buscador por texto** (nombre o músculo) en la barra, ComboBox de ejercicio **no editable** (clic para elegir; con el listado abierto se puede saltar al nombre), **preservar ejercicios al filtrar**, carga de referencia del último entreno (series/reps/peso editables antes de guardar) y asignación a ejercicios legacy.
@@ -117,7 +122,12 @@ Copy-Item "$env:LOCALAPPDATA\HobbyXP\*" "$env:LOCALAPPDATA\HobbyXP-Dev\" -Recurs
 
 | Área | Qué cambió |
 |------|------------|
-| *(vacío tras release 1.8.5 — nuevas mejoras de develop irán aquí)* | |
+| **Medallas** | Catálogo fijo por actividad reemplazado: el usuario crea medallas por hobby + umbral de XP; nombres sugeridos (elegibles/editables); vitrina y motor alineados. Migración `UserCreatedHobbyXpMedals` limpia medallas antiguas. |
+| **Web portable** | Cliente Blazor (`HobbyXP.Web`): login, dashboard, running, gym, dieta, perfil/XP; placeholders de entretenimiento/premios. |
+| **Core** | Extracción `HobbyXP.Core` (Models/Data/Services/Helpers) desacoplado de WPF; WPF solo UI + diálogos. |
+| **Infra VPS** | `deploy/` Docker Compose (web + Postgres + Caddy HTTPS + backup diario). Guía [`docs/DEPLOY-VPS.md`](docs/DEPLOY-VPS.md). |
+| **Migración datos** | Herramienta `SqliteToPostgres` para importar `%LocalAppData%\HobbyXP\hobbyxp.db` al servidor. |
+| **Versión** | 1.8.5 → **1.9.0** (Core/Web/WPF). |
 
 ## Mejoras incluidas en 1.8.5
 
@@ -191,14 +201,24 @@ Copy-Item "$env:LOCALAPPDATA\HobbyXP\*" "$env:LOCALAPPDATA\HobbyXP-Dev\" -Recurs
 
 ## Cómo ejecutar en desarrollo
 
-Desde la raíz del repositorio:
+**Web (recomendado para portable):**
+
+```powershell
+cd src\HobbyXP.Web
+$env:HOBBYXP_DATA_DIR = "$env:LOCALAPPDATA\HobbyXP-Web-Dev"
+dotnet run
+```
+
+Login por defecto en Development: `admin` / `dev` (`appsettings.Development.json`).
+
+**Escritorio WPF:**
 
 ```powershell
 cd src\HobbyXP
 dotnet run
 ```
 
-Comandos útiles adicionales (`dotnet` CLI, EF Core y empaquetado) están en `docs/ESTADO-PROYECTO.md` (secciones 9 y 17) y `docs/DISTRIBUCION.md`.
+**VPS:** ver [`docs/DEPLOY-VPS.md`](docs/DEPLOY-VPS.md). Empaquetado WPF: `docs/DISTRIBUCION.md`.
 
 ---
 

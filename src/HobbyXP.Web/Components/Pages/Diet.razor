@@ -1,0 +1,171 @@
+@page "/diet"
+@inject IDietService DietService
+
+<PageTitle>Dieta — HobbyXP</PageTitle>
+
+<h1>Dieta</h1>
+
+<div class="card">
+    <h2 style="margin-top:0">Registro del día</h2>
+    <EditForm Model="_draft" OnValidSubmit="SaveAsync" class="form-grid">
+        <label>
+            Fecha
+            <InputDate @bind-Value="_draft.Date" />
+        </label>
+        <label>
+            Desayuno
+            <InputSelect @bind-Value="_draft.Breakfast">
+                @foreach (var s in Enum.GetValues<DietMealStatus>())
+                {
+                    <option value="@s">@DietMealLabels.Status(s)</option>
+                }
+            </InputSelect>
+        </label>
+        <label>
+            Almuerzo
+            <InputSelect @bind-Value="_draft.Lunch">
+                @foreach (var s in Enum.GetValues<DietMealStatus>())
+                {
+                    <option value="@s">@DietMealLabels.Status(s)</option>
+                }
+            </InputSelect>
+        </label>
+        <label>
+            Cena
+            <InputSelect @bind-Value="_draft.Dinner">
+                @foreach (var s in Enum.GetValues<DietMealStatus>())
+                {
+                    <option value="@s">@DietMealLabels.Status(s)</option>
+                }
+            </InputSelect>
+        </label>
+        <label>
+            Snack
+            <InputSelect @bind-Value="_draft.Snack">
+                @foreach (var s in Enum.GetValues<DietMealStatus>())
+                {
+                    <option value="@s">@DietMealLabels.Status(s)</option>
+                }
+            </InputSelect>
+        </label>
+        <label>
+            Notas
+            <InputText @bind-Value="_draft.Notes" />
+        </label>
+        <button type="submit" disabled="@_busy">@(_busy ? "Guardando…" : "Guardar día")</button>
+    </EditForm>
+    @if (!string.IsNullOrEmpty(_message))
+    {
+        <div class="@(_isError ? "error" : "ok")">@_message</div>
+    }
+</div>
+
+<div class="card">
+    <h2 style="margin-top:0">Historial</h2>
+    @if (_history is null)
+    {
+        <p>Cargando…</p>
+    }
+    else if (_history.Count == 0)
+    {
+        <p style="color:#9aa3b5">Sin registros.</p>
+    }
+    else
+    {
+        <div class="table-wrap">
+            <table class="data">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Score</th>
+                        <th>Buen día</th>
+                        <th>XP</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var d in _history.Take(40))
+                    {
+                        <tr>
+                            <td>@d.DayDate.ToLocalTime().ToString("dd/MM/yyyy")</td>
+                            <td>@d.ScoreLabel</td>
+                            <td>@(DietDayRules.IsGoodDay(d) ? "Sí" : "No")</td>
+                            <td>@d.XpEarned</td>
+                            <td>
+                                <button type="button" class="secondary" disabled="_busy" @onclick="() => DeleteAsync(d.Id)">Borrar</button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+@code {
+    private readonly DietDraft _draft = new();
+    private IReadOnlyList<DietDayLog>? _history;
+    private string? _message;
+    private bool _isError;
+    private bool _busy;
+
+    protected override async Task OnInitializedAsync() => await ReloadAsync();
+
+    private async Task ReloadAsync()
+    {
+        _history = await DietService.GetHistoryAsync();
+    }
+
+    private async Task SaveAsync()
+    {
+        _busy = true;
+        _message = null;
+        try
+        {
+            var result = await DietService.SaveDayAsync(new DietDayDraft(
+                _draft.Date.ToDateTime(TimeOnly.MinValue),
+                _draft.Breakfast,
+                _draft.Lunch,
+                _draft.Dinner,
+                _draft.Snack,
+                string.IsNullOrWhiteSpace(_draft.Notes) ? null : _draft.Notes));
+
+            _isError = false;
+            _message = $"Día guardado (+{result.Value.XpEarned} XP).";
+            await ReloadAsync();
+        }
+        catch (Exception ex)
+        {
+            _isError = true;
+            _message = ex.Message;
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task DeleteAsync(int id)
+    {
+        _busy = true;
+        try
+        {
+            await DietService.DeleteDayAsync(id);
+            await ReloadAsync();
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private sealed class DietDraft
+    {
+        public DateOnly Date { get; set; } = DateOnly.FromDateTime(DateTime.Today);
+        public DietMealStatus Breakfast { get; set; } = DietMealStatus.OnPlan;
+        public DietMealStatus Lunch { get; set; } = DietMealStatus.OnPlan;
+        public DietMealStatus Dinner { get; set; } = DietMealStatus.OnPlan;
+        public DietMealStatus Snack { get; set; } = DietMealStatus.OnPlan;
+        public string? Notes { get; set; }
+    }
+}

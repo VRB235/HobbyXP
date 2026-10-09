@@ -1,0 +1,135 @@
+.app-shell {
+    --bg: #12141c;
+    --panel: #1a1f2e;
+    --border: #2a3348;
+    --text: #e8ecf4;
+    --muted: #9aa3b5;
+    --accent: #3d8bfd;
+    --ok: #3ecf8e;
+    --warn: #f0b429;
+    min-height: 100vh;
+    background: radial-gradient(1200px 600px at 10% -10%, #1e2a44 0%, var(--bg) 55%);
+    color: var(--text);
+    display: grid;
+    grid-template-columns: 240px 1fr;
+    grid-template-rows: auto 1fr;
+}
+
+.topbar {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--border);
+    background: rgba(18, 20, 28, 0.9);
+    position: sticky;
+    top: 0;
+    z-index: 20;
+}
+
+.brand {
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: var(--text);
+    text-decoration: none;
+    font-size: 1.15rem;
+}
+
+.logout {
+    margin-left: auto;
+    color: var(--muted);
+    text-decoration: none;
+    font-size: 0.9rem;
+}
+
+.nav-toggle {
+    display: none;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 8px;
+    width: 2.4rem;
+    height: 2.4rem;
+}
+
+.sidebar {
+    border-right: 1px solid var(--border);
+    background: rgba(26, 31, 46, 0.85);
+    padding: 1rem 0.75rem;
+}
+
+.sidebar nav {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.sidebar ::deep a {
+    color: var(--text);
+    text-decoration: none;
+    padding: 0.65rem 0.8rem;
+    border-radius: 8px;
+}
+
+.sidebar ::deep a.active {
+    background: rgba(61, 139, 253, 0.18);
+    color: #cfe2ff;
+}
+
+.sidebar ::deep a.muted {
+    color: var(--muted);
+    font-size: 0.92rem;
+}
+
+.nav-section {
+    margin-top: 1rem;
+    padding: 0.4rem 0.8rem;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+}
+
+.content {
+    padding: 1.25rem;
+    max-width: 960px;
+}
+
+.nav-backdrop {
+    display: none;
+}
+
+@media (max-width: 800px) {
+    .app-shell {
+        grid-template-columns: 1fr;
+    }
+
+    .nav-toggle {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .sidebar {
+        position: fixed;
+        inset: 3.4rem auto 0 0;
+        width: min(280px, 85vw);
+        transform: translateX(-105%);
+        transition: transform 0.2s ease;
+        z-index: 30;
+        box-shadow: 8px 0 24px rgba(0, 0, 0, 0.35);
+    }
+
+    .app-shell.nav-open .sidebar {
+        transform: translateX(0);
+    }
+
+    .nav-backdrop {
+        display: block;
+        position: fixed;
+        inset: 3.4rem 0 0 0;
+        background: rgba(0, 0, 0, 0.45);
+        z-index: 25;
+    }
+}

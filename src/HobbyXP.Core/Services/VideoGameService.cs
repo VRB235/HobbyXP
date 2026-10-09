@@ -1,0 +1,350 @@
+using HobbyXP.Data;
+using HobbyXP.Helpers;
+using HobbyXP.Models.Entertainment;
+using HobbyXP.Models.Enums;
+using HobbyXP.Services.Abstractions;
+using HobbyXP.Services.Results;
+using Microsoft.EntityFrameworkCore;
+
+namespace HobbyXP.Services;
+
+public sealed class VideoGameService : IVideoGameService
+{
+    private readonly IDbContextFactory<HobbyXpDbContext> _dbContextFactory;
+    private readonly IXpService _xpService;
+    private readonly IAchievementEngineService _achievementEngine;
+    private readonly IWeeklyQuotaService _weeklyQuotaService;
+
+    public VideoGameService(
+        IDbContextFactory<HobbyXpDbContext> dbContextFactory,
+        IXpService xpService,
+        IAchievementEngineService achievementEngine,
+        IWeeklyQuotaService weeklyQuotaService)
+    {
+        _dbContextFactory = dbContextFactory;
+        _xpService = xpService;
+        _achievementEngine = achievementEngine;
+        _weeklyQuotaService = weeklyQuotaService;
+    }
+
+    public async Task<IReadOnlyList<VideoGame>> GetInProgressAsync(CancellationToken cancellationToken = default)
+    {
+        await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        return await db.VideoGames
+            .AsNoTracking()
+            .Where(g => g.Status == VideoGameStatus.InProgress)
+            .OrderByDescending(g => g.UpdatedAt ?? g.CreatedAt)
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<VideoGame>> GetPlatinumAsync(CancellationToken cancellationToken = default)
+    {
+        await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        return await db.VideoGames
+            .AsNoTracking()
+            .Where(g => g.Status == VideoGameStatus.Platinum)
+            .OrderByDescending(g => g.PlatinumUnlockedAt)
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<DateTime>> GetDistinctProgressDatesUtcAsync(CancellationToken cancellationToken = default)
+    {
+        await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        return await db.VideoGameProgressLogs
+            .AsNoTracking()
+            .Select(l => l.ProgressDate)
+            .Distinct()
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<OperationResult<VideoGame>> RegisterAsync(
+        string title,
+        VideoGamePlatform platform,
+        int initialCompletionPercentage = 0,
+        DateTime? startedAt = null,
+        string? imageSourcePath = null,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(title))
+            throw new ArgumentException("El título es obligatorio.", nameof(title));
+
+        var percentage = Math.Clamp(initialCompletionPercentage, 0, 100);
+
+        await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+
+        var game = new VideoGame
+        {
+            Title = title.Trim(),
+            Platform = platform,
+            CompletionPercentage = percentage,
+            Status = percentage >= 100 ? VideoGameStatus.Platinum : VideoGameStatus.InProgress,
+            StartedAt = startedAt ?? DateTime.UtcNow,
+            PlatinumUnlockedAt = percentage >= 100 ? (startedAt ?? DateTime.UtcNow) : null
+        };
+
+        db.VideoGames.Add(game);
+        await db.SaveChangesAsync(cancellationToken);
+
+        if (!string.IsNullOrWhiteSpace(imageSourcePath))
+        {
+            game.ImagePath = HobbyCoverPhotoStorage.SaveFromSource(
+                HobbyCoverPhotoStorage.Folders.VideoGames,
+                game.Id,
+                imageSourcePath);
+            await db.SaveChangesAsync(cancellationToken);
+        }
+
+        return await ApplyCompletionDeltaAsync(
+            game.Id,
+            previousPercentage: 0,
+            percentage,
+            progressLocalDate: startedAt.HasValue
+                ? startedAt.Value.ToLocalTime().Date
+                : DateTime.Today,
+            cancellationToken);
+    }
+
+    public Task<OperationResult<VideoGame>> UpdateCompletionAsync(
+        int videoGameId,
+        int newCompletionPercentage,
+        DateTime? progressDate = null,
+        CancellationToken cancellationToken = default)
+    {
+        var clamped = Math.Clamp(newCompletionPercentage, 0, 100);
+        return UpdateCompletionInternalAsync(videoGameId, clamped, progressDate, cancellationToken);
+    }
+
+    public async Task<OperationResult<VideoGame>> IncrementCompletionAsync(
+        int videoGameId,
+        int increment = 1,
+        CancellationToken cancellationToken = default)
+    {
+        await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var game = await db.VideoGames.FindAsync([videoGameId], cancellationToken)
+            ?? throw new InvalidOperationException($"No existe el videojuego con Id {videoGameId}.");
+
+        var target = Math.Clamp(game.CompletionPercentage + increment, 0, 100);
+        return await UpdateCompletionInternalAsync(videoGameId, target, progressDate: null, cancellationToken);
+    }
+
+    private async Task<OperationResult<VideoGame>> UpdateCompletionInternalAsync(
+        int videoGameId,
+        int newPercentage,
+        DateTime? progressDate,
+        CancellationToken cancellationToken)
+    {
+        await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var game = await db.VideoGames.FindAsync([videoGameId], cancellationToken)
+            ?? throw new InvalidOperationException($"No existe el videojuego con Id {videoGameId}.");
+
+        if (game.Status == VideoGameStatus.Platinum)
+            return OperationResult<VideoGame>.Empty(game);
+
+        var previous = game.CompletionPercentage;
+        if (newPercentage == previous)
+            return OperationResult<VideoGame>.Empty(game);
+
+        game.CompletionPercentage = newPercentage;
+        game.UpdatedAt = DateTime.UtcNow;
+        await db.SaveChangesAsync(cancellationToken);
+
+        return await ApplyCompletionDeltaAsync(
+            game.Id,
+            previous,
+            newPercentage,
+            (progressDate ?? DateTime.Today).Date,
+            cancellationToken);
+    }
+
+    private async Task<OperationResult<VideoGame>> ApplyCompletionDeltaAsync(
+        int videoGameId,
+        int previousPercentage,
+        int newPercentage,
+        DateTime progressLocalDate,
+        CancellationToken cancellationToken)
+    {
+        await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var game = await db.VideoGames.FindAsync([videoGameId], cancellationToken)
+            ?? throw new InvalidOperationException($"No existe el videojuego con Id {videoGameId}.");
+
+        var events = new List<AchievementEvent>();
+        var delta = Math.Max(0, newPercentage - previousPercentage);
+
+        if (delta > 0)
+        {
+            db.VideoGameProgressLogs.Add(new VideoGameProgressLog
+            {
+                VideoGameId = game.Id,
+                ProgressDate = Helpers.DateTimeHelper.ToUtcFromLocalDate(progressLocalDate),
+                PercentDelta = delta
+            });
+        }
+
+        if (delta > 0 && newPercentage < 100)
+        {
+            var xpOutcome = await _xpService.AwardXpAsync(
+                AchievementActionType.VideoGamePercent,
+                delta,
+                $"Avance en {game.Title}: +{delta}%",
+                MilestoneSourceType.VideoGame,
+                nameof(VideoGame),
+                game.Id,
+                $"Avance: {game.Title} ({newPercentage}%)",
+                cancellationToken);
+
+            game.XpEarned += xpOutcome.AmountAwarded;
+
+            if (xpOutcome.Milestone is not null)
+            {
+                events.Add(new AchievementEvent(
+                    xpOutcome.Milestone.Title,
+                    xpOutcome.Milestone.Description ?? game.Title,
+                    xpOutcome.AmountAwarded,
+                    MilestoneSourceType.VideoGame));
+            }
+        }
+
+        if (newPercentage >= 100 && game.Status != VideoGameStatus.Platinum)
+        {
+            game.Status = VideoGameStatus.Platinum;
+            game.PlatinumUnlockedAt = Helpers.DateTimeHelper.ToUtcFromLocalDate(progressLocalDate);
+            game.CompletionPercentage = 100;
+
+            var remainingDelta = Math.Max(0, 100 - previousPercentage);
+            if (remainingDelta > 0)
+            {
+                var percentXp = await _xpService.AwardXpAsync(
+                    AchievementActionType.VideoGamePercent,
+                    remainingDelta,
+                    $"Avance final en {game.Title}",
+                    MilestoneSourceType.VideoGame,
+                    nameof(VideoGame),
+                    game.Id,
+                    milestoneTitle: null,
+                    cancellationToken);
+
+                game.XpEarned += percentXp.AmountAwarded;
+            }
+
+            var platinumXp = await _xpService.AwardFlatBonusAsync(
+                AchievementActionType.VideoGamePlatinum,
+                await _xpService.CalculatePointsAsync(AchievementActionType.VideoGamePlatinum, 1, cancellationToken),
+                $"Videojuego platinado: {game.Title}",
+                MilestoneSourceType.VideoGame,
+                nameof(VideoGame),
+                game.Id,
+                $"¡Platino! {game.Title}",
+                cancellationToken);
+
+            game.PlatinumBonusXp = platinumXp.AmountAwarded;
+            game.XpEarned += platinumXp.AmountAwarded;
+
+            events.Add(new AchievementEvent(
+                $"¡Platino! {game.Title}",
+                "Completaste el videojuego al 100%.",
+                platinumXp.AmountAwarded,
+                MilestoneSourceType.VideoGame,
+                RequiresCelebration: true));
+        }
+
+        game.UpdatedAt = DateTime.UtcNow;
+        await db.SaveChangesAsync(cancellationToken);
+
+        if (delta > 0 || game.Status == VideoGameStatus.Platinum)
+        {
+            events.AddRange(await _achievementEngine.TryAwardHobbyXpMedalsAsync(
+                MilestoneSourceType.VideoGame,
+                cancellationToken));
+        }
+
+        if (delta > 0)
+            await _weeklyQuotaService.NotifyActivityAsync(MilestoneSourceType.VideoGame, progressLocalDate, cancellationToken);
+
+        return OperationResult<VideoGame>.WithEvents(game, events.ToArray());
+    }
+
+    public async Task<bool> DeleteAsync(int videoGameId, CancellationToken cancellationToken = default)
+    {
+        await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var game = await db.VideoGames.FindAsync([videoGameId], cancellationToken);
+        if (game is null)
+            return false;
+
+        await _xpService.RevokeXpForSourceAsync(
+            MilestoneSourceType.VideoGame,
+            nameof(VideoGame),
+            videoGameId,
+            $"Eliminado del historial: videojuego {game.Title}",
+            cancellationToken);
+
+        HobbyCoverPhotoStorage.DeleteEntityFolder(HobbyCoverPhotoStorage.Folders.VideoGames, videoGameId);
+        db.VideoGames.Remove(game);
+        await db.SaveChangesAsync(cancellationToken);
+        return true;
+    }
+
+    public async Task<VideoGame> UpdateMetadataAsync(
+        int videoGameId,
+        string title,
+        VideoGamePlatform platform,
+        DateTime? startedAt,
+        DateTime? platinumUnlockedAt,
+        string? imageSourcePath = null,
+        bool clearImage = false,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(title))
+            throw new ArgumentException("El título es obligatorio.", nameof(title));
+
+        await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var game = await db.VideoGames.FindAsync([videoGameId], cancellationToken)
+            ?? throw new InvalidOperationException($"No existe el videojuego con Id {videoGameId}.");
+
+        game.Title = title.Trim();
+        game.Platform = platform;
+        game.StartedAt = startedAt;
+        if (game.Status == VideoGameStatus.Platinum)
+            game.PlatinumUnlockedAt = platinumUnlockedAt ?? game.PlatinumUnlockedAt;
+        game.UpdatedAt = DateTime.UtcNow;
+        ApplyCoverImage(game, imageSourcePath, clearImage);
+
+        await db.SaveChangesAsync(cancellationToken);
+        return game;
+    }
+
+    public async Task<VideoGame> UpdateImageAsync(
+        int videoGameId,
+        string? imageSourcePath = null,
+        bool clearImage = false,
+        CancellationToken cancellationToken = default)
+    {
+        await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var game = await db.VideoGames.FindAsync([videoGameId], cancellationToken)
+            ?? throw new InvalidOperationException($"No existe el videojuego con Id {videoGameId}.");
+
+        ApplyCoverImage(game, imageSourcePath, clearImage);
+        game.UpdatedAt = DateTime.UtcNow;
+        await db.SaveChangesAsync(cancellationToken);
+        return game;
+    }
+
+    private static void ApplyCoverImage(VideoGame game, string? imageSourcePath, bool clearImage)
+    {
+        const string folder = HobbyCoverPhotoStorage.Folders.VideoGames;
+        if (clearImage)
+        {
+            HobbyCoverPhotoStorage.DeleteStoredPhoto(folder, game.Id, game.ImagePath);
+            game.ImagePath = null;
+            return;
+        }
+
+        if (!string.IsNullOrWhiteSpace(imageSourcePath))
+        {
+            HobbyCoverPhotoStorage.DeleteStoredPhoto(folder, game.Id, game.ImagePath);
+            game.ImagePath = HobbyCoverPhotoStorage.SaveFromSource(folder, game.Id, imageSourcePath);
+            return;
+        }
+
+        game.ImagePath = HobbyCoverPhotoStorage.EnsureManaged(folder, game.Id, game.ImagePath);
+    }
+}

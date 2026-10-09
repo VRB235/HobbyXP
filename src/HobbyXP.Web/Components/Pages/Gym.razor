@@ -1,0 +1,197 @@
+@page "/gym"
+@inject IGymService GymService
+
+<PageTitle>Gimnasio — HobbyXP</PageTitle>
+
+<h1>Gimnasio</h1>
+
+<div class="card">
+    <h2 style="margin-top:0">Nuevo entrenamiento</h2>
+    <div class="form-grid">
+        <label>
+            Fecha
+            <InputDate @bind-Value="_workoutDate" />
+        </label>
+        <label>
+            Ejercicio (catálogo)
+            <InputSelect @bind-Value="_selectedExerciseId">
+                <option value="0">— Elegir —</option>
+                @if (_exercises is not null)
+                {
+                    @foreach (var ex in _exercises)
+                    {
+                        <option value="@ex.Id">@ex.Name (@ex.ExerciseType)</option>
+                    }
+                }
+            </InputSelect>
+        </label>
+        <label>
+            O crear ejercicio
+            <InputText @bind-Value="_newExerciseName" placeholder="Nombre nuevo" />
+        </label>
+        <label>
+            Tipo (si crea)
+            <InputSelect @bind-Value="_newExerciseType">
+                @foreach (var t in Enum.GetValues<ExerciseType>())
+                {
+                    <option value="@t">@t</option>
+                }
+            </InputSelect>
+        </label>
+        <label>
+            Series
+            <InputNumber @bind-Value="_sets" />
+        </label>
+        <label>
+            Repeticiones
+            <InputNumber @bind-Value="_reps" />
+        </label>
+        <label>
+            Peso (kg)
+            <InputNumber @bind-Value="_weight" />
+        </label>
+        <label>
+            Notas
+            <InputText @bind-Value="_notes" />
+        </label>
+        <button type="button" disabled="@_busy" @onclick="SaveAsync">@(_busy ? "Guardando…" : "Guardar workout")</button>
+    </div>
+    @if (!string.IsNullOrEmpty(_message))
+    {
+        <div class="@(_isError ? "error" : "ok")">@_message</div>
+    }
+</div>
+
+<div class="card">
+    <h2 style="margin-top:0">Historial</h2>
+    @if (_workouts is null)
+    {
+        <p>Cargando…</p>
+    }
+    else if (_workouts.Count == 0)
+    {
+        <p style="color:#9aa3b5">Sin entrenamientos.</p>
+    }
+    else
+    {
+        <div class="table-wrap">
+            <table class="data">
+                <thead>
+                    <tr><th>Fecha</th><th>Entradas</th><th>XP</th><th></th></tr>
+                </thead>
+                <tbody>
+                    @foreach (var w in _workouts.Take(30))
+                    {
+                        <tr>
+                            <td>@w.WorkoutDate.ToLocalTime().ToString("dd/MM/yyyy")</td>
+                            <td>@w.ExerciseCount</td>
+                            <td>@w.XpEarned</td>
+                            <td>
+                                <button type="button" class="secondary" disabled="_busy" @onclick="() => DeleteAsync(w.Id)">Borrar</button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+@code {
+    private IReadOnlyList<Exercise>? _exercises;
+    private IReadOnlyList<GymWorkout>? _workouts;
+    private DateOnly _workoutDate = DateOnly.FromDateTime(DateTime.Today);
+    private int _selectedExerciseId;
+    private string? _newExerciseName;
+    private ExerciseType _newExerciseType = ExerciseType.TraditionalWeight;
+    private int _sets = 3;
+    private int? _reps = 10;
+    private decimal? _weight = 20;
+    private string? _notes;
+    private string? _message;
+    private bool _isError;
+    private bool _busy;
+
+    protected override async Task OnInitializedAsync() => await ReloadAsync();
+
+    private async Task ReloadAsync()
+    {
+        _exercises = await GymService.GetExercisesAsync();
+        _workouts = await GymService.GetWorkoutHistoryAsync();
+    }
+
+    private async Task SaveAsync()
+    {
+        _busy = true;
+        _message = null;
+        try
+        {
+            int exerciseId = _selectedExerciseId;
+            ExerciseType exerciseType = _newExerciseType;
+
+            if (exerciseId <= 0)
+            {
+                if (string.IsNullOrWhiteSpace(_newExerciseName))
+                {
+                    _isError = true;
+                    _message = "Elija un ejercicio o cree uno nuevo.";
+                    return;
+                }
+
+                var created = await GymService.CreateOrGetExerciseAsync(_newExerciseName.Trim(), _newExerciseType);
+                exerciseId = created.Id;
+                exerciseType = created.ExerciseType;
+            }
+            else
+            {
+                var existing = _exercises?.FirstOrDefault(e => e.Id == exerciseId);
+                if (existing is not null)
+                    exerciseType = existing.ExerciseType;
+            }
+
+            var date = DateTime.SpecifyKind(
+                    _workoutDate.ToDateTime(TimeOnly.FromDateTime(DateTime.Now)),
+                    DateTimeKind.Local)
+                .ToUniversalTime();
+
+            var entries = new[]
+            {
+                new GymWorkoutEntryDraft(exerciseId, exerciseType, _sets, _reps, _weight, null, 0)
+            };
+
+            var result = await GymService.SaveWorkoutAsync(
+                entries,
+                date,
+                string.IsNullOrWhiteSpace(_notes) ? null : _notes);
+
+            _isError = false;
+            _message = $"Workout guardado (+{result.Value.XpEarned} XP).";
+            _notes = null;
+            _newExerciseName = null;
+            await ReloadAsync();
+        }
+        catch (Exception ex)
+        {
+            _isError = true;
+            _message = ex.Message;
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task DeleteAsync(int id)
+    {
+        _busy = true;
+        try
+        {
+            await GymService.DeleteWorkoutAsync(id);
+            await ReloadAsync();
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}

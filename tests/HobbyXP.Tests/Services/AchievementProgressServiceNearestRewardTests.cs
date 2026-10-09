@@ -14,7 +14,7 @@ public sealed class AchievementProgressServiceNearestRewardTests : IDisposable
     public AchievementProgressServiceNearestRewardTests()
     {
         _factory = new TestDbContextFactory();
-        var medalService = new MedalService(_factory);
+        var medalService = new MedalService(_factory, new AchievementEngineService(_factory));
         _sut = new AchievementProgressService(_factory, medalService);
     }
 

@@ -441,12 +441,12 @@ public sealed class MainViewModel : ViewModelBase
 
     private async void OnAchievementPublished(object? sender, AchievementEvent e)
     {
-        var medal = e.MedalUnlocked.HasValue ? $" · Medalla: {e.MedalUnlocked}" : string.Empty;
+        var medal = e.IsMedalUnlock ? $" · Medalla: {e.Title}" : string.Empty;
         LatestAchievementMessage = e.RequiresCelebration
             ? $"🎉 {e.Title} (+{e.PointsEarned:N0} XP){medal}"
             : $"{e.Title} (+{e.PointsEarned:N0} XP){medal}";
 
-        if (e.MedalUnlocked.HasValue && e.RequiresCelebration)
+        if (e.IsMedalUnlock && e.RequiresCelebration)
         {
             _pendingMedalCelebrations.Enqueue(e);
             TryShowNextMedalCelebration();
@@ -520,9 +520,10 @@ public sealed class MainViewModel : ViewModelBase
         CelebrationMedalName = next.Title;
         CelebrationMedalDescription = next.Description;
         CelebrationMedalBonus = next.PointsEarned;
-        CelebrationMedalIconPath = next.MedalUnlocked.HasValue
-            ? MedalIconPaths.ForMedalCode(next.MedalUnlocked.Value)
-            : null;
+        CelebrationMedalIconPath = next.MedalIconPath
+            ?? (HobbyProgressCatalog.IsTrackedHobby(next.SourceType)
+                ? MedalIconPaths.ForHobby(next.SourceType)
+                : null);
         IsMedalUnlockVisible = true;
     }
 

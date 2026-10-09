@@ -1,0 +1,164 @@
+@page "/running"
+@inject IRunningService RunningService
+
+<PageTitle>Running — HobbyXP</PageTitle>
+
+<h1>Running</h1>
+
+<div class="card">
+    <h2 style="margin-top:0">Nueva sesión</h2>
+    <EditForm Model="_draft" OnValidSubmit="SaveAsync" class="form-grid">
+        <label>
+            Fecha
+            <InputDate @bind-Value="_draft.Date" />
+        </label>
+        <label>
+            Distancia (km)
+            <InputNumber @bind-Value="_draft.DistanceKm" step="0.01" />
+        </label>
+        <label>
+            Duración (minutos)
+            <InputNumber @bind-Value="_draft.DurationMinutes" step="1" />
+        </label>
+        <label>
+            Tipo
+            <InputSelect @bind-Value="_draft.SessionType">
+                @foreach (var t in Enum.GetValues<RunningSessionType>())
+                {
+                    <option value="@t">@RunningSessionTypeLabels.Get(t)</option>
+                }
+            </InputSelect>
+        </label>
+        <label>
+            Notas
+            <InputText @bind-Value="_draft.Notes" />
+        </label>
+        <button type="submit" disabled="@_busy">@(_busy ? "Guardando…" : "Guardar sesión")</button>
+    </EditForm>
+    @if (!string.IsNullOrEmpty(_message))
+    {
+        <div class="@(_isError ? "error" : "ok")">@_message</div>
+    }
+</div>
+
+<div class="card">
+    <h2 style="margin-top:0">Historial</h2>
+    @if (_sessions is null)
+    {
+        <p>Cargando…</p>
+    }
+    else if (_sessions.Count == 0)
+    {
+        <p style="color:#9aa3b5">Sin sesiones.</p>
+    }
+    else
+    {
+        <div class="table-wrap">
+            <table class="data">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Km</th>
+                        <th>Duración</th>
+                        <th>Tipo</th>
+                        <th>XP</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var s in _sessions.Take(30))
+                    {
+                        <tr>
+                            <td>@s.RecordedAt.ToLocalTime().ToString("dd/MM/yyyy")</td>
+                            <td>@s.DistanceKm.ToString("0.##")</td>
+                            <td>@s.Duration.ToString(@"hh\:mm\:ss")</td>
+                            <td>@s.SessionTypeLabel</td>
+                            <td>@s.XpEarned</td>
+                            <td>
+                                <button type="button" class="secondary" disabled="_busy" @onclick="() => DeleteAsync(s.Id)">Borrar</button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+@code {
+    private readonly SessionDraft _draft = new();
+    private IReadOnlyList<RunningSession>? _sessions;
+    private string? _message;
+    private bool _isError;
+    private bool _busy;
+
+    protected override async Task OnInitializedAsync() => await ReloadAsync();
+
+    private async Task ReloadAsync()
+    {
+        _sessions = await RunningService.GetSessionsAsync();
+    }
+
+    private async Task SaveAsync()
+    {
+        _busy = true;
+        _message = null;
+        try
+        {
+            if (_draft.DistanceKm <= 0 || _draft.DurationMinutes <= 0)
+            {
+                _isError = true;
+                _message = "Indique distancia y duración válidas.";
+                return;
+            }
+
+            var recordedAt = DateTime.SpecifyKind(
+                    _draft.Date.ToDateTime(TimeOnly.FromDateTime(DateTime.Now)),
+                    DateTimeKind.Local)
+                .ToUniversalTime();
+            var result = await RunningService.SaveSessionAsync(
+                _draft.DistanceKm,
+                TimeSpan.FromMinutes(_draft.DurationMinutes),
+                _draft.SessionType,
+                recordedAt,
+                notes: string.IsNullOrWhiteSpace(_draft.Notes) ? null : _draft.Notes);
+
+            _isError = false;
+            _message = $"Sesión guardada (+{result.Value.XpEarned} XP).";
+            _draft.Notes = null;
+            await ReloadAsync();
+        }
+        catch (Exception ex)
+        {
+            _isError = true;
+            _message = ex.Message;
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task DeleteAsync(int id)
+    {
+        _busy = true;
+        try
+        {
+            await RunningService.DeleteSessionAsync(id);
+            await ReloadAsync();
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private sealed class SessionDraft
+    {
+        public DateOnly Date { get; set; } = DateOnly.FromDateTime(DateTime.Today);
+        public decimal DistanceKm { get; set; } = 5;
+        public int DurationMinutes { get; set; } = 30;
+        public RunningSessionType SessionType { get; set; } = RunningSessionType.Regenerativa;
+        public string? Notes { get; set; }
+    }
+}

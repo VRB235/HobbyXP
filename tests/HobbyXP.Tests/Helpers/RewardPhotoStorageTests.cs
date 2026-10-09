@@ -5,6 +5,7 @@ using HobbyXP.Services;
 
 namespace HobbyXP.Tests.Helpers;
 
+[Collection(PhotoStorageTestCollection.Name)]
 public sealed class RewardPhotoStorageTests : IDisposable
 {
     private readonly string _dataDir;

@@ -1,6 +1,6 @@
+using HobbyXP.Helpers;
 using HobbyXP.Models.Achievements;
 using HobbyXP.Models.Enums;
-using HobbyXP.Models.PersonalGrowth;
 using HobbyXP.Services;
 using HobbyXP.Tests.Helpers;
 using Microsoft.EntityFrameworkCore;
@@ -11,11 +11,13 @@ public sealed class AchievementEngineServiceTests : IDisposable
 {
     private readonly TestDbContextFactory _factory;
     private readonly AchievementEngineService _sut;
+    private readonly MedalService _medals;
 
     public AchievementEngineServiceTests()
     {
         _factory = new TestDbContextFactory();
         _sut = new AchievementEngineService(_factory);
+        _medals = new MedalService(_factory, _sut);
     }
 
     public void Dispose() => _factory.Dispose();
@@ -52,73 +54,57 @@ public sealed class AchievementEngineServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task TryAwardMedalAsync_WhenThresholdMet_GrantsMedalOnce()
+    public async Task TryAwardHobbyXpMedalsAsync_WhenThresholdMet_GrantsMedalOnce()
     {
+        var medal = await _medals.CreateAsync(
+            MilestoneSourceType.Book,
+            xpThreshold: 100,
+            name: "Lector Voraz",
+            description: "Alcanza 100 XP en libros.",
+            unlockHint: "Lee páginas hasta sumar 100 XP.");
+
         await using (var db = _factory.CreateDbContext())
-        {
-            db.Books.Add(new Book
-            {
-                Title = "Dune",
-                Author = "Herbert",
-                TotalPages = 400,
-                PagesRead = 400,
-                Status = BookStatus.Completed,
-                CompletedAt = DateTime.UtcNow
-            });
-            await db.SaveChangesAsync();
-        }
+            await TestHobbyProgress.SetTotalXpAsync(db, MilestoneSourceType.Book, 100);
 
-        var first = await _sut.TryAwardMedalAsync(
-            MedalCode.BookCompleted,
-            MilestoneSourceType.Book,
-            sourceEntityType: nameof(Book),
-            sourceEntityId: 1);
+        var first = await _sut.TryAwardHobbyXpMedalsAsync(MilestoneSourceType.Book);
+        var second = await _sut.TryAwardHobbyXpMedalsAsync(MilestoneSourceType.Book);
 
-        var second = await _sut.TryAwardMedalAsync(
-            MedalCode.BookCompleted,
-            MilestoneSourceType.Book,
-            sourceEntityType: nameof(Book),
-            sourceEntityId: 2);
-
-        Assert.NotNull(first);
-        Assert.Equal(MedalCode.BookCompleted, first!.MedalUnlocked);
-        Assert.Null(second);
-        Assert.True(await _sut.IsMedalEarnedAsync(MedalCode.BookCompleted));
+        Assert.Single(first);
+        Assert.Equal(medal.Id, first[0].MedalDefinitionId);
+        Assert.Empty(second);
+        Assert.True(await _sut.IsMedalEarnedAsync(medal.Id));
 
         await using var verifyDb = _factory.CreateDbContext();
         Assert.Single(await verifyDb.EarnedMedals.ToListAsync());
-        var profile = await verifyDb.PlayerProfiles.SingleAsync();
-        Assert.Equal("Lector Voraz", profile.HonorTitle);
-        Assert.Equal(50, profile.SpendableXp);
-        Assert.NotNull(profile.DisciplineImmunityUntilUtc);
-        Assert.True(profile.DisciplineImmunityUntilUtc > DateTime.UtcNow);
-        Assert.Equal(50, first.PointsEarned);
+        var profileAfter = await verifyDb.PlayerProfiles.SingleAsync();
+        Assert.Equal("Lector Voraz", profileAfter.HonorTitle);
+        Assert.Equal(MedalPrivilegeRules.GetSpendableBonus(100), profileAfter.SpendableXp);
+        Assert.NotNull(profileAfter.DisciplineImmunityUntilUtc);
+        Assert.True(profileAfter.DisciplineImmunityUntilUtc > DateTime.UtcNow);
     }
 
     [Fact]
-    public async Task TryAwardMilestonesForTrackAsync_AwardsMultipleThresholdsInOnePass()
+    public async Task TryAwardHobbyXpMedalsAsync_AwardsMultipleThresholdsInOnePass()
     {
+        await _medals.CreateAsync(
+            MilestoneSourceType.Puzzle,
+            50,
+            "Pieza Inicial",
+            "50 XP en puzzles.",
+            "Suma XP en rompecabezas.");
+        await _medals.CreateAsync(
+            MilestoneSourceType.Puzzle,
+            200,
+            "Pieza Maestra",
+            "200 XP en puzzles.",
+            "Sigue resolviendo.");
+
         await using (var db = _factory.CreateDbContext())
-        {
-            for (var i = 0; i < 5; i++)
-            {
-                db.Puzzles.Add(new Models.Entertainment.Puzzle
-                {
-                    Name = $"Puzzle {i + 1}",
-                    Category = PuzzleCategory.TwoD,
-                    PieceCount = 1000,
-                    CompletedAt = DateTime.UtcNow
-                });
-            }
+            await TestHobbyProgress.SetTotalXpAsync(db, MilestoneSourceType.Puzzle, 250);
 
-            await db.SaveChangesAsync();
-        }
+        var events = await _sut.TryAwardHobbyXpMedalsAsync(MilestoneSourceType.Puzzle);
 
-        var events = await _sut.TryAwardMilestonesForTrackAsync(
-            MedalMilestoneTrack.PuzzlesCompleted,
-            MilestoneSourceType.Puzzle);
-
-        Assert.Contains(events, e => e.MedalUnlocked == MedalCode.PuzzleMaster);
-        Assert.True(events.Count >= 2);
+        Assert.Equal(2, events.Count);
+        Assert.All(events, e => Assert.True(e.IsMedalUnlock));
     }
 }

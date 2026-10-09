@@ -3,6 +3,7 @@ using HobbyXP.Helpers;
 
 namespace HobbyXP.Tests.Helpers;
 
+[Collection(PhotoStorageTestCollection.Name)]
 public sealed class RacePhotoStorageTests : IDisposable
 {
     private readonly string _dataDir;

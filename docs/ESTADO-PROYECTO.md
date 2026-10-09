@@ -1,29 +1,30 @@
 # HobbyXP — Documentación de estado del proyecto
 
-> **Última actualización:** 18 de agosto de 2026  
+> **Última actualización:** 8 de octubre de 2026  
 > **Propósito de este documento:** punto de partida para retomar el desarrollo. Resume qué se construyó, cómo está organizado, qué funciona hoy y qué queda pendiente.
 
 ---
 
 ## 1. Visión general
 
-**HobbyXP** es una aplicación de escritorio **WPF (.NET 8)** para gamificar hobbies personales: running, gimnasio, entretenimiento, libros/cursos y un sistema de logros/premios.
+**HobbyXP** gamifica hobbies personales (running, gimnasio, dieta, entretenimiento, libros/cursos) con XP/niveles/medallas/premios. El producto portable objetivo es **web en VPS**; WPF permanece como cliente legacy con paridad completa de UI.
 
 | Aspecto | Decisión |
 |---------|----------|
-| Plataforma | Windows, WPF (`net8.0-windows10.0.19041`) |
-| Arquitectura | MVVM + inyección de dependencias |
-| Persistencia | SQLite local con EF Core 8 |
-| Autenticación / nube | No (app 100 % local) |
-| Estilo visual | Tema oscuro RPG (mockups de referencia) |
-| Gráficos | LiveCharts2 (SkiaSharp) en el dashboard |
+| Núcleo | `HobbyXP.Core` (.NET 8) — Models, Data, Services, Helpers |
+| Cliente portable | `HobbyXP.Web` — Blazor Server, UI responsive |
+| Cliente legacy | HobbyXP (WPF, net8.0-windows10.0.19041) |
+| Persistencia web | PostgreSQL en VPS (`EnsureCreated` + import desde SQLite) |
+| Persistencia WPF | SQLite local + migraciones EF existentes |
+| Auth web | Cookie, un solo usuario (`HobbyXp:Auth`) |
+| Infra | `deploy/docker-compose.yml` — ver [`DEPLOY-VPS.md`](DEPLOY-VPS.md) |
 
-**Solución:** `HobbyXP.slnx` → proyecto `src/HobbyXP/HobbyXP.csproj`
+**Solución:** `HobbyXP.sln` → Core, Web, WPF, Tools.SqliteToPostgres, Tests.
 
-**Base de datos (ambientes separados):**  
-- Producción (Release): `%LocalAppData%\HobbyXP\hobbyxp.db`  
-- Desarrollo (Debug): `%LocalAppData%\HobbyXP-Dev\hobbyxp.db`  
-Override: variable `HOBBYXP_DATA_DIR`.
+**Datos WPF / media:**  
+- Producción: `%LocalAppData%\HobbyXP\hobbyxp.db`  
+- Desarrollo: `%LocalAppData%\HobbyXP-Dev\hobbyxp.db`  
+Override: `HOBBYXP_DATA_DIR` o `HobbyXp__MediaRoot` (Docker → `/data/media`).
 
 ---
 
@@ -163,7 +164,7 @@ src/HobbyXP/
 
 ### Logros
 
-- `MedalDefinition`, `EarnedMedal`, `AchievementRule`, `Reward` (tienda por módulo `SourceType`, inventario, `RedeemedCostInPoints`, reliquia equipable).
+- `MedalDefinition` (usuario: `SourceType` + `XpThreshold` único por hobby, nombre/descripción/pista/icono), `EarnedMedal`, `AchievementRule`, `Reward` (tienda por módulo `SourceType`, inventario, `RedeemedCostInPoints`, reliquia equipable). Ya no hay catálogo fijo por actividad.
 
 ### Feedback / sugerencias
 
@@ -190,9 +191,9 @@ src/HobbyXP/
 | `IVideoGameService` | Videojuegos en progreso/platino |
 | `IBookService` | Libros y páginas |
 | `ICourseService` | Cursos completados |
-| `IAchievementEngineService` | Motor de medallas y reglas (bonus de saldo, título e inmunidad al desbloquear) |
-| `IAchievementProgressService` | Siguiente medalla por hobby y snapshot del hub |
-| `IMedalService` | Vitrina seccionada por hobby (desbloqueadas primero) |
+| `IAchievementEngineService` | Motor de medallas por XP de hobby + reglas (bonus de saldo, título e inmunidad) |
+| `IAchievementProgressService` | Siguiente medalla por umbral de XP del hobby y snapshot del hub |
+| `IMedalService` | CRUD de medallas, sugerencias de nombre, vitrina seccionada por hobby |
 | `IRewardService` | Premios por hobby, inventario, equipar, costo base × nivel |
 | `IWeeklyQuotaService` | Cuotas lun–dom (Running/Gym/Dieta), castigo, restauración, inmunidad; sin disciplina en entretenimiento ni crecimiento |
 | `IFileDialogService` | Selector de imagen para avatar |
@@ -289,6 +290,7 @@ DataContext = _scope.GetRequiredService<MainViewModel>();
 | `20260818185808_AddAchievementHub` | Título de honor, reliquia equipada, inmunidad; `Reward.RedeemedCostInPoints` |
 | `20260818211150_AddRewardSourceType` | `Rewards.SourceType` (módulo/hobby del premio) |
 | `20260820185834_AddSuggestions` | Tabla `Suggestions` (mejoras/errores, estado, fotos, fechas) |
+| `20261009134121_UserCreatedHobbyXpMedals` | Medallas definidas por el usuario (`SourceType`, `XpThreshold`); elimina catálogo sembrado |
 
 **Comandos útiles** (desde `src/HobbyXP`):
 
@@ -398,6 +400,7 @@ dotnet build
 - [x] Pantalla o flujo de **configuración** (`BaseXpPerLevel`, reset de perfil, exportar BD).
 - [x] Más **medallas / reglas** editables desde UI (el editor de reglas existe en ViewModel; validar UX completa).
 - [x] **Iconos reales** para medallas (`IconPath`) en lugar de solo emoji.
+- [x] Medallas **creadas por el usuario** (hobby + umbral XP, nombres sugeridos editables).
 
 ### Baja prioridad — ingeniería
 
@@ -512,3 +515,7 @@ dotnet test tests\HobbyXP.Tests\HobbyXP.Tests.csproj -c Release --no-build
 ## 18. Resumen ejecutivo (una línea)
 
 **HobbyXP es un MVP funcional de escritorio** con persistencia SQLite, gamificación XP/nivel/medallas/premios, UI oscura RPG, perfil personalizable y navegación por 5 secciones; listo para estabilizar, documentar pruebas y pulir UX en la siguiente iteración.
+
+## Paridad web
+
+Hoja de ruta post-MVP: [WEB-PARIDAD.md](WEB-PARIDAD.md). Despliegue: [DEPLOY-VPS.md](DEPLOY-VPS.md).

@@ -1,0 +1,260 @@
+using HobbyXP.Data;
+using HobbyXP.Helpers;
+using HobbyXP.Models.Enums;
+using HobbyXP.Models.PersonalGrowth;
+using HobbyXP.Services.Abstractions;
+using HobbyXP.Services.Results;
+using Microsoft.EntityFrameworkCore;
+
+namespace HobbyXP.Services;
+
+public sealed class CourseService : ICourseService
+{
+    private readonly IDbContextFactory<HobbyXpDbContext> _dbContextFactory;
+    private readonly IXpService _xpService;
+    private readonly IAchievementEngineService _achievementEngine;
+    private readonly IWeeklyQuotaService _weeklyQuotaService;
+
+    public CourseService(
+        IDbContextFactory<HobbyXpDbContext> dbContextFactory,
+        IXpService xpService,
+        IAchievementEngineService achievementEngine,
+        IWeeklyQuotaService weeklyQuotaService)
+    {
+        _dbContextFactory = dbContextFactory;
+        _xpService = xpService;
+        _achievementEngine = achievementEngine;
+        _weeklyQuotaService = weeklyQuotaService;
+    }
+
+    public async Task<IReadOnlyList<DateTime>> GetDistinctSessionDatesUtcAsync(CancellationToken cancellationToken = default)
+    {
+        await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        return await db.CourseSessionLogs
+            .AsNoTracking()
+            .Select(l => l.SessionDate)
+            .Distinct()
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<Course>> GetInProgressAsync(CancellationToken cancellationToken = default)
+    {
+        await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        return await db.Courses
+            .AsNoTracking()
+            .Where(c => c.Status == CourseStatus.InProgress)
+            .OrderByDescending(c => c.UpdatedAt ?? c.CreatedAt)
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<Course>> GetCompletedAsync(CancellationToken cancellationToken = default)
+    {
+        await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        return await db.Courses
+            .AsNoTracking()
+            .Where(c => c.Status == CourseStatus.Completed)
+            .OrderByDescending(c => c.CompletedAt)
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<Course> RegisterAsync(
+        string name,
+        string platform,
+        int totalSessions,
+        string? imageSourcePath = null,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+            throw new ArgumentException("El nombre es obligatorio.", nameof(name));
+
+        if (totalSessions < 1)
+            throw new ArgumentOutOfRangeException(nameof(totalSessions));
+
+        await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+
+        var course = new Course
+        {
+            Name = name.Trim(),
+            Platform = platform.Trim(),
+            TotalSessions = totalSessions,
+            SessionsCompleted = 0,
+            Status = CourseStatus.InProgress
+        };
+
+        db.Courses.Add(course);
+        await db.SaveChangesAsync(cancellationToken);
+
+        if (!string.IsNullOrWhiteSpace(imageSourcePath))
+        {
+            course.ImagePath = HobbyCoverPhotoStorage.SaveFromSource(
+                HobbyCoverPhotoStorage.Folders.Courses,
+                course.Id,
+                imageSourcePath);
+            await db.SaveChangesAsync(cancellationToken);
+        }
+
+        return course;
+    }
+
+    public async Task<OperationResult<Course>> LogSessionsAsync(
+        int courseId,
+        DateTime sessionDate,
+        int sessionsDone,
+        CancellationToken cancellationToken = default)
+    {
+        if (sessionsDone <= 0)
+            throw new ArgumentOutOfRangeException(nameof(sessionsDone));
+
+        await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var course = await db.Courses.FindAsync([courseId], cancellationToken)
+            ?? throw new InvalidOperationException($"No existe el curso con Id {courseId}.");
+
+        if (course.Status == CourseStatus.Completed)
+            return OperationResult<Course>.Empty(course);
+
+        var remaining = course.TotalSessions - course.SessionsCompleted;
+        var applied = Math.Min(sessionsDone, remaining);
+        if (applied == 0)
+            return OperationResult<Course>.Empty(course);
+
+        db.CourseSessionLogs.Add(new CourseSessionLog
+        {
+            CourseId = course.Id,
+            SessionDate = DateTimeHelper.ToUtcFromLocalDate(sessionDate),
+            SessionsDone = applied
+        });
+
+        course.SessionsCompleted += applied;
+        course.UpdatedAt = DateTime.UtcNow;
+
+        var events = new List<AchievementEvent>();
+
+        var sessionXp = await _xpService.AwardXpAsync(
+            AchievementActionType.CourseSessionCompleted,
+            applied,
+            $"Curso: {course.Name} (+{applied} sesiones)",
+            MilestoneSourceType.Course,
+            nameof(Course),
+            course.Id,
+            $"Curso: {course.Name}",
+            cancellationToken);
+
+        course.XpEarned += sessionXp.AmountAwarded;
+
+        if (sessionXp.Milestone is not null)
+        {
+            events.Add(new AchievementEvent(
+                sessionXp.Milestone.Title,
+                sessionXp.Milestone.Description ?? course.Name,
+                sessionXp.AmountAwarded,
+                MilestoneSourceType.Course));
+        }
+
+        if (course.SessionsCompleted >= course.TotalSessions)
+        {
+            course.Status = CourseStatus.Completed;
+            course.CompletedAt = DateTime.UtcNow;
+
+            var completeXp = await _xpService.AwardXpAsync(
+                AchievementActionType.CourseCompleted,
+                1,
+                $"Curso terminado: {course.Name}",
+                MilestoneSourceType.Course,
+                nameof(Course),
+                course.Id,
+                $"Curso: {course.Name}",
+                cancellationToken);
+
+            course.XpEarned += completeXp.AmountAwarded;
+
+            if (completeXp.Milestone is not null)
+            {
+                events.Add(new AchievementEvent(
+                    completeXp.Milestone.Title,
+                    completeXp.Milestone.Description ?? course.Name,
+                    completeXp.AmountAwarded,
+                    MilestoneSourceType.Course));
+            }
+        }
+
+        await db.SaveChangesAsync(cancellationToken);
+
+        events.AddRange(await _achievementEngine.TryAwardHobbyXpMedalsAsync(
+            MilestoneSourceType.Course,
+            cancellationToken));
+
+        await _weeklyQuotaService.NotifyActivityAsync(MilestoneSourceType.Course, sessionDate.Date, cancellationToken);
+
+        return OperationResult<Course>.WithEvents(course, events.ToArray());
+    }
+
+    public async Task<Course?> UpdateMetadataAsync(
+        int courseId,
+        string name,
+        string platform,
+        int totalSessions,
+        DateTime? completedAt = null,
+        string? imageSourcePath = null,
+        bool clearImage = false,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+            throw new ArgumentException("El nombre es obligatorio.", nameof(name));
+
+        if (totalSessions < 1)
+            throw new ArgumentOutOfRangeException(nameof(totalSessions));
+
+        await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var course = await db.Courses.FindAsync([courseId], cancellationToken);
+        if (course is null)
+            return null;
+
+        course.Name = name.Trim();
+        course.Platform = platform.Trim();
+        if (totalSessions >= course.SessionsCompleted)
+            course.TotalSessions = totalSessions;
+        if (course.Status == CourseStatus.Completed && completedAt.HasValue)
+            course.CompletedAt = completedAt;
+        course.UpdatedAt = DateTime.UtcNow;
+        ApplyCoverImage(course, imageSourcePath, clearImage);
+
+        await db.SaveChangesAsync(cancellationToken);
+        return course;
+    }
+
+    public async Task<Course> UpdateImageAsync(
+        int courseId,
+        string? imageSourcePath = null,
+        bool clearImage = false,
+        CancellationToken cancellationToken = default)
+    {
+        await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var course = await db.Courses.FindAsync([courseId], cancellationToken)
+            ?? throw new InvalidOperationException($"No existe el curso con Id {courseId}.");
+
+        ApplyCoverImage(course, imageSourcePath, clearImage);
+        course.UpdatedAt = DateTime.UtcNow;
+        await db.SaveChangesAsync(cancellationToken);
+        return course;
+    }
+
+    private static void ApplyCoverImage(Course course, string? imageSourcePath, bool clearImage)
+    {
+        const string folder = HobbyCoverPhotoStorage.Folders.Courses;
+        if (clearImage)
+        {
+            HobbyCoverPhotoStorage.DeleteStoredPhoto(folder, course.Id, course.ImagePath);
+            course.ImagePath = null;
+            return;
+        }
+
+        if (!string.IsNullOrWhiteSpace(imageSourcePath))
+        {
+            HobbyCoverPhotoStorage.DeleteStoredPhoto(folder, course.Id, course.ImagePath);
+            course.ImagePath = HobbyCoverPhotoStorage.SaveFromSource(folder, course.Id, imageSourcePath);
+            return;
+        }
+
+        course.ImagePath = HobbyCoverPhotoStorage.EnsureManaged(folder, course.Id, course.ImagePath);
+    }
+}

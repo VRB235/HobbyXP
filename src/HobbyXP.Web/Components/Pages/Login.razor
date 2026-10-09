@@ -1,0 +1,38 @@
+@page "/login"
+@layout EmptyLayout
+@attribute [AllowAnonymous]
+
+<div class="login-page">
+    <div class="card login-card">
+        <h1>HobbyXP</h1>
+        <p style="color:#9aa3b5;margin-top:0">Acceso personal (un usuario).</p>
+
+        @if (ShowError)
+        {
+            <div class="error">Usuario o contraseña incorrectos.</div>
+        }
+
+        <form method="post" action="/account/login" class="form-grid">
+            <input type="hidden" name="returnUrl" value="@ReturnUrl" />
+            <label>
+                Usuario
+                <input name="username" autocomplete="username" required />
+            </label>
+            <label>
+                Contraseña
+                <input name="password" type="password" autocomplete="current-password" required />
+            </label>
+            <button type="submit">Entrar</button>
+        </form>
+    </div>
+</div>
+
+@code {
+    [SupplyParameterFromQuery(Name = "error")]
+    public string? Error { get; set; }
+
+    [SupplyParameterFromQuery(Name = "returnUrl")]
+    public string? ReturnUrl { get; set; }
+
+    private bool ShowError => Error == "1";
+}

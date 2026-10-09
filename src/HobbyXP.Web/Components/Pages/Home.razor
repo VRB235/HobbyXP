@@ -1,0 +1,122 @@
+﻿@page "/"
+@inject IDashboardService DashboardService
+@inject IPlayerProfileService ProfileService
+
+<PageTitle>Dashboard — HobbyXP</PageTitle>
+
+<h1>Dashboard</h1>
+
+@if (_loading)
+{
+    <p class="page-msg">Cargando…</p>
+}
+else if (_summary is null || _profile is null)
+{
+    <div class="error">No se pudo cargar el resumen.</div>
+}
+else
+{
+    <div class="card">
+        <div class="stat-row">
+            <div class="stat">
+                <div class="label">Aventurero</div>
+                <div class="value" style="font-size:1.1rem">@_profile.DisplayName</div>
+            </div>
+            <div class="stat">
+                <div class="label">Nivel</div>
+                <div class="value">@_summary.LevelProgress.CurrentLevel</div>
+            </div>
+            <div class="stat">
+                <div class="label">XP total</div>
+                <div class="value">@_summary.LevelProgress.TotalXp</div>
+            </div>
+            <div class="stat">
+                <div class="label">XP canjeable</div>
+                <div class="value">@_profile.SpendableXp</div>
+            </div>
+        </div>
+
+        <div class="xp-bar" title="@ProgressLabel">
+            <span style="width:@(_summary.LevelProgress.ProgressPercentage.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture))%"></span>
+        </div>
+        <small style="color:#9aa3b5">@ProgressLabel</small>
+    </div>
+
+    <div class="card">
+        <h2 style="margin-top:0">XP últimos 7 días</h2>
+        @if (_summary.WeeklyXp.Count == 0)
+        {
+            <p style="color:#9aa3b5">Sin movimientos recientes.</p>
+        }
+        else
+        {
+            <div class="table-wrap">
+                <table class="data">
+                    <thead>
+                        <tr><th>Día</th><th>XP</th></tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var day in _summary.WeeklyXp)
+                        {
+                            <tr>
+                                <td>@day.Date.ToString("ddd dd/MM")</td>
+                                <td>@day.TotalXp</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+
+    <div class="card">
+        <h2 style="margin-top:0">Distribución del mes</h2>
+        @if (_summary.MonthlyHobbyDistribution.Count == 0)
+        {
+            <p style="color:#9aa3b5">Aún no hay XP este mes.</p>
+        }
+        else
+        {
+            <div class="table-wrap">
+                <table class="data">
+                    <thead>
+                        <tr><th>Hobby</th><th>Eventos</th><th>%</th></tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var slice in _summary.MonthlyHobbyDistribution)
+                        {
+                            <tr>
+                                <td>@slice.Label</td>
+                                <td>@slice.Count</td>
+                                <td>@slice.Percentage.ToString("0.#")%</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    private bool _loading = true;
+    private DashboardSummary? _summary;
+    private PlayerProfile? _profile;
+
+    private string ProgressLabel => _summary is null
+        ? string.Empty
+        : $"{_summary.LevelProgress.XpIntoCurrentLevel} / {_summary.LevelProgress.XpRequiredForNextLevel} XP al siguiente nivel";
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _summary = await DashboardService.GetSummaryAsync();
+            _profile = await ProfileService.GetProfileAsync();
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+}

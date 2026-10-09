@@ -1,0 +1,150 @@
+@page "/profile"
+@inject IPlayerProfileService ProfileService
+@inject IXpService XpService
+
+<PageTitle>Perfil — HobbyXP</PageTitle>
+
+<h1>Perfil / XP</h1>
+
+@if (_loading)
+{
+    <p class="page-msg">Cargando…</p>
+}
+else if (_profile is null || _progress is null)
+{
+    <div class="error">No se pudo cargar el perfil.</div>
+}
+else
+{
+    <div class="card">
+        <div class="stat-row">
+            <div class="stat">
+                <div class="label">Nivel</div>
+                <div class="value">@_progress.CurrentLevel</div>
+            </div>
+            <div class="stat">
+                <div class="label">XP total</div>
+                <div class="value">@_progress.TotalXp</div>
+            </div>
+            <div class="stat">
+                <div class="label">XP canjeable</div>
+                <div class="value">@_profile.SpendableXp</div>
+            </div>
+            <div class="stat">
+                <div class="label">Base XP/nivel</div>
+                <div class="value">@_profile.BaseXpPerLevel</div>
+            </div>
+        </div>
+        <div class="xp-bar">
+            <span style="width:@(_progress.ProgressPercentage.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture))%"></span>
+        </div>
+        <small style="color:#9aa3b5">
+            @_progress.XpIntoCurrentLevel / @_progress.XpRequiredForNextLevel XP al siguiente nivel
+        </small>
+        @if (!string.IsNullOrWhiteSpace(_profile.HonorTitle))
+        {
+            <p style="margin-top:0.75rem;color:#f0b429">Título: @_profile.HonorTitle</p>
+        }
+    </div>
+
+    <div class="card">
+        <h2 style="margin-top:0">Nombre de aventurero</h2>
+        <EditForm Model="_edit" OnValidSubmit="SaveNameAsync" class="form-grid">
+            <label>
+                Nombre
+                <InputText @bind-Value="_edit.DisplayName" maxlength="80" />
+            </label>
+            <button type="submit" disabled="@_busy">@(_busy ? "Guardando…" : "Guardar nombre")</button>
+        </EditForm>
+        @if (!string.IsNullOrEmpty(_message))
+        {
+            <div class="@(_isError ? "error" : "ok")">@_message</div>
+        }
+    </div>
+
+    <div class="card">
+        <h2 style="margin-top:0">Últimas transacciones XP</h2>
+        @if (_tx is null || _tx.Count == 0)
+        {
+            <p style="color:#9aa3b5">Sin movimientos.</p>
+        }
+        else
+        {
+            <div class="table-wrap">
+                <table class="data">
+                    <thead>
+                        <tr><th>Fecha</th><th>Cantidad</th><th>Hobby</th><th>Motivo</th></tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var t in _tx)
+                        {
+                            <tr>
+                                <td>@t.EarnedAtUtc.ToLocalTime().ToString("dd/MM HH:mm")</td>
+                                <td>@t.Amount</td>
+                                <td>@t.HobbyLabel</td>
+                                <td>@t.Description</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    private bool _loading = true;
+    private PlayerProfile? _profile;
+    private LevelProgressInfo? _progress;
+    private IReadOnlyList<XpLedgerEntry>? _tx;
+    private readonly NameEdit _edit = new();
+    private string? _message;
+    private bool _isError;
+    private bool _busy;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            await ReloadAsync();
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task ReloadAsync()
+    {
+        _profile = await ProfileService.GetProfileAsync();
+        _progress = await ProfileService.GetLevelProgressAsync();
+        _edit.DisplayName = _profile.DisplayName;
+        _tx = await XpService.GetLedgerEntriesAsync(take: 40);
+    }
+
+    private async Task SaveNameAsync()
+    {
+        _busy = true;
+        _message = null;
+        try
+        {
+            _profile = await ProfileService.UpdateDisplayNameAsync(_edit.DisplayName ?? "Aventurero");
+            _isError = false;
+            _message = "Nombre actualizado.";
+        }
+        catch (Exception ex)
+        {
+            _isError = true;
+            _message = ex.Message;
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private sealed class NameEdit
+    {
+        public string DisplayName { get; set; } = "Aventurero";
+    }
+}

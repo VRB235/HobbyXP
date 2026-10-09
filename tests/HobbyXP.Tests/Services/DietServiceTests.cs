@@ -38,7 +38,7 @@ public sealed class DietServiceTests : IDisposable
         Assert.Equal(3, result.Value.OnPlanCount);
         Assert.Equal(6, result.Value.XpEarned);
         Assert.True(DietDayRules.IsGoodDay(result.Value));
-        Assert.Contains(result.Events, e => e.MedalUnlocked == MedalCode.DietGoodDays1);
+        Assert.DoesNotContain(result.Events, e => e.IsMedalUnlock);
 
         await using var db = _factory.CreateDbContext();
         Assert.Equal(1, await db.DietDayLogs.CountAsync());

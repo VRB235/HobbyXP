@@ -59,6 +59,7 @@
                                                             <RowDefinition Height="*" />
                                                             <RowDefinition Height="Auto" />
                                                             <RowDefinition Height="Auto" />
+                                                            <RowDefinition Height="Auto" />
                                                         </Grid.RowDefinitions>
 
                                                         <TextBlock Grid.Row="0"
@@ -75,7 +76,7 @@
                                                                    RenderOptions.BitmapScalingMode="HighQuality"
                                                                    Visibility="{Binding IconPath, Converter={StaticResource NullToVisibilityConverter}}" />
 
-                                                            <TextBlock Text="{Binding Code, Converter={StaticResource MedalCodeToEmojiConverter}}"
+                                                            <TextBlock Text="{Binding SourceType, Converter={StaticResource MedalCodeToEmojiConverter}}"
                                                                        FontSize="52"
                                                                        HorizontalAlignment="Center"
                                                                        VerticalAlignment="Center"
@@ -96,16 +97,23 @@
                                                                    TextAlignment="Center"
                                                                    Foreground="{StaticResource TextSecondaryBrush}"
                                                                    FontSize="12"
-                                                                   Margin="0,0,0,6" />
+                                                                   Margin="0,0,0,2" />
 
                                                         <TextBlock Grid.Row="3"
+                                                                   Text="{Binding XpThreshold, StringFormat={}{0:N0} XP}"
+                                                                   TextAlignment="Center"
+                                                                   Foreground="{StaticResource TextMutedBrush}"
+                                                                   FontSize="11"
+                                                                   Margin="0,0,0,6" />
+
+                                                        <TextBlock Grid.Row="4"
                                                                    Text="{Binding EarnedAt, Converter={StaticResource UtcToLocalDateTimeConverter}, StringFormat=Desbloqueada: {0:dd/MM/yyyy}}"
                                                                    TextAlignment="Center"
                                                                    Foreground="{StaticResource AccentGoldBrush}"
                                                                    FontSize="11"
                                                                    Visibility="{Binding IsEarned, Converter={StaticResource BoolToVisibilityConverter}}" />
 
-                                                        <TextBlock Grid.Row="3"
+                                                        <TextBlock Grid.Row="4"
                                                                    Text="Pendiente"
                                                                    TextAlignment="Center"
                                                                    Foreground="{StaticResource TextMutedBrush}"
@@ -130,73 +138,115 @@
                         <ColumnDefinition Width="3*" />
                     </Grid.ColumnDefinitions>
 
-                    <GroupBox Grid.Column="0" Header="Catálogo" Padding="8" Margin="0,0,8,0">
-                        <ListView ItemsSource="{Binding Medals}"
-                                  SelectedItem="{Binding SelectedMedal}"
-                                  helpers:GridViewStretchHelper.StretchColumns="True"
-                                  helpers:GridViewSortHelper.EnableSort="True">
-                            <ListView.View>
-                                <GridView>
-                                    <GridViewColumn Header="Nombre" DisplayMemberBinding="{Binding Name}" Width="160" />
-                                    <GridViewColumn Header="Código" DisplayMemberBinding="{Binding Code}" Width="120" />
-                                </GridView>
-                            </ListView.View>
-                        </ListView>
+                    <GroupBox Grid.Column="0" Header="Mis medallas" Padding="8" Margin="0,0,8,0">
+                        <DockPanel>
+                            <Button DockPanel.Dock="Top"
+                                    Content="+ Nueva medalla"
+                                    Command="{Binding BeginCreateCommand}"
+                                    Style="{StaticResource AccentButton}"
+                                    HorizontalAlignment="Left"
+                                    Margin="0,0,0,8" />
+                            <ListView ItemsSource="{Binding Medals}"
+                                      SelectedItem="{Binding SelectedMedal}"
+                                      helpers:GridViewStretchHelper.StretchColumns="True"
+                                      helpers:GridViewSortHelper.EnableSort="True">
+                                <ListView.View>
+                                    <GridView>
+                                        <GridViewColumn Header="Nombre" DisplayMemberBinding="{Binding Name}" Width="140" />
+                                        <GridViewColumn Header="Hobby" DisplayMemberBinding="{Binding SourceType}" Width="90" />
+                                        <GridViewColumn Header="Umbral XP" DisplayMemberBinding="{Binding XpThreshold}" Width="80" />
+                                    </GridView>
+                                </ListView.View>
+                            </ListView>
+                        </DockPanel>
                     </GroupBox>
 
-                    <GroupBox Grid.Column="1" Header="Detalle editable" Padding="12">
-                        <StackPanel IsEnabled="{Binding HasSelectedMedal}">
-                            <TextBlock Text="{Binding SelectedMedalCategory, StringFormat=Evento: {0}}"
-                                       Foreground="{StaticResource AccentCyanBrush}"
-                                       Margin="0,0,0,12" />
+                    <GroupBox Grid.Column="1" Header="{Binding EditorTitle}" Padding="12">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                            <StackPanel IsEnabled="{Binding HasSelectedMedal}">
+                                <TextBlock Text="Cada medalla es única por hobby + umbral de XP de progresión."
+                                           Style="{StaticResource MutedText}"
+                                           TextWrapping="Wrap"
+                                           Margin="0,0,0,12" />
 
-                            <TextBlock Text="Nombre" Style="{StaticResource MutedText}" />
-                            <TextBox Text="{Binding EditName, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8" />
+                                <TextBlock Text="Hobby" Style="{StaticResource MutedText}" />
+                                <ComboBox ItemsSource="{Binding HobbyOptions}"
+                                          SelectedValuePath="Value"
+                                          DisplayMemberPath="Label"
+                                          SelectedValue="{Binding EditSourceType}"
+                                          Margin="0,0,0,8" />
 
-                            <TextBlock Text="Descripción" Style="{StaticResource MutedText}" />
-                            <TextBox Text="{Binding EditDescription, UpdateSourceTrigger=PropertyChanged}"
-                                     TextWrapping="Wrap" AcceptsReturn="True" MinHeight="56" Margin="0,0,0,8" />
+                                <TextBlock Text="Umbral de XP del hobby" Style="{StaticResource MutedText}" />
+                                <TextBox Text="{Binding EditXpThresholdText, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8" />
 
-                            <TextBlock Text="Pista de desbloqueo (tooltip)" Style="{StaticResource MutedText}" />
-                            <TextBox Text="{Binding EditUnlockHint, UpdateSourceTrigger=PropertyChanged}"
-                                     TextWrapping="Wrap" AcceptsReturn="True" MinHeight="48" Margin="0,0,0,8" />
-
-                            <TextBlock Text="Icono" Style="{StaticResource MutedText}" />
-                            <Image Source="{Binding EditIconPath, Converter={StaticResource PathToImageSourceConverter}}"
-                                   Width="72" Height="72" Margin="0,4,0,8"
-                                   HorizontalAlignment="Left"
-                                   RenderOptions.BitmapScalingMode="HighQuality" />
-                            <Grid Margin="0,0,0,8">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="Auto" />
-                                    <ColumnDefinition Width="Auto" />
-                                </Grid.ColumnDefinitions>
-                                <TextBox Text="{Binding EditIconPath, Mode=OneWay}" IsReadOnly="True" />
-                                <Button Grid.Column="1" Content="Buscar…" Command="{Binding PickIconCommand}"
-                                        Style="{StaticResource PrimaryButton}" Margin="8,0,0,0" />
-                                <Button Grid.Column="2" Content="Restablecer" Command="{Binding ClearIconCommand}"
+                                <TextBlock Text="Nombre (sugerido; editable)" Style="{StaticResource MutedText}" />
+                                <ComboBox ItemsSource="{Binding NameSuggestions}"
+                                          SelectedItem="{Binding SelectedNameSuggestion}"
+                                          IsEditable="True"
+                                          Text="{Binding EditName, UpdateSourceTrigger=PropertyChanged}"
+                                          Margin="0,0,0,4" />
+                                <Button Content="Regenerar sugerencias"
+                                        Command="{Binding RefreshSuggestionsCommand}"
                                         Style="{StaticResource PrimaryButton}"
-                                        Margin="8,0,0,0" ToolTip="Vuelve al icono predeterminado del catálogo." />
-                            </Grid>
+                                        HorizontalAlignment="Left"
+                                        Margin="0,0,0,8" />
 
-                            <controls:FormValidationBanner Message="{Binding ValidationMessage}" Margin="0,0,0,8" />
-                            <Button Content="Guardar medalla"
-                                    Command="{Binding SaveMedalCommand}"
-                                    Style="{StaticResource AccentButton}"
-                                    HorizontalAlignment="Left" />
+                                <TextBlock Text="Descripción" Style="{StaticResource MutedText}" />
+                                <TextBox Text="{Binding EditDescription, UpdateSourceTrigger=PropertyChanged}"
+                                         TextWrapping="Wrap" AcceptsReturn="True" MinHeight="56" Margin="0,0,0,8" />
 
-                            <TextBlock Text="{Binding StatusMessage}"
-                                       Foreground="{StaticResource AccentGreenBrush}"
-                                       TextWrapping="Wrap"
-                                       Margin="0,12,0,0"
-                                       Visibility="{Binding StatusMessage, Converter={StaticResource NullToVisibilityConverter}}" />
-                            <TextBlock Text="{Binding ErrorMessage}"
-                                       Foreground="{StaticResource DangerBrush}"
-                                       TextWrapping="Wrap"
-                                       Margin="0,8,0,0"
-                                       Visibility="{Binding ErrorMessage, Converter={StaticResource NullToVisibilityConverter}}" />
-                        </StackPanel>
+                                <TextBlock Text="Pista de desbloqueo (tooltip)" Style="{StaticResource MutedText}" />
+                                <TextBox Text="{Binding EditUnlockHint, UpdateSourceTrigger=PropertyChanged}"
+                                         TextWrapping="Wrap" AcceptsReturn="True" MinHeight="48" Margin="0,0,0,8" />
+
+                                <TextBlock Text="Icono" Style="{StaticResource MutedText}" />
+                                <Image Source="{Binding EditIconPath, Converter={StaticResource PathToImageSourceConverter}}"
+                                       Width="72" Height="72" Margin="0,4,0,8"
+                                       HorizontalAlignment="Left"
+                                       RenderOptions.BitmapScalingMode="HighQuality" />
+                                <Grid Margin="0,0,0,8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBox Text="{Binding EditIconPath, Mode=OneWay}" IsReadOnly="True" />
+                                    <Button Grid.Column="1" Content="Buscar…" Command="{Binding PickIconCommand}"
+                                            Style="{StaticResource PrimaryButton}" Margin="8,0,0,0" />
+                                    <Button Grid.Column="2" Content="Restablecer" Command="{Binding ClearIconCommand}"
+                                            Style="{StaticResource PrimaryButton}"
+                                            Margin="8,0,0,0" ToolTip="Vuelve al icono predeterminado del hobby." />
+                                </Grid>
+
+                                <controls:FormValidationBanner Message="{Binding ValidationMessage}" Margin="0,0,0,8" />
+                                <StackPanel Orientation="Horizontal">
+                                    <Button Content="{Binding SaveButtonLabel}"
+                                            Command="{Binding SaveMedalCommand}"
+                                            Style="{StaticResource AccentButton}" />
+                                    <Button Content="Cancelar alta"
+                                            Command="{Binding CancelCreateCommand}"
+                                            Style="{StaticResource PrimaryButton}"
+                                            Margin="8,0,0,0"
+                                            Visibility="{Binding IsCreateMode, Converter={StaticResource BoolToVisibilityConverter}}" />
+                                    <Button Content="Eliminar"
+                                            Command="{Binding DeleteMedalCommand}"
+                                            Style="{StaticResource PrimaryButton}"
+                                            Margin="8,0,0,0"
+                                            Visibility="{Binding IsCreateMode, Converter={StaticResource InverseBoolToVisibilityConverter}}" />
+                                </StackPanel>
+
+                                <TextBlock Text="{Binding StatusMessage}"
+                                           Foreground="{StaticResource AccentGreenBrush}"
+                                           TextWrapping="Wrap"
+                                           Margin="0,12,0,0"
+                                           Visibility="{Binding StatusMessage, Converter={StaticResource NullToVisibilityConverter}}" />
+                                <TextBlock Text="{Binding ErrorMessage}"
+                                           Foreground="{StaticResource DangerBrush}"
+                                           TextWrapping="Wrap"
+                                           Margin="0,8,0,0"
+                                           Visibility="{Binding ErrorMessage, Converter={StaticResource NullToVisibilityConverter}}" />
+                            </StackPanel>
+                        </ScrollViewer>
                     </GroupBox>
                 </Grid>
             </TabItem>

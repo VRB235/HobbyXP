@@ -8,9 +8,9 @@
     <UseWPF>true</UseWPF>
     <RootNamespace>HobbyXP</RootNamespace>
     <ApplicationIcon>Assets\HobbyXP.ico</ApplicationIcon>
-    <Version>1.8.5</Version>
-    <AssemblyVersion>1.8.5.0</AssemblyVersion>
-    <FileVersion>1.8.5.0</FileVersion>
+    <Version>1.9.0</Version>
+    <AssemblyVersion>1.9.0.0</AssemblyVersion>
+    <FileVersion>1.9.0.0</FileVersion>
     <!-- Evita fallos del compilador de diseño de VS al compilar XAML antes de tiempo -->
     <IncludePackageReferencesDuringMarkupCompilation>true</IncludePackageReferencesDuringMarkupCompilation>
     <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
@@ -18,13 +18,12 @@
 
   <ItemGroup>
     <PackageReference Include="LiveChartsCore.SkiaSharpView.WPF" Version="2.0.4" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.11">
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-      <PrivateAssets>all</PrivateAssets>
-    </PackageReference>
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="8.0.11" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.1" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\HobbyXP.Core\HobbyXP.Core.csproj" />
   </ItemGroup>
 
   <ItemGroup>
@@ -42,9 +41,4 @@
     <Resource Include="Assets\Fonts\Rajdhani-SemiBold.ttf" />
   </ItemGroup>
 
-  <ItemGroup>
-    <InternalsVisibleTo Include="HobbyXP.Tests" />
-  </ItemGroup>
-
 </Project>
-

@@ -1,0 +1,40 @@
+﻿@inherits LayoutComponentBase
+@inject NavigationManager Navigation
+
+<div class="app-shell @(NavOpen ? "nav-open" : null)">
+    <header class="topbar">
+        <button type="button" class="nav-toggle" @onclick="ToggleNav" aria-label="Menú">☰</button>
+        <a class="brand" href="/">HobbyXP</a>
+        <a class="logout" href="/account/logout">Salir</a>
+    </header>
+
+    <aside class="sidebar">
+        <nav>
+            <NavLink href="/" Match="NavLinkMatch.All">Dashboard</NavLink>
+            <NavLink href="/running">Running</NavLink>
+            <NavLink href="/gym">Gimnasio</NavLink>
+            <NavLink href="/diet">Dieta</NavLink>
+            <NavLink href="/profile">Perfil / XP</NavLink>
+            <div class="nav-section">Próximamente</div>
+            <NavLink href="/entertainment" class="muted">Entretenimiento</NavLink>
+            <NavLink href="/rewards" class="muted">Premios</NavLink>
+        </nav>
+    </aside>
+
+    @if (NavOpen)
+    {
+        <div class="nav-backdrop" @onclick="CloseNav"></div>
+    }
+
+    <main class="content" @onclick="CloseNav">
+        @Body
+    </main>
+</div>
+
+@code {
+    private bool NavOpen { get; set; }
+
+    private void ToggleNav() => NavOpen = !NavOpen;
+
+    private void CloseNav() => NavOpen = false;
+}
