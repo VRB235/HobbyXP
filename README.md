@@ -2,7 +2,7 @@
 
 Gamificación de hobbies personales (running, gimnasio, **dieta**, entretenimiento, libros/cursos) con **XP, niveles, medallas, premios y disciplina semanal**.
 
-**Versión en develop: 1.9.0** (producción aún en `main` / tag [`v1.8.5`](https://github.com/VRB235/HobbyXP/releases/tag/v1.8.5) hasta el próximo release).
+**Versión actual: 1.9.0** — release [`v1.9.0`](https://github.com/VRB235/HobbyXP/releases/tag/v1.9.0).
 
 | Cliente | Estado | Notas |
 |---------|--------|--------|
@@ -120,14 +120,16 @@ Copy-Item "$env:LOCALAPPDATA\HobbyXP\*" "$env:LOCALAPPDATA\HobbyXP-Dev\" -Recurs
 
 ## Mejoras recientes
 
+### Mejoras incluidas en 1.9.0
+
 | Área | Qué cambió |
 |------|------------|
-| **Medallas** | Catálogo fijo por actividad reemplazado: el usuario crea medallas por hobby + umbral de XP; nombres sugeridos (elegibles/editables); vitrina y motor alineados. Migración `UserCreatedHobbyXpMedals` limpia medallas antiguas. |
+| **Medallas** | Catálogo fijo por actividad reemplazado: el usuario crea medallas por hobby + umbral de XP; nombres sugeridos (elegibles/editables); vitrina y motor alineados. Migración `UserCreatedHobbyXpMedals` limpia medallas antiguas (hay que recrearlas en el editor). |
 | **Web portable** | Cliente Blazor (`HobbyXP.Web`): login, dashboard, running, gym, dieta, perfil/XP; placeholders de entretenimiento/premios. |
 | **Core** | Extracción `HobbyXP.Core` (Models/Data/Services/Helpers) desacoplado de WPF; WPF solo UI + diálogos. |
 | **Infra VPS** | `deploy/` Docker Compose (web + Postgres + Caddy HTTPS + backup diario). Guía [`docs/DEPLOY-VPS.md`](docs/DEPLOY-VPS.md). |
 | **Migración datos** | Herramienta `SqliteToPostgres` para importar `%LocalAppData%\HobbyXP\hobbyxp.db` al servidor. |
-| **Versión** | 1.8.5 → **1.9.0** (Core/Web/WPF). |
+| **Versión** | 1.8.5 → **1.9.0** (csproj, Inno Setup, manifiesto MSIX). |
 
 ## Mejoras incluidas en 1.8.5
 
@@ -230,7 +232,7 @@ Para generar un ZIP portable autocontenido:
 .\scripts\package-portable.ps1
 ```
 
-Salida: `artifacts\HobbyXP-win-x64-Release.zip`. Release GitHub: [`v1.8.5`](https://github.com/VRB235/HobbyXP/releases/tag/v1.8.5).
+Salida: `artifacts\HobbyXP-win-x64-Release.zip`. Release GitHub: [`v1.9.0`](https://github.com/VRB235/HobbyXP/releases/tag/v1.9.0).
 
 MSIX e instalador Inno Setup: ver [`docs/DISTRIBUCION.md`](docs/DISTRIBUCION.md).
 
